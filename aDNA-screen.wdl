@@ -1,6 +1,5 @@
 workflow ancientDNA_screen{
 	String blc_input_directory
-	String fastq_intermediate_directory
 	File i5_indices
 	File i7_indices
 	File barcodeSets
@@ -20,7 +19,7 @@ workflow ancientDNA_screen{
 	File reference_sa
 	File reference_rsa
 
-	call bcl2fastq { input : blc_input_directory=blc_input_directory, fastq_output_directory=fastq_intermediate_directory} 
+	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
 		call merge_and_trim_lane { input : 
 			adna_screen_jar = adna_screen_jar,
@@ -83,12 +82,10 @@ workflow ancientDNA_screen{
 
 task bcl2fastq{
 	String blc_input_directory
-	String fastq_output_directory
 
 	command{
 		bcl2fastq \
 			-R ${blc_input_directory} \
-			-o ${fastq_output_directory} \
 			--create-fastq-for-index-reads \
 			--use-bases-mask Y76,I7,I7,Y76
 	}
@@ -96,28 +93,28 @@ task bcl2fastq{
 	output{
 		Array[Array[File]] read_files_by_lane = [
 			[
-				"${fastq_output_directory}/Undetermined_S0_L001_R1_001.fastq.gz", 
-				"${fastq_output_directory}/Undetermined_S0_L001_R2_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L001_I1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L001_I2_001.fastq.gz"
+				"Undetermined_S0_L001_R1_001.fastq.gz", 
+				"Undetermined_S0_L001_R2_001.fastq.gz",
+				"Undetermined_S0_L001_I1_001.fastq.gz",
+				"Undetermined_S0_L001_I2_001.fastq.gz"
 			],
 			[
-				"${fastq_output_directory}/Undetermined_S0_L002_R1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L002_R2_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L002_I1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L002_I2_001.fastq.gz"
+				"Undetermined_S0_L002_R1_001.fastq.gz",
+				"Undetermined_S0_L002_R2_001.fastq.gz",
+				"Undetermined_S0_L002_I1_001.fastq.gz",
+				"Undetermined_S0_L002_I2_001.fastq.gz"
 			],
 			[
-				"${fastq_output_directory}/Undetermined_S0_L003_R1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L003_R2_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L003_I1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L003_I2_001.fastq.gz"
+				"Undetermined_S0_L003_R1_001.fastq.gz",
+				"Undetermined_S0_L003_R2_001.fastq.gz",
+				"Undetermined_S0_L003_I1_001.fastq.gz",
+				"Undetermined_S0_L003_I2_001.fastq.gz"
 			],
 			[
-				"${fastq_output_directory}/Undetermined_S0_L004_R1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L004_R2_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L004_I1_001.fastq.gz",
-				"${fastq_output_directory}/Undetermined_S0_L004_I2_001.fastq.gz"
+				"Undetermined_S0_L004_R1_001.fastq.gz",
+				"Undetermined_S0_L004_R2_001.fastq.gz",
+				"Undetermined_S0_L004_I1_001.fastq.gz",
+				"Undetermined_S0_L004_I2_001.fastq.gz"
 			]
 		]
 	}
