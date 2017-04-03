@@ -21,12 +21,16 @@ workflow ancientDNA_screen{
 
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
+		call discover_lane_name_from_filename{ input:
+			filename = lane[0]
+		}
 		call merge_and_trim_lane { input : 
 			adna_screen_jar = adna_screen_jar,
 			i5_indices = i5_indices,
 			i7_indices = i7_indices,
 			barcodeSets = barcodeSets,
-			read_files_by_lane = lane
+			read_files_by_lane = lane,
+			label = discover_lane_name_from_filename.lane
 		}
 	}
 	scatter(fastq_to_align in merge_and_trim_lane.fastq_to_align){
@@ -40,8 +44,8 @@ workflow ancientDNA_screen{
 			reference_pac = reference_pac,
 			reference_rbwt = reference_rbwt,
 			reference_rpac = reference_rpac,
-			reference_sa = reference_sa,
-			reference_rsa = reference_rsa
+			reference_rsa = reference_rsa,
+			reference_sa = reference_sa
 		}
 		call convert_to_sam { input: 
 			sai_to_sam=align.sai, 
@@ -54,13 +58,16 @@ workflow ancientDNA_screen{
 			reference_pac = reference_pac,
 			reference_rbwt = reference_rbwt,
 			reference_rpac = reference_rpac,
-			reference_sa = reference_sa,
-			reference_rsa = reference_rsa
+			reference_rsa = reference_rsa,
+			reference_sa = reference_sa
 		}
 	}
 	call aggregate_lane_statistics{ input :
 		adna_screen_jar=adna_screen_jar,
 		statistics_by_lane=merge_and_trim_lane.statistics
+	}
+	call collect_filenames{ input:
+		files = convert_to_sam.sam
 	}
 	call demultiplex {input:
 		adna_screen_jar = adna_screen_jar,
@@ -125,6 +132,18 @@ task bcl2fastq{
 	}
 }
 
+task discover_lane_name_from_filename{
+	String filename
+	File python_lane_name
+	
+	command{
+		python3 ${python_lane_name} ${filename}
+	}
+	output{
+		String lane = stdout()
+	}
+}
+
 task merge_and_trim_lane{
 	File adna_screen_jar
 	File i5_indices
@@ -175,8 +194,8 @@ task align{
 	File reference_pac
 	File reference_rbwt
 	File reference_rpac
-	File reference_sa
 	File reference_rsa
+	File reference_sa
 	
 	command {
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > ${fastq_to_align}.sai
@@ -204,14 +223,28 @@ task convert_to_sam{
 	File reference_pac
 	File reference_rbwt
 	File reference_rpac
-	File reference_sa
 	File reference_rsa
+	File reference_sa
 	
 	command{
 		bwa samse ${reference} ${sai_to_sam} ${fastq_to_align} > ${sai_to_sam}.sam
 	}
 	output{
 		File sam = "${sai_to_sam}.sam"
+	}
+}
+
+# use String instead of filename to avoid file copying overhead
+task collect_filenames{
+	Array[Array[String]] files
+	File python_flatten
+	
+	command{
+		echo "${sep='\n' files}" > raw_array
+		python3 ${python_flatten} < raw_array
+	}
+	output{
+		Array[String] filenames = read_lines(stdout())
 	}
 }
 
