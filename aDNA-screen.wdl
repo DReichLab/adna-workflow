@@ -33,7 +33,10 @@ workflow ancientDNA_screen{
 			label = discover_lane_name_from_filename.lane
 		}
 	}
-	scatter(fastq_to_align in merge_and_trim_lane.fastq_to_align){
+	call collect_filenames{ input:
+		filename_arrays = merge_and_trim_lane.fastq_to_align
+	}
+	scatter(fastq_to_align in collect_filenames.filenames){
 		call align { input:
 			fastq_to_align = fastq_to_align,
 			reference = reference,
@@ -65,9 +68,6 @@ workflow ancientDNA_screen{
 	call aggregate_lane_statistics{ input :
 		adna_screen_jar=adna_screen_jar,
 		statistics_by_lane=merge_and_trim_lane.statistics
-	}
-	call collect_filenames{ input:
-		files = convert_to_sam.sam
 	}
 	call demultiplex {input:
 		adna_screen_jar = adna_screen_jar,
@@ -141,7 +141,7 @@ task discover_lane_name_from_filename{
 		python3 ${python_lane_name} ${filename}
 	}
 	output{
-		String lane = stdout()
+		String lane = read_string(stdout())
 	}
 }
 
@@ -207,7 +207,7 @@ task align{
 	runtime{
 			cpus: "${threads}"
 			runtime_minutes: 300
-			requested_memory_mb_per_core: 16384
+			requested_memory_mb_per_core: 8192
 			queue: "short"
 	}
 }
@@ -237,11 +237,11 @@ task convert_to_sam{
 
 # use String instead of filename to avoid file copying overhead
 task collect_filenames{
-	Array[Array[String]] files
+	Array[Array[String]] filename_arrays
 	File python_flatten
 	
 	command{
-		echo "${sep='\n' files}" > raw_array
+		echo "${sep='\n' filename_arrays}" > raw_array
 		python3 ${python_flatten} < raw_array
 	}
 	output{
