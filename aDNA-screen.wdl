@@ -143,6 +143,12 @@ task discover_lane_name_from_filename{
 	output{
 		String lane = read_string(stdout())
 	}
+	runtime{
+			cpus: 1
+			runtime_minutes: 10
+			requested_memory_mb_per_core: 2048
+			queue: "short"
+	}
 }
 
 task merge_and_trim_lane{
@@ -246,6 +252,12 @@ task collect_filenames{
 	}
 	output{
 		Array[String] filenames = read_lines(stdout())
+	}
+	runtime{
+			cpus: 1
+			runtime_minutes: 10
+			requested_memory_mb_per_core: 2048
+			queue: "short"
 	}
 }
 
