@@ -179,7 +179,7 @@ task aggregate_lane_statistics{
 	Array [File] statistics_by_lane
 	
 	command{
-		java -cp ${adna_screen_jar} adnascreen.AggregateStatistics ${statistics_by_lane} > aggregated_statistics
+		java -cp ${adna_screen_jar} adnascreen.AggregateStatistics ${sep=' ' statistics_by_lane} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
