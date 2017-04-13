@@ -127,9 +127,9 @@ task bcl2fastq{
 		]
 	}
 	runtime{
-		cpus: 2
+		cpus: 4
 		runtime_minutes: 240
-		requested_memory_mb_per_core: 16384
+		requested_memory_mb_per_core: 8192
 	}
 }
 
@@ -167,7 +167,7 @@ task merge_and_trim_lane{
 		File statistics = "${label}.stats"
 	}
 	runtime{
-			cpus: 2
+			cpus: 1
 			runtime_minutes: 300
 			requested_memory_mb_per_core: 16384
 			queue: "short"
