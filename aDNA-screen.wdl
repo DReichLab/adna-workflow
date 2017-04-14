@@ -138,10 +138,10 @@ task discover_lane_name_from_filename{
 	File python_lane_name
 	
 	command{
-		python3 ${python_lane_name} ${filename}
+		python3 ${python_lane_name} ${filename} > lane_name
 	}
 	output{
-		String lane = read_string(stdout())
+		String lane = read_string("./lane_name")
 	}
 	runtime{
 			cpus: 1
@@ -248,10 +248,10 @@ task collect_filenames{
 	
 	command{
 		echo "${sep='\n' filename_arrays}" > raw_array
-		python3 ${python_flatten} < raw_array
+		python3 ${python_flatten} < raw_array > file_of_filenames
 	}
 	output{
-		Array[String] filenames = read_lines(stdout())
+		Array[String] filenames = read_lines("./file_of_filenames")
 	}
 	runtime{
 			cpus: 1
