@@ -205,10 +205,10 @@ task align{
 	File reference_sa
 	
 	command {
-		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > ${fastq_to_align}.sai
+		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai
 	}
 	output{
-		File sai = "${fastq_to_align}.sai"
+		File sai = "aligned.sai"
 	}
 	runtime{
 			cpus: "${threads}"
