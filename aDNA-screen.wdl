@@ -18,6 +18,8 @@ workflow ancientDNA_screen{
 	File reference_rpac
 	File reference_sa
 	File reference_rsa
+	
+	String output_path
 
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
@@ -75,16 +77,28 @@ workflow ancientDNA_screen{
 		aligned_sam_files = convert_to_sam.sam
 	}
 	scatter(sam in demultiplex.demultiplexed_sam){
+		call pass_through_for_filename{ input:
+			filename_with_path = sam
+		}
 		call sort{ input: 
 			picard_jar = picard_jar,
-			unsorted = sam
+			unsorted = pass_through_for_filename.pass_through,
+			sample_id = pass_through_for_filename.filename
 		}
 		call deduplicate{ input:
 			picard_jar = picard_jar,
-			sorted = sort.sorted
+			sorted = sort.sorted,
+			sample_id = sort.id
 		}
 	}
-	
+	call copy_output{ input:
+		files = deduplicate.deduplicated,
+		output_path = output_path
+	}
+	call copy_output2{ input:
+		files = deduplicate.statistics,
+		output_path = output_path
+	}
 }
 
 task bcl2fastq{
@@ -234,10 +248,10 @@ task convert_to_sam{
 	File reference_sa
 	
 	command{
-		bwa samse ${reference} ${sai_to_sam} ${fastq_to_align} > ${sai_to_sam}.sam
+		bwa samse ${reference} ${sai_to_sam} ${fastq_to_align} > aligned.sam
 	}
 	output{
-		File sam = "${sai_to_sam}.sam"
+		File sam = "aligned.sam"
 	}
 }
 
@@ -274,27 +288,67 @@ task demultiplex{
 	}
 }
 
+task pass_through_for_filename{
+	String filename_with_path
+	File parse_filename_py
+	
+	command{
+		python3 ${parse_filename_py} ${filename_with_path} > output_filename
+	}
+	output{
+		String pass_through = filename_with_path
+		String filename = read_string("./output_filename")
+	}
+}
+
 task sort{
 	File picard_jar
 	File unsorted
+	String sample_id
 	
 	command{
-		java -jar ${picard_jar} SortSam I=${unsorted} O=${unsorted}.sorted SORT_ORDER=coordinate
+		java -jar ${picard_jar} SortSam I=${unsorted} O=${sample_id} SORT_ORDER=coordinate
 	}
 	output{
-		File sorted = "${unsorted}.sorted"
+		File sorted = "${sample_id}"
+		String id = sample_id
 	}
 }
 
 task deduplicate{
 	File picard_jar
 	File sorted
+	String sample_id
 
 	command{
-		java -jar ${picard_jar} MarkDuplicates I=${sorted} O=${sorted}.dedup M=${sorted}.dedup_stats
+		java -jar ${picard_jar} MarkDuplicates I=${sorted} O=${sample_id} M=${sample_id}.dedup_stats
 	}
 	output{
-		File deduplicated = "${sorted}.dedup"
-		File statistics = "${sorted}.dedup_stats"
+		File deduplicated = "${sample_id}"
+		File statistics = "${sample_id}.dedup_stats"
+	}
+}
+
+task copy_output{
+	Array[File] files
+	String output_path
+	
+	command{
+		mkdir -p ${output_path};
+		for file in ${sep=' ' files}  ; do 
+			cp -l $file "${output_path}"
+		done
+	}
+}
+
+task copy_output2{
+	Array[File] files
+	String output_path
+	
+	command{
+		mkdir -p ${output_path};
+		for file in ${sep=' ' files}  ; do 
+			cp -l $file "${output_path}"
+		done
 	}
 }
