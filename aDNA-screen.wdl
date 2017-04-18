@@ -77,13 +77,9 @@ workflow ancientDNA_screen{
 		aligned_sam_files = convert_to_sam.sam
 	}
 	scatter(sam in demultiplex.demultiplexed_sam){
-		call pass_through_for_filename{ input:
-			filename_with_path = sam
-		}
 		call sort{ input: 
 			picard_jar = picard_jar,
-			unsorted = pass_through_for_filename.pass_through,
-			sample_id = pass_through_for_filename.filename
+			unsorted = sam
 		}
 		call deduplicate{ input:
 			picard_jar = picard_jar,
@@ -288,23 +284,10 @@ task demultiplex{
 	}
 }
 
-task pass_through_for_filename{
-	String filename_with_path
-	File parse_filename_py
-	
-	command{
-		python3 ${parse_filename_py} ${filename_with_path} > output_filename
-	}
-	output{
-		String pass_through = filename_with_path
-		String filename = read_string("./output_filename")
-	}
-}
-
 task sort{
 	File picard_jar
 	File unsorted
-	String sample_id
+	String sample_id = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
 	
 	command{
 		java -jar ${picard_jar} SortSam I=${unsorted} O=${sample_id} SORT_ORDER=coordinate
