@@ -73,7 +73,7 @@ workflow ancientDNA_screen{
 	}
 	call demultiplex {input:
 		adna_screen_jar = adna_screen_jar,
-		summary_statistics = aggregate_lane_statistics.statistics,
+		prealignment_statistics = aggregate_lane_statistics.statistics,
 		aligned_sam_files = convert_to_sam.sam
 	}
 	scatter(sam in demultiplex.demultiplexed_sam){
@@ -273,14 +273,15 @@ task collect_filenames{
 
 task demultiplex{
 	File adna_screen_jar
-	File summary_statistics
+	File prealignment_statistics
 	Array[File] aligned_sam_files
 	
 	command{
-		java -cp ${adna_screen_jar} adnascreen.DemultiplexSAM ${summary_statistics} ${sep=' ' aligned_sam_files}
+		java -cp ${adna_screen_jar} adnascreen.DemultiplexSAM ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_sam = glob("*.sam")
+		File statistics = postalignment_statistics
 	}
 }
 
