@@ -3,23 +3,30 @@ workflow ancientDNA_screen{
 	File i5_indices
 	File i7_indices
 	File barcodeSets
-	String alignment_reference
 	
 	File adna_screen_jar
 	File picard_jar
+	File pmdtools
+	
+	File python_damage
 	
 	File reference
 	File reference_amb
 	File reference_ann
 	File reference_bwt
-	File reference_fai
 	File reference_pac
-	File reference_rbwt
-	File reference_rpac
 	File reference_sa
-	File reference_rsa
 	
-	String output_path
+	File mt_reference
+	File mt_reference_amb
+	File mt_reference_ann
+	File mt_reference_bwt
+	File mt_reference_pac
+	File mt_reference_sa
+	
+	String output_path_hs37d5_aligned_unfiltered
+	String output_path_hs37d5_aligned_filtered
+	String output_path_rsrs_aligned_filtered
 
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
@@ -35,65 +42,123 @@ workflow ancientDNA_screen{
 			label = discover_lane_name_from_filename.lane
 		}
 	}
+	call aggregate_statistics as aggregate_lane_statistics{ input :
+		adna_screen_jar=adna_screen_jar,
+		statistics_by_group=merge_and_trim_lane.statistics
+	}
 	call collect_filenames{ input:
 		filename_arrays = merge_and_trim_lane.fastq_to_align
 	}
 	scatter(fastq_to_align in collect_filenames.filenames){
-		call align { input:
+		call align as align_hs37d5{ input:
 			fastq_to_align = fastq_to_align,
 			reference = reference,
 			reference_amb = reference_amb,
 			reference_ann = reference_ann,
 			reference_bwt = reference_bwt,
-			reference_fai = reference_fai,
 			reference_pac = reference_pac,
-			reference_rbwt = reference_rbwt,
-			reference_rpac = reference_rpac,
-			reference_rsa = reference_rsa,
 			reference_sa = reference_sa
 		}
-		call convert_to_sam { input: 
-			sai_to_sam=align.sai, 
-			fastq_to_align=fastq_to_align,
-			reference = reference,
-			reference_amb = reference_amb,
-			reference_ann = reference_ann,
-			reference_bwt = reference_bwt,
-			reference_fai = reference_fai,
-			reference_pac = reference_pac,
-			reference_rbwt = reference_rbwt,
-			reference_rpac = reference_rpac,
-			reference_rsa = reference_rsa,
-			reference_sa = reference_sa
+		call align as align_rsrs{ input:
+			fastq_to_align = fastq_to_align,
+			reference = mt_reference,
+			reference_amb = mt_reference_amb,
+			reference_ann = mt_reference_ann,
+			reference_bwt = mt_reference_bwt,
+			reference_pac = mt_reference_pac,
+			reference_sa = mt_reference_sa
 		}
 	}
-	call aggregate_lane_statistics{ input :
-		adna_screen_jar=adna_screen_jar,
-		statistics_by_lane=merge_and_trim_lane.statistics
-	}
-	call demultiplex {input:
+	call demultiplex as demultiplex_hs37d5 {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_sam_files = convert_to_sam.sam
+		aligned_sam_files = align_hs37d5.sam
 	}
-	scatter(sam in demultiplex.demultiplexed_sam){
-		call sort{ input: 
-			picard_jar = picard_jar,
-			unsorted = sam
+	scatter(bam in demultiplex_hs37d5.demultiplexed_bam){
+		call target as hs37d5_target{ input:
+			adna_screen_jar = adna_screen_jar,
+			bam = bam,
+			targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y'}\""
 		}
-		call deduplicate{ input:
+		call process_sample as process_sample_hs37d5 { input: 
 			picard_jar = picard_jar,
-			sorted = sort.sorted,
-			sample_id = sort.id
+			adna_screen_jar = adna_screen_jar,
+			pmdtools = pmdtools,
+			unsorted = bam,
+			python_damage = python_damage
+		}
+		call target as hs37d5_target_post{ input:
+			adna_screen_jar = adna_screen_jar,
+			bam = process_sample_hs37d5.aligned_deduplicated,
+			targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y'}\""
 		}
 	}
-	call copy_output{ input:
-		files = deduplicate.deduplicated,
-		output_path = output_path
+	
+	call demultiplex as demultiplex_rsrs {input:
+		adna_screen_jar = adna_screen_jar,
+		prealignment_statistics = aggregate_lane_statistics.statistics,
+		aligned_sam_files = align_rsrs.sam
 	}
-	call copy_output2{ input:
-		files = deduplicate.statistics,
-		output_path = output_path
+	scatter(bam in demultiplex_rsrs.demultiplexed_bam){
+		call target as rsrs_target{ input:
+			adna_screen_jar = adna_screen_jar,
+			bam = bam,
+			targets="\"{'MT_pre':'MT'}\""
+		}
+		call process_sample as process_sample_rsrs{ input: 
+			picard_jar = picard_jar,
+			adna_screen_jar = adna_screen_jar,
+			pmdtools = pmdtools,
+			unsorted = bam,
+			python_damage = python_damage
+		}
+		call target as rsrs_target_post{ input:
+			adna_screen_jar = adna_screen_jar,
+			bam = process_sample_rsrs.aligned_deduplicated,
+			targets="\"{'MT_post':'MT'}\""
+		}
+	}
+	
+	call aggregate_statistics as aggregate_statistics_pre_hs37d5{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = hs37d5_target.target_stats
+	}
+	call aggregate_statistics as aggregate_statistics_post_hs37d5{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = hs37d5_target_post.target_stats
+	}
+	call aggregate_statistics as aggregate_statistics_pre_rsrs{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = rsrs_target.target_stats
+	}
+	call aggregate_statistics as aggregate_statistics_post_rsrs{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = rsrs_target_post.target_stats
+	}
+	
+	Array[File] cumulative_statistics = [
+		aggregate_lane_statistics.statistics,
+		aggregate_statistics_pre_hs37d5.statistics,
+		aggregate_statistics_post_hs37d5.statistics,
+		aggregate_statistics_pre_rsrs.statistics,
+		aggregate_statistics_post_rsrs.statistics
+	]
+	call aggregate_statistics as aggregate_statistics_final{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = cumulative_statistics
+	}
+	
+	call copy_output as copy_hs37d5_aligned_unfiltered{ input:
+		files = demultiplex_hs37d5.demultiplexed_bam,
+		output_path = output_path_hs37d5_aligned_unfiltered
+	}
+	call copy_output as copy_hs37d5_aligned_filtered{ input:
+		files = process_sample_hs37d5.aligned_deduplicated,
+		output_path = output_path_hs37d5_aligned_filtered
+	}
+	call copy_output as copy_rsrs_aligned_filtered{ input:
+		files = process_sample_rsrs.aligned_deduplicated,
+		output_path = output_path_rsrs_aligned_filtered
 	}
 }
 
@@ -148,7 +213,7 @@ task discover_lane_name_from_filename{
 	File python_lane_name
 	
 	command{
-		python3 ${python_lane_name} ${filename} > lane_name
+		python ${python_lane_name} ${filename} > lane_name
 	}
 	output{
 		String lane = read_string("./lane_name")
@@ -184,15 +249,21 @@ task merge_and_trim_lane{
 	}
 }
 
-task aggregate_lane_statistics{
+task aggregate_statistics{
 	File adna_screen_jar
-	Array [File] statistics_by_lane
+	Array [File] statistics_by_group
 	
 	command{
-		java -cp ${adna_screen_jar} adnascreen.AggregateStatistics ${sep=' ' statistics_by_lane} > aggregated_statistics
+		java -cp ${adna_screen_jar} adnascreen.AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
+	}
+	runtime{
+			cpus: 1
+			runtime_minutes: 20
+			requested_memory_mb_per_core: 4096
+			queue: "short"
 	}
 }
 
@@ -207,47 +278,21 @@ task align{
 	File reference_amb
 	File reference_ann
 	File reference_bwt
-	File reference_fai
 	File reference_pac
-	File reference_rbwt
-	File reference_rpac
-	File reference_rsa
 	File reference_sa
 	
 	command {
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai
+		bwa samse ${reference} aligned.sai ${fastq_to_align} > aligned.sam
 	}
 	output{
-		File sai = "aligned.sai"
+		File sam = "aligned.sam"
 	}
 	runtime{
 			cpus: "${threads}"
 			runtime_minutes: 300
 			requested_memory_mb_per_core: 8192
 			queue: "short"
-	}
-}
-
-task convert_to_sam{
-	File fastq_to_align
-	File sai_to_sam
-	
-	File reference
-	File reference_amb
-	File reference_ann
-	File reference_bwt
-	File reference_fai
-	File reference_pac
-	File reference_rbwt
-	File reference_rpac
-	File reference_rsa
-	File reference_sa
-	
-	command{
-		bwa samse ${reference} ${sai_to_sam} ${fastq_to_align} > aligned.sam
-	}
-	output{
-		File sam = "aligned.sam"
 	}
 }
 
@@ -258,7 +303,7 @@ task collect_filenames{
 	
 	command{
 		echo "${sep='\n' filename_arrays}" > raw_array
-		python3 ${python_flatten} < raw_array > file_of_filenames
+		python ${python_flatten} < raw_array > file_of_filenames
 	}
 	output{
 		Array[String] filenames = read_lines("./file_of_filenames")
@@ -280,36 +325,60 @@ task demultiplex{
 		java -cp ${adna_screen_jar} adnascreen.DemultiplexSAM ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
 	}
 	output{
-		Array[File] demultiplexed_sam = glob("*.sam")
-		File statistics = postalignment_statistics
+		Array[File] demultiplexed_bam = glob("*.bam")
+		File statistics = "postalignment_statistics"
 	}
 }
 
-task sort{
+# filter out unaligned and duplicate reads
+# compute damage
+task process_sample{
 	File picard_jar
+	File adna_screen_jar
+	File pmdtools
 	File unsorted
-	String sample_id = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
+	File python_damage
+	
+	String sample_id_filename = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
 	
 	command{
-		java -jar ${picard_jar} SortSam I=${unsorted} O=${sample_id} SORT_ORDER=coordinate
+		java -jar ${picard_jar} SortSam I=${unsorted} O=sorted_queryname.bam SORT_ORDER=queryname
+		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=filtered.bam FILTER=includeAligned 
+		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted_coordinate.bam SORT_ORDER=coordinate
+		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true
+		java -cp ${adna_screen_jar} adnascreen.ReadMarkDuplicatesStatistics ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
+		
+		echo "${sample_id_filename}" > damage
+		java -jar ${picard_jar} ViewSam INPUT=${sample_id_filename} ALIGNMENT_STATUS=Aligned | python ${pmdtools} --first >> damage
+		python ${python_damage} < damage > damage_statistics
 	}
 	output{
-		File sorted = "${sample_id}"
-		String id = sample_id
+		String id = sample_id_filename
+		File aligned_deduplicated = "${sample_id_filename}"
+		File statistics = "${sample_id_filename}.stats"
+		File damage = "damage_statistics"
 	}
 }
 
-task deduplicate{
-	File picard_jar
-	File sorted
-	String sample_id
+task target{
+	File adna_screen_jar
+	File bam
+	String targets
+	
+	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 
 	command{
-		java -jar ${picard_jar} MarkDuplicates I=${sorted} O=${sample_id} M=${sample_id}.dedup_stats
+		java -cp ${adna_screen_jar} adnascreen.SAMStats ${bam} ${targets} ${sample_id_filename}.histogram > ${sample_id_filename}.stats
 	}
 	output{
-		File deduplicated = "${sample_id}"
-		File statistics = "${sample_id}.dedup_stats"
+		File target_stats = "${sample_id_filename}.stats"
+		File length_histogram = "${sample_id_filename}.histogram"
+	}
+	runtime{
+			cpus: 1
+			runtime_minutes: 30
+			requested_memory_mb_per_core: 4096
+			queue: "short"
 	}
 }
 
@@ -323,16 +392,10 @@ task copy_output{
 			cp -l $file "${output_path}"
 		done
 	}
-}
-
-task copy_output2{
-	Array[File] files
-	String output_path
-	
-	command{
-		mkdir -p ${output_path};
-		for file in ${sep=' ' files}  ; do 
-			cp -l $file "${output_path}"
-		done
+	runtime{
+			cpus: 1
+			runtime_minutes: 300
+			requested_memory_mb_per_core: 2048
+			queue: "short"
 	}
 }
