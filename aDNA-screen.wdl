@@ -205,6 +205,7 @@ task bcl2fastq{
 		cpus: 4
 		runtime_minutes: 240
 		requested_memory_mb_per_core: 8192
+		queue: "mcore"
 	}
 }
 
@@ -292,7 +293,7 @@ task align{
 			cpus: "${threads}"
 			runtime_minutes: 300
 			requested_memory_mb_per_core: 8192
-			queue: "short"
+			queue: "mcore"
 	}
 }
 
