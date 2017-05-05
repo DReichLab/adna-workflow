@@ -8,6 +8,8 @@ workflow ancientDNA_screen{
 	File picard_jar
 	File pmdtools
 	
+	Int minimum_mapping_quality
+	
 	File python_damage
 	
 	File reference
@@ -78,7 +80,8 @@ workflow ancientDNA_screen{
 		call target as hs37d5_target{ input:
 			adna_screen_jar = adna_screen_jar,
 			bam = bam,
-			targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y'}\""
+			targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y'}\"",
+			minimum_mapping_quality = minimum_mapping_quality
 		}
 		call process_sample as process_sample_hs37d5 { input: 
 			picard_jar = picard_jar,
@@ -90,7 +93,8 @@ workflow ancientDNA_screen{
 		call target as hs37d5_target_post{ input:
 			adna_screen_jar = adna_screen_jar,
 			bam = process_sample_hs37d5.aligned_deduplicated,
-			targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y'}\""
+			targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y'}\"",
+			minimum_mapping_quality = minimum_mapping_quality
 		}
 	}
 	
@@ -103,7 +107,8 @@ workflow ancientDNA_screen{
 		call target as rsrs_target{ input:
 			adna_screen_jar = adna_screen_jar,
 			bam = bam,
-			targets="\"{'MT_pre':'MT'}\""
+			targets="\"{'MT_pre':'MT'}\"",
+			minimum_mapping_quality = minimum_mapping_quality
 		}
 		call process_sample as process_sample_rsrs{ input: 
 			picard_jar = picard_jar,
@@ -115,7 +120,8 @@ workflow ancientDNA_screen{
 		call target as rsrs_target_post{ input:
 			adna_screen_jar = adna_screen_jar,
 			bam = process_sample_rsrs.aligned_deduplicated,
-			targets="\"{'MT_post':'MT'}\""
+			targets="\"{'MT_post':'MT'}\"",
+			minimum_mapping_quality = minimum_mapping_quality
 		}
 	}
 	
@@ -366,11 +372,12 @@ task target{
 	File adna_screen_jar
 	File bam
 	String targets
+	Int minimum_mapping_quality
 	
 	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 
 	command{
-		java -cp ${adna_screen_jar} adnascreen.SAMStats ${bam} ${targets} ${sample_id_filename}.histogram > ${sample_id_filename}.stats
+		java -cp ${adna_screen_jar} adnascreen.SAMStats -f ${bam} -t ${targets} -l ${sample_id_filename}.histogram -q ${minimum_mapping_quality} > ${sample_id_filename}.stats
 	}
 	output{
 		File target_stats = "${sample_id_filename}.stats"
