@@ -282,7 +282,7 @@ task align{
 	File reference_sa
 	
 	command {
-		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai
+		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai && \
 		bwa samse ${reference} aligned.sai ${fastq_to_align} > aligned.sam
 	}
 	output{
@@ -342,6 +342,7 @@ task process_sample{
 	String sample_id_filename = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
 	
 	command{
+		set -e
 		java -jar ${picard_jar} SortSam I=${unsorted} O=sorted_queryname.bam SORT_ORDER=queryname
 		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=filtered.bam FILTER=includeAligned 
 		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted_coordinate.bam SORT_ORDER=coordinate

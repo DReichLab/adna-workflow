@@ -16,6 +16,6 @@ s = line.split(":")
 right = s[1]
 values = right.split()
 damage = float(values[0])
-stderr = float(values[1])
+stderr = values[1]
 
 print("%s\t%s\t%.3f" % (key, "damage", damage) )
