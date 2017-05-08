@@ -166,6 +166,12 @@ workflow ancientDNA_screen{
 		files = process_sample_rsrs.aligned_deduplicated,
 		output_path = output_path_rsrs_aligned_filtered
 	}
+	call concatenate as concatenate_rsrs_damage{ input:
+		to_concatenate = process_sample_rsrs.damage
+	}
+	call concatenate as concatenate_hs37d5_damage{ input:
+		to_concatenate = process_sample_hs37d5.damage
+	}
 }
 
 task bcl2fastq{
@@ -297,7 +303,7 @@ task align{
 	}
 	runtime{
 			cpus: "${threads}"
-			runtime_minutes: 300
+			runtime_minutes: 480
 			requested_memory_mb_per_core: 8192
 			queue: "mcore"
 	}
@@ -388,6 +394,19 @@ task target{
 			runtime_minutes: 30
 			requested_memory_mb_per_core: 4096
 			queue: "short"
+	}
+}
+
+task concatenate{
+	Array[File] to_concatenate
+	
+	command{
+		for file in ${sep=' ' to_concatenate}  ; do 
+			cat $file >> concatenated
+		done
+	}
+	output{
+		File concatenated = "concatenated"
 	}
 }
 
