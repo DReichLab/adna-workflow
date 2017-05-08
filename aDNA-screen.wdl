@@ -162,8 +162,16 @@ workflow ancientDNA_screen{
 		files = process_sample_hs37d5.aligned_deduplicated,
 		output_path = output_path_hs37d5_aligned_filtered
 	}
+	call copy_output as copy_hs37d5_histogram{ input:
+		files = hs37d5_target_post.length_histogram,
+		output_path = output_path_hs37d5_aligned_filtered
+	}
 	call copy_output as copy_rsrs_aligned_filtered{ input:
 		files = process_sample_rsrs.aligned_deduplicated,
+		output_path = output_path_rsrs_aligned_filtered
+	}
+	call copy_output as copy_rsrs_histogram{ input:
+		files = rsrs_target_post.length_histogram,
 		output_path = output_path_rsrs_aligned_filtered
 	}
 	call concatenate as concatenate_rsrs_damage{ input:
@@ -407,6 +415,12 @@ task concatenate{
 	}
 	output{
 		File concatenated = "concatenated"
+	}
+	runtime{
+			cpus: 1
+			runtime_minutes: 30
+			requested_memory_mb_per_core: 4096
+			queue: "short"
 	}
 }
 
