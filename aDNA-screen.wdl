@@ -76,13 +76,13 @@ workflow ancientDNA_screen{
 		prealignment_statistics = aggregate_lane_statistics.statistics,
 		aligned_sam_files = align_hs37d5.sam
 	}
+	call target as hs37d5_target{ input:
+		adna_screen_jar = adna_screen_jar,
+		bams = demultiplex_hs37d5.demultiplexed_bam,
+		targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y'}\"",
+		minimum_mapping_quality = minimum_mapping_quality
+	}
 	scatter(bam in demultiplex_hs37d5.demultiplexed_bam){
-		call target as hs37d5_target{ input:
-			adna_screen_jar = adna_screen_jar,
-			bam = bam,
-			targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y'}\"",
-			minimum_mapping_quality = minimum_mapping_quality
-		}
 		call process_sample as process_sample_hs37d5 { input: 
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
@@ -90,12 +90,12 @@ workflow ancientDNA_screen{
 			unsorted = bam,
 			python_damage = python_damage
 		}
-		call target as hs37d5_target_post{ input:
-			adna_screen_jar = adna_screen_jar,
-			bam = process_sample_hs37d5.aligned_deduplicated,
-			targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y'}\"",
-			minimum_mapping_quality = minimum_mapping_quality
-		}
+	}
+	call target as hs37d5_target_post{ input:
+		adna_screen_jar = adna_screen_jar,
+		bams = process_sample_hs37d5.aligned_deduplicated,
+		targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y'}\"",
+		minimum_mapping_quality = minimum_mapping_quality
 	}
 	
 	call demultiplex as demultiplex_rsrs {input:
@@ -103,13 +103,13 @@ workflow ancientDNA_screen{
 		prealignment_statistics = aggregate_lane_statistics.statistics,
 		aligned_sam_files = align_rsrs.sam
 	}
+	call target as rsrs_target{ input:
+		adna_screen_jar = adna_screen_jar,
+		bams = demultiplex_rsrs.demultiplexed_bam,
+		targets="\"{'MT_pre':'MT'}\"",
+		minimum_mapping_quality = minimum_mapping_quality
+	}
 	scatter(bam in demultiplex_rsrs.demultiplexed_bam){
-		call target as rsrs_target{ input:
-			adna_screen_jar = adna_screen_jar,
-			bam = bam,
-			targets="\"{'MT_pre':'MT'}\"",
-			minimum_mapping_quality = minimum_mapping_quality
-		}
 		call process_sample as process_sample_rsrs{ input: 
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
@@ -117,12 +117,12 @@ workflow ancientDNA_screen{
 			unsorted = bam,
 			python_damage = python_damage
 		}
-		call target as rsrs_target_post{ input:
-			adna_screen_jar = adna_screen_jar,
-			bam = process_sample_rsrs.aligned_deduplicated,
-			targets="\"{'MT_post':'MT'}\"",
-			minimum_mapping_quality = minimum_mapping_quality
-		}
+	}
+	call target as rsrs_target_post{ input:
+		adna_screen_jar = adna_screen_jar,
+		bams = process_sample_rsrs.aligned_deduplicated,
+		targets="\"{'MT_post':'MT'}\"",
+		minimum_mapping_quality = minimum_mapping_quality
 	}
 	
 	call aggregate_statistics as aggregate_statistics_pre_hs37d5{ input:
@@ -311,7 +311,7 @@ task align{
 	}
 	runtime{
 			cpus: "${threads}"
-			runtime_minutes: 480
+			runtime_minutes: 600
 			requested_memory_mb_per_core: 8192
 			queue: "mcore"
 	}
@@ -382,7 +382,9 @@ task process_sample{
 	}
 }
 
-task target{
+# This runs too quickly to run on Orchestra short queue
+# The best solution would be to run a loop within this task, but this is not yet supported
+task target_forloop{
 	File adna_screen_jar
 	File bam
 	String targets
@@ -400,6 +402,31 @@ task target{
 	runtime{
 			cpus: 1
 			runtime_minutes: 30
+			requested_memory_mb_per_core: 4096
+			queue: "short"
+	}
+}
+
+# Alternative in place of looping in WDL, run loop in python
+task target{
+	File python_target
+	File adna_screen_jar
+	Array[File] bams
+	String targets
+	Int minimum_mapping_quality
+	
+	#String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+
+	command{
+		python ${python_target} ${adna_screen_jar} ${targets} ${minimum_mapping_quality} ${sep=' ' bams}
+	}
+	output{
+		Array[File] target_stats = glob("*.stats")
+		Array[File] length_histogram = glob("*.histogram")
+	}
+	runtime{
+			cpus: 2
+			runtime_minutes: 120
 			requested_memory_mb_per_core: 4096
 			queue: "short"
 	}
