@@ -9,6 +9,7 @@ workflow ancientDNA_screen{
 	File pmdtools
 	
 	Int minimum_mapping_quality
+	Int samples_to_demultiplex
 	
 	File python_damage
 	
@@ -74,7 +75,8 @@ workflow ancientDNA_screen{
 	call demultiplex as demultiplex_hs37d5 {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_sam_files = align_hs37d5.sam
+		aligned_sam_files = align_hs37d5.sam,
+		samples_to_demultiplex = samples_to_demultiplex
 	}
 	call target as hs37d5_target{ input:
 		adna_screen_jar = adna_screen_jar,
@@ -101,7 +103,8 @@ workflow ancientDNA_screen{
 	call demultiplex as demultiplex_rsrs {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_sam_files = align_rsrs.sam
+		aligned_sam_files = align_rsrs.sam,
+		samples_to_demultiplex = samples_to_demultiplex
 	}
 	call target as rsrs_target{ input:
 		adna_screen_jar = adna_screen_jar,
@@ -341,9 +344,10 @@ task demultiplex{
 	File adna_screen_jar
 	File prealignment_statistics
 	Array[File] aligned_sam_files
+	Int samples_to_demultiplex
 	
 	command{
-		java -cp ${adna_screen_jar} adnascreen.DemultiplexSAM ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
+		java -cp ${adna_screen_jar} adnascreen.DemultiplexSAM -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
