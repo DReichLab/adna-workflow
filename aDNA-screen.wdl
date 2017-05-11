@@ -483,3 +483,30 @@ task copy_output{
 			queue: "short"
 	}
 }
+
+task haplogrep{
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	String region
+	File bam
+	
+	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	
+	# value from samtools for bwa
+	Int excessive_mismatch_penalty = 50
+	
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_pac
+	File reference_sa
+
+	command{
+		set -e
+		samtools index ${bam}
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C {Int excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${bam} | bcftools call -m -v > ${sample_id_filename}.vcf
+	}
+	output{
+	}
+}
