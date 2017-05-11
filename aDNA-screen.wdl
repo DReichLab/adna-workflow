@@ -358,6 +358,12 @@ task demultiplex{
 		Array[File] demultiplexed_bam = glob("*.bam")
 		File statistics = "postalignment_statistics"
 	}
+	runtime{
+			cpus: 3
+			runtime_minutes: 600
+			requested_memory_mb_per_core: 16000
+			queue: "short"
+	}
 }
 
 # filter out unaligned and duplicate reads
