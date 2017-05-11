@@ -263,7 +263,7 @@ task merge_and_trim_lane{
 	Array[File] read_files_by_lane
 	String label
 	command{
-		java -jar ${adna_screen_jar} ${i5_indices} ${i7_indices} ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx14g -jar ${adna_screen_jar} ${i5_indices} ${i7_indices} ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
@@ -352,16 +352,16 @@ task demultiplex{
 	Int samples_to_demultiplex
 	
 	command{
-		java -cp ${adna_screen_jar} adnascreen.DemultiplexSAM -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
+		java -Xmx14g -cp ${adna_screen_jar} adnascreen.DemultiplexSAM -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
 		File statistics = "postalignment_statistics"
 	}
 	runtime{
-			cpus: 3
+			cpus: 2
 			runtime_minutes: 600
-			requested_memory_mb_per_core: 16000
+			requested_memory_mb_per_core: 8000
 			queue: "short"
 	}
 }
@@ -441,8 +441,8 @@ task target{
 	}
 	runtime{
 			cpus: 2
-			runtime_minutes: 120
-			requested_memory_mb_per_core: 4096
+			runtime_minutes: 180
+			requested_memory_mb_per_core: 8192
 			queue: "short"
 	}
 }
