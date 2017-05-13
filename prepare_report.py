@@ -11,15 +11,16 @@ headersToReport = ['raw',
 				   'Y_pre', 'Y_pre-coverageLength',
 				   'Y_post', 'Y_post-coverageLength',
 				   'MT_pre', 'MT_pre-coverageLength',
-				   'MT_post', 'MT_post-coverageLength']
+				   'MT_post', 'MT_post-coverageLength',
+				   'damage_hs37d5',
+				   'damage_rsrs']
 
-# read from stats
-statsFilename = sys.argv[1]
 samples = dict()
 
-with open(statsFilename, "r") as f:
-	line = f.readline()
-	total_reads = int(line)
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def addToSamples(f):
 	for line in f:
 		#key label1 value1 label2 value2 ...
 		tokens = str.strip(line).split('\t')
@@ -32,8 +33,24 @@ with open(statsFilename, "r") as f:
 		
 		for n in range(0, len(labels)):
 			samples[sampleID][labels[n]] = values[n]
+				
+
+# read from stats
+statsFilename = sys.argv[1]
+with open(statsFilename, "r") as f:
+	line = f.readline()
+	total_reads = int(line)
+	eprint('Total reads: ', total_reads)
+	addToSamples(f)
 
 # read from damages
+damageFilename = sys.argv[2]
+with open(damageFilename, "r") as f:
+	addToSamples(f)
+	
+damageFilename = sys.argv[3]
+with open(damageFilename, "r") as f:
+	addToSamples(f)
 
 # print headers
 print ('Index-Barcode Key', end='\t')
@@ -42,10 +59,14 @@ for header in headersToReport:
 print ('') # includes newline
 # output in preset header order
 for sampleID in samples:
-	print(sampleID, end='\t')
 	thisSample = samples[sampleID]
-	for label in headersToReport:
-		if label in thisSample:
-			print(thisSample[label], end='')
-		print('\t', end='')
-	print('')
+	try:
+		if int(samples[sampleID]['raw']) >= 500:
+			print(sampleID, end='\t')
+			for label in headersToReport:
+				if label in thisSample:
+					print(thisSample[label], end='')
+				print('\t', end='')
+			print('')
+	except KeyError:
+		eprint('KeyError', sampleID)
