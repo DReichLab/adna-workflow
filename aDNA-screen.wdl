@@ -126,6 +126,11 @@ workflow ancientDNA_screen{
 			python_damage = python_damage,
 			duplicates_label = "duplicates_rsrs"
 		}
+		call haplogrep as haplogrep_rsrs{ input:
+			minimum_mapping_quality = minimum_mapping_quality,
+			region = "MT",
+			bam = process_sample_rsrs.aligned_deduplicated
+		}
 	}
 	call target as rsrs_target_post{ input:
 		python_target = python_target,
@@ -133,6 +138,18 @@ workflow ancientDNA_screen{
 		bams = process_sample_rsrs.aligned_deduplicated,
 		targets="\"{'MT_post':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
+	}
+	
+	call medians as medians_hs37d5{ input:
+		label = "median_hs37d5",
+		histograms = hs37d5_target_post.length_histogram
+	}
+	call medians as medians_rsrs{ input:
+		label = "median_rsrs",
+		histograms = rsrs_target_post.length_histogram
+	}
+	call summarize_haplogroups{ input:
+		haplogrep_output = haplogrep_rsrs.haplogroup_report
 	}
 
 	call aggregate_statistics as aggregate_statistics_duplicates_hs37d5{ input:
@@ -200,6 +217,19 @@ workflow ancientDNA_screen{
 	}
 	call concatenate as concatenate_hs37d5_damage{ input:
 		to_concatenate = process_sample_hs37d5.damage
+	}
+	
+	Array[File] final_keyed_statistics = [
+		concatenate_hs37d5_damage.concatenated,
+		concatenate_rsrs_damage.concatenated,
+		medians_hs37d5.medians_output,
+		medians_rsrs.medians_output,
+		summarize_haplogroups.haplogroups
+		
+	]
+	call prepare_report{ input:
+		aggregated_statistics = aggregate_statistics_final.statistics,
+		keyed_statistics = final_keyed_statistics
 	}
 }
 
@@ -521,9 +551,74 @@ task haplogrep{
 	command{
 		set -e
 		samtools index ${bam}
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C {Int excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${bam} | bcftools call -m -v > ${sample_id_filename}.vcf
+samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${bam} | bcftools call -m -v > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
+		File haplogroup_report = "${sample_id_filename}.haplogroup"
+	}
+	runtime{
+		cpus: 1
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 8192
+		queue: "short"
+	}
+}
+
+task summarize_haplogroups{
+	File python_haplogroup
+	Array[File] haplogrep_output
+	
+	command{
+		python ${python_haplogroup} ${sep=' ' haplogrep_output} > haplogroups
+	}
+	output{
+		File haplogroups = "haplogroups"
+	}
+	runtime{
+		cpus: 1
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 4096
+		queue: "short"
+	}
+}
+
+task medians{
+	File python_median
+	String label
+	Array[File] histograms
+	
+	command{
+		python ${python_median} ${label} ${sep=' ' histograms} > ${label}
+	}
+	output{
+		File medians_output = "${label}"
+	}
+	runtime{
+		cpus: 1
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 4096
+		queue: "short"
+	}
+}
+
+task prepare_report{
+	File python_prepare_report
+	File aggregated_statistics
+	# these files contain statistics that are not necessarily count based
+	# they do not contain a leading number of reads
+	Array[File] keyed_statistics
+	
+	command{
+		python ${python_prepare_report} ${aggregated_statistics} ${sep=' ' keyed_statistics} > report
+	}
+	output{
+		File report = "report"
+	}
+	runtime{
+		cpus: 1
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 4096
+		queue: "short"
 	}
 }

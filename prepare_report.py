@@ -10,10 +10,17 @@ headersToReport = ['raw',
 				   'X_post', 'X_post-coverageLength',
 				   'Y_pre', 'Y_pre-coverageLength',
 				   'Y_post', 'Y_post-coverageLength',
+				   'duplicates_hs37d5',
+				   'median_hs37d5',
+				   'damage_hs37d5',
 				   'MT_pre', 'MT_pre-coverageLength',
 				   'MT_post', 'MT_post-coverageLength',
-				   'damage_hs37d5',
-				   'damage_rsrs']
+				   'duplicates_rsrs',
+				   'median_rsrs',
+				   'damage_rsrs',
+				   'Haplogroup',
+				   'Haplogroup_rank'
+				   ]
 
 samples = dict()
 
@@ -43,14 +50,11 @@ with open(statsFilename, "r") as f:
 	eprint('Total reads: ', total_reads)
 	addToSamples(f)
 
-# read from damages
-damageFilename = sys.argv[2]
-with open(damageFilename, "r") as f:
-	addToSamples(f)
-	
-damageFilename = sys.argv[3]
-with open(damageFilename, "r") as f:
-	addToSamples(f)
+# read from damages, medians, haplogroups
+filenames = sys.argv[2:len(sys.argv])
+for filename in filenames:
+	with open(damageFilename, "r") as f:
+		addToSamples(f)
 
 # print headers
 print ('Index-Barcode Key', end='\t')

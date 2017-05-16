@@ -1,6 +1,5 @@
 # read the output of haplogrep to determine a mt haplogroup
 
-import fileinput
 import os
 import sys
 
