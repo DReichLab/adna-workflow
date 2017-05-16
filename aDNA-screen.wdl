@@ -129,7 +129,13 @@ workflow ancientDNA_screen{
 		call haplogrep as haplogrep_rsrs{ input:
 			minimum_mapping_quality = minimum_mapping_quality,
 			region = "MT",
-			bam = process_sample_rsrs.aligned_deduplicated
+			bam = process_sample_rsrs.aligned_deduplicated,
+			reference = mt_reference,
+			reference_amb = mt_reference_amb,
+			reference_ann = mt_reference_ann,
+			reference_bwt = mt_reference_bwt,
+			reference_pac = mt_reference_pac,
+			reference_sa = mt_reference_sa
 		}
 	}
 	call target as rsrs_target_post{ input:
