@@ -13,6 +13,7 @@ workflow ancientDNA_screen{
 	
 	File python_damage
 	File python_target
+	File python_median
 	
 	File reference
 	File reference_amb
@@ -147,10 +148,12 @@ workflow ancientDNA_screen{
 	}
 	
 	call medians as medians_hs37d5{ input:
+		python_median = python_median,
 		label = "median_hs37d5",
 		histograms = hs37d5_target_post.length_histogram
 	}
 	call medians as medians_rsrs{ input:
+		python_median = python_median,
 		label = "median_rsrs",
 		histograms = rsrs_target_post.length_histogram
 	}
