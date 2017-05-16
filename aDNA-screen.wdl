@@ -92,7 +92,8 @@ workflow ancientDNA_screen{
 			adna_screen_jar = adna_screen_jar,
 			pmdtools = pmdtools,
 			unsorted = bam,
-			python_damage = python_damage
+			python_damage = python_damage,
+			duplicates_label = "duplicates_hs37d5"
 		}
 	}
 	call target as hs37d5_target_post{ input:
@@ -122,7 +123,8 @@ workflow ancientDNA_screen{
 			adna_screen_jar = adna_screen_jar,
 			pmdtools = pmdtools,
 			unsorted = bam,
-			python_damage = python_damage
+			python_damage = python_damage,
+			duplicates_label = "duplicates_rsrs"
 		}
 	}
 	call target as rsrs_target_post{ input:
@@ -131,6 +133,15 @@ workflow ancientDNA_screen{
 		bams = process_sample_rsrs.aligned_deduplicated,
 		targets="\"{'MT_post':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
+	}
+
+	call aggregate_statistics as aggregate_statistics_duplicates_hs37d5{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = process_sample_hs37d5.duplicates_statistics
+	}
+	call aggregate_statistics as aggregate_statistics_duplicates_rsrs{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = process_sample_rsrs.duplicates_statistics
 	}
 	
 	call aggregate_statistics as aggregate_statistics_pre_hs37d5{ input:
@@ -152,6 +163,8 @@ workflow ancientDNA_screen{
 	
 	Array[File] cumulative_statistics = [
 		aggregate_lane_statistics.statistics,
+		aggregate_statistics_duplicates_hs37d5.statistics,
+		aggregate_statistics_duplicates_rsrs.statistics,
 		aggregate_statistics_pre_hs37d5.statistics,
 		aggregate_statistics_post_hs37d5.statistics,
 		aggregate_statistics_pre_rsrs.statistics,
@@ -374,6 +387,7 @@ task process_sample{
 	File pmdtools
 	File unsorted
 	File python_damage
+	String duplicates_label
 	
 	String sample_id_filename = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
 	
@@ -383,7 +397,7 @@ task process_sample{
 		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=filtered.bam FILTER=includeAligned 
 		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted_coordinate.bam SORT_ORDER=coordinate
 		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true
-		java -cp ${adna_screen_jar} adnascreen.ReadMarkDuplicatesStatistics ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
+		java -cp ${adna_screen_jar} adnascreen.ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
 		
 		echo "${sample_id_filename}" > damage
 		java -jar ${picard_jar} ViewSam INPUT=${sample_id_filename} ALIGNMENT_STATUS=Aligned | python ${pmdtools} --first >> damage
@@ -392,7 +406,7 @@ task process_sample{
 	output{
 		String id = sample_id_filename
 		File aligned_deduplicated = "${sample_id_filename}"
-		File statistics = "${sample_id_filename}.stats"
+		File duplicates_statistics = "${sample_id_filename}.stats"
 		File damage = "damage_statistics"
 	}
 }
