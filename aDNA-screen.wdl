@@ -503,6 +503,8 @@ task haplogrep{
 	Int minimum_base_quality
 	String region
 	File bam
+	File haplogrep_jar
+	Int phylotree_version
 	
 	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 	
@@ -520,6 +522,7 @@ task haplogrep{
 		set -e
 		samtools index ${bam}
 		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C {Int excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${bam} | bcftools call -m -v > ${sample_id_filename}.vcf
+		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
 	}
