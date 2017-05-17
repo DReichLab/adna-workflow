@@ -404,7 +404,7 @@ task demultiplex{
 	Int samples_to_demultiplex
 	
 	command{
-		java -Xmx14g -cp ${adna_screen_jar} adnascreen.DemultiplexSAM -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
+		java -Xmx14g -cp ${adna_screen_jar} adnascreen.DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
