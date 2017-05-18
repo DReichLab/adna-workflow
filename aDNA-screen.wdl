@@ -324,7 +324,7 @@ task merge_and_trim_lane{
 	}
 	runtime{
 			cpus: 1
-			runtime_minutes: 300
+			runtime_minutes: 720
 			requested_memory_mb_per_core: 16384
 			queue: "short"
 	}
