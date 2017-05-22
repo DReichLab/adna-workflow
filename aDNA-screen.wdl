@@ -13,7 +13,7 @@ workflow ancientDNA_screen{
 	
 	File python_damage
 	File python_target
-	File python_median
+	File python_central_measures
 	
 	File reference
 	File reference_amb
@@ -147,14 +147,16 @@ workflow ancientDNA_screen{
 		minimum_mapping_quality = minimum_mapping_quality
 	}
 	
-	call medians as medians_hs37d5{ input:
-		python_median = python_median,
-		label = "median_hs37d5",
+	call central_measures as central_measures_hs37d5{ input:
+		python_central_measures = python_central_measures,
+		mean_label = "mean_hs37d5",
+		median_label = "median_hs37d5",
 		histograms = hs37d5_target_post.length_histogram
 	}
-	call medians as medians_rsrs{ input:
-		python_median = python_median,
-		label = "median_rsrs",
+	call central_measures as central_measures_rsrs{ input:
+		python_central_measures = python_central_measures,
+		mean_label = "mean_rsrs",
+		median_label = "median_rsrs",
 		histograms = rsrs_target_post.length_histogram
 	}
 	call summarize_haplogroups{ input:
@@ -231,8 +233,8 @@ workflow ancientDNA_screen{
 	Array[File] final_keyed_statistics = [
 		concatenate_hs37d5_damage.concatenated,
 		concatenate_rsrs_damage.concatenated,
-		medians_hs37d5.medians_output,
-		medians_rsrs.medians_output,
+		central_measures_hs37d5.central_measures_output,
+		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups
 		
 	]
@@ -592,16 +594,17 @@ task summarize_haplogroups{
 	}
 }
 
-task medians{
-	File python_median
-	String label
+task central_measures{
+	File python_central_measures
+	String median_label
+	String mean_label
 	Array[File] histograms
 	
 	command{
-		python ${python_median} ${label} ${sep=' ' histograms} > ${label}
+		python ${python_central_measures} ${median_label} ${mean_label} ${sep=' ' histograms} > central_measures
 	}
 	output{
-		File medians_output = "${label}"
+		File central_measures_output = "central_measures"
 	}
 	runtime{
 		cpus: 1
