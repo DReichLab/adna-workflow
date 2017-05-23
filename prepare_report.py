@@ -53,9 +53,9 @@ with open(statsFilename, "r") as f:
 	addToSamples(f)
 
 # read from damages, medians, haplogroups
-filenames = sys.argv[2:len(sys.argv])
+filenames = sys.argv[2:len(sys.argv)]
 for filename in filenames:
-	with open(damageFilename, "r") as f:
+	with open(filename, "r") as f:
 		addToSamples(f)
 
 # print headers
