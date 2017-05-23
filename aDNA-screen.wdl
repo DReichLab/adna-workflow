@@ -94,7 +94,8 @@ workflow ancientDNA_screen{
 			pmdtools = pmdtools,
 			unsorted = bam,
 			python_damage = python_damage,
-			duplicates_label = "duplicates_hs37d5"
+			duplicates_label = "duplicates_hs37d5",
+			damage_label = "damage_hs37d5"
 		}
 	}
 	call target as hs37d5_target_post{ input:
@@ -125,7 +126,8 @@ workflow ancientDNA_screen{
 			pmdtools = pmdtools,
 			unsorted = bam,
 			python_damage = python_damage,
-			duplicates_label = "duplicates_rsrs"
+			duplicates_label = "duplicates_rsrs",
+			damage_label = "damage_rsrs"
 		}
 		call haplogrep as haplogrep_rsrs{ input:
 			minimum_mapping_quality = minimum_mapping_quality,
@@ -429,6 +431,7 @@ task process_sample{
 	File unsorted
 	File python_damage
 	String duplicates_label
+	String damage_label
 	
 	String sample_id_filename = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
 	
@@ -442,7 +445,7 @@ task process_sample{
 		
 		echo "${sample_id_filename}" > damage
 		java -jar ${picard_jar} ViewSam INPUT=${sample_id_filename} ALIGNMENT_STATUS=Aligned | python ${pmdtools} --first >> damage
-		python ${python_damage} < damage > damage_statistics
+		python ${python_damage} ${damage_label} damage > damage_statistics
 	}
 	output{
 		String id = sample_id_filename
