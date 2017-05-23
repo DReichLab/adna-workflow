@@ -57,7 +57,7 @@ mean_label = sys.argv[2]
 filenames = sys.argv[3: len(sys.argv)]
 
 for filename in filenames:
-	key = os.path.splitext(filename)[0] # filename without extension
+	key = os.path.splitext(os.path.basename(filename))[0] # filename without extension
 	median = medianFromHistogram(filename)
 	mean = meanFromHistogram(filename)
 	print("%s\t%s\t%s\t%s\t%.1f" % (key, median_label, median, mean_label, mean) )

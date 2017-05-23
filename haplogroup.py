@@ -21,7 +21,7 @@ for filename in filenames:
 
 		dataFields = line.split("\t")
 
-		key = os.path.splitext(dataFields[sampleIndex])[0] # filename without extension
+		key = os.path.splitext(os.path.basename(dataFields[0]))[0] # filename without extension
 		haplogroup = dataFields[haplogroupIndex]
 		overallRank = float(dataFields[rankIndex])
 
