@@ -31,7 +31,6 @@ def meanFromHistogram(filename):
 		# ignore the first line
 		f.readline()
 		
-
 		for line in f:
 			try:
 				# remove percent signs
@@ -47,7 +46,8 @@ def meanFromHistogram(filename):
 				totalLength += count * length
 			except:
 				break;
-	return float(totalLength) / float(totalReads)
+	mean = (float(totalLength) / float(totalReads)) if (totalReads > 0) else 0
+	return mean
 
 # first argument is label to be applied to median output, for example: median_rsrs
 # second argument is label to be applied to mean output, for example: mean_rsrs
