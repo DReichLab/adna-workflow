@@ -45,13 +45,16 @@ with open(filename) as f:
 		else:
 			targets[target_key] = depth
 			
-		nchromosome = int(chromosome)
-		if 1 <= nchromosome and nchromosome <= 22:
-			autosome_read_count += depth
-		elif nchromosome == 23:
+		
+		if chromosome == 'X' or chromosome == '23':
 			x_read_count += depth
-		elif nchromosome == 24:
+		elif chromosome == 'Y' or chromosome == '24':
 			y_read_count += depth
+		else: 
+			nchromosome = int(chromosome)
+			if 1 <= nchromosome and nchromosome <= 22:
+				autosome_read_count += depth
+			
 		
 		minimum_autosomal_read_hits_for_sex_determination = 50
 		female_threshold = 0.01
@@ -67,5 +70,5 @@ with open(filename) as f:
 													  label + '_autosome', autosome_read_count,
 													  label + '_x', x_read_count, 
 													  label + '_y', y_read_count,
-													  label + 'sex', sex) 
+													  label + '_sex', sex) 
 	)
