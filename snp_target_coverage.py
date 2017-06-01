@@ -7,10 +7,8 @@ import sys
 
 # first argument is label to use
 label = sys.argv[1]
-# second argument is number of targets, to normalize coverage
-number_of_targets = float(sys.argv[2])
-# third argument is VCF file
-filename = sys.argv[3]
+# second argument is VCF file
+filename = sys.argv[2]
 
 with open(filename) as f:
 	key = os.path.basename(filename)
@@ -65,8 +63,7 @@ with open(filename) as f:
 			elif float(y_read_count) / autosome_read_count >= male_threshold:
 				sex = 'M'
 
-	coverage = len(targets) / number_of_targets
-	print("%s\t%s\t%.3f\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%s" % (key, label + '_target_coverage', coverage, 
+	print("%s\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%s" % (key,
 													  label + '_autosome', autosome_read_count,
 													  label + '_x', x_read_count, 
 													  label + '_y', y_read_count,
