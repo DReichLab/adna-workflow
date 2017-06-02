@@ -21,7 +21,14 @@ headersToReport = ['raw',
 				   'mean_rsrs',
 				   'damage_rsrs',
 				   'Haplogroup',
-				   'Haplogroup_rank'
+				   'Haplogroup_rank',
+				   'spike3k_pre_autosome',
+				   'spike3k_pre_x',
+				   'spike3k_pre_y',
+				   'spike3k_post_autosome',
+				   'spike3k_post_x',
+				   'spike3k_post_y',
+				   'spike3k_complexity'
 				   ]
 
 samples = dict()

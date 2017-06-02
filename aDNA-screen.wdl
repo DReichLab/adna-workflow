@@ -14,6 +14,9 @@ workflow ancientDNA_screen{
 	File python_damage
 	File python_target
 	File python_central_measures
+	File python_snp_target
+	
+	File spike3k_coordinates
 	
 	File reference
 	File reference_amb
@@ -88,6 +91,13 @@ workflow ancientDNA_screen{
 		minimum_mapping_quality = minimum_mapping_quality
 	}
 	scatter(bam in demultiplex_hs37d5.demultiplexed_bam){
+		call snp_target as spike3k_pre{ input:
+			coordinates = spike3k_coordinates,
+			bam = bam,
+			minimum_mapping_quality = minimum_mapping_quality,
+			minimum_base_quality = minimum_base_quality,
+			label = "spike3k_pre"
+		}
 		call process_sample as process_sample_hs37d5 { input: 
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
@@ -97,6 +107,13 @@ workflow ancientDNA_screen{
 			duplicates_label = "duplicates_hs37d5",
 			damage_label = "damage_hs37d5"
 		}
+		call snp_target as spike3k_post{ input:
+			coordinates = spike3k_coordinates,
+			bam = process_sample_hs37d5.aligned_deduplicated,
+			minimum_mapping_quality = minimum_mapping_quality,
+			minimum_base_quality = minimum_base_quality,
+			label = "spike3k_post"
+		} 
 	}
 	call target as hs37d5_target_post{ input:
 		python_target = python_target,
@@ -231,14 +248,26 @@ workflow ancientDNA_screen{
 	call concatenate as concatenate_hs37d5_damage{ input:
 		to_concatenate = process_sample_hs37d5.damage
 	}
+	call concatenate as concatenate_spike3k_pre{ input:
+		to_concatenate = spike3k_pre.snp_target_stats
+	}
+	call concatenate as concatenate_spike3k_post{ input:
+		to_concatenate = spike3k_post.snp_target_stats
+	}
+	call spike3k_complexity{ input:
+		spike3k_pre_data = concatenate_spike3k_pre.concatenated,
+		spike3k_post_data =concatenate_spike3k_post.concatenated
+	}
 	
 	Array[File] final_keyed_statistics = [
 		concatenate_hs37d5_damage.concatenated,
 		concatenate_rsrs_damage.concatenated,
 		central_measures_hs37d5.central_measures_output,
 		central_measures_rsrs.central_measures_output,
-		summarize_haplogroups.haplogroups
-		
+		summarize_haplogroups.haplogroups,
+		spike3k_pre.concatenated,
+		spike3k_post.concatenated,
+		spike3k_complexity.estimates
 	]
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
@@ -502,6 +531,53 @@ task target{
 			runtime_minutes: 180
 			requested_memory_mb_per_core: 8192
 			queue: "short"
+	}
+}
+
+task snp_target{
+	File coordinates
+	File bam
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	String label
+	
+	File python_snp_target
+	
+	Int excessive_mismatch_penalty = 50
+	
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_pac
+	File reference_sa
+	
+	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+
+	command{
+		samtools index ${bam}
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} ${bam} > ${sample_id_filename}.vcf
+		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
+	}
+	output{
+		File snp_target_stats = "snp_target_stats"
+	}
+}
+
+task spike3k_complexity{
+	File python_spike3k_complexity_prep
+	File python_spike3k_complexity_results
+	File spike3k_complexity_binary
+	File spike3k_pre_data
+	File spike3k_post_data
+	
+	command{
+		python ${python_spike3k_complexity_prep} ${spike3k_pre_data} ${spike3k_post_data} > spike3k_for_complexity
+		${spike3k_complexity_binary} -i spike3k_for_complexity -o nick_table
+		python ${python_spike3k_complexity_results} nick_table > spike3k_complexity_estimates
+	}
+	output{
+		File estimates = "spike3k_complexity_estimates"
 	}
 }
 
