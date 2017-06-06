@@ -28,7 +28,10 @@ headersToReport = ['raw',
 				   'spike3k_post_autosome',
 				   'spike3k_post_x',
 				   'spike3k_post_y',
-				   'spike3k_complexity'
+				   'spike3k_complexity',
+				   'contamination',
+				   'contamination_lower',
+				   'contamination_upper'
 				   ]
 
 samples = dict()

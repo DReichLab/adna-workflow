@@ -9,6 +9,8 @@ workflow ancientDNA_screen{
 	File pmdtools
 	
 	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
 	Int samples_to_demultiplex
 	
 	File python_damage
@@ -19,23 +21,19 @@ workflow ancientDNA_screen{
 	File spike3k_coordinates
 	
 	File reference
-	File reference_amb
-	File reference_ann
-	File reference_bwt
-	File reference_pac
-	File reference_sa
 	
 	File mt_reference
-	File mt_reference_amb
-	File mt_reference_ann
-	File mt_reference_bwt
-	File mt_reference_pac
-	File mt_reference_sa
 	
 	String output_path_hs37d5_aligned_unfiltered
 	String output_path_hs37d5_aligned_filtered
 	String output_path_rsrs_aligned_filtered
 
+	call prepare_reference as prepare_reference_hs37d5{ input:
+		reference = reference
+	}
+	call prepare_reference as prepare_reference_rsrs{ input:
+		reference = mt_reference
+	}
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
 		call discover_lane_name_from_filename{ input:
@@ -61,20 +59,20 @@ workflow ancientDNA_screen{
 		call align as align_hs37d5{ input:
 			fastq_to_align = fastq_to_align,
 			reference = reference,
-			reference_amb = reference_amb,
-			reference_ann = reference_ann,
-			reference_bwt = reference_bwt,
-			reference_pac = reference_pac,
-			reference_sa = reference_sa
+			reference_amb = prepare_reference_hs37d5.reference_amb,
+			reference_ann = prepare_reference_hs37d5.reference_ann,
+			reference_bwt = prepare_reference_hs37d5.reference_bwt,
+			reference_pac = prepare_reference_hs37d5.reference_pac,
+			reference_sa = prepare_reference_hs37d5.reference_sa
 		}
 		call align as align_rsrs{ input:
 			fastq_to_align = fastq_to_align,
 			reference = mt_reference,
-			reference_amb = mt_reference_amb,
-			reference_ann = mt_reference_ann,
-			reference_bwt = mt_reference_bwt,
-			reference_pac = mt_reference_pac,
-			reference_sa = mt_reference_sa
+			reference_amb = prepare_reference_rsrs.reference_amb,
+			reference_ann = prepare_reference_rsrs.reference_ann,
+			reference_bwt = prepare_reference_rsrs.reference_bwt,
+			reference_pac = prepare_reference_rsrs.reference_pac,
+			reference_sa = prepare_reference_rsrs.reference_sa
 		}
 	}
 	call demultiplex as demultiplex_hs37d5 {input:
@@ -96,7 +94,13 @@ workflow ancientDNA_screen{
 			bam = bam,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
-			label = "spike3k_pre"
+			label = "spike3k_pre",
+			reference_amb = prepare_reference_hs37d5.reference_amb,
+			reference_ann = prepare_reference_hs37d5.reference_ann,
+			reference_bwt = prepare_reference_hs37d5.reference_bwt,
+			reference_pac = prepare_reference_hs37d5.reference_pac,
+			reference_sa = prepare_reference_hs37d5.reference_sa,
+			reference_fai = prepare_reference_hs37d5.reference_fai
 		}
 		call process_sample as process_sample_hs37d5 { input: 
 			picard_jar = picard_jar,
@@ -148,14 +152,27 @@ workflow ancientDNA_screen{
 		}
 		call haplogrep as haplogrep_rsrs{ input:
 			minimum_mapping_quality = minimum_mapping_quality,
+			minimum_base_quality = minimum_base_quality,
+			deamination_bases_to_clip = deamination_bases_to_clip,
 			region = "MT",
 			bam = process_sample_rsrs.aligned_deduplicated,
 			reference = mt_reference,
-			reference_amb = mt_reference_amb,
-			reference_ann = mt_reference_ann,
-			reference_bwt = mt_reference_bwt,
-			reference_pac = mt_reference_pac,
-			reference_sa = mt_reference_sa
+			reference_amb = prepare_reference_rsrs.reference_amb,
+			reference_ann = prepare_reference_rsrs.reference_ann,
+			reference_bwt = prepare_reference_rsrs.reference_bwt,
+			reference_pac = prepare_reference_rsrs.reference_pac,
+			reference_sa = prepare_reference_rsrs.reference_sa,
+			adna_screen_jar = adna_screen_jar
+		}
+		call schmutzi{ input:
+			bam = bam,
+			reference = mt_reference,
+			reference_amb = prepare_reference_rsrs.reference_amb,
+			reference_ann = prepare_reference_rsrs.reference_ann,
+			reference_bwt = prepare_reference_rsrs.reference_bwt,
+			reference_pac = prepare_reference_rsrs.reference_pac,
+			reference_sa = prepare_reference_rsrs.reference_sa,
+			reference_fai = prepare_reference_rsrs.reference_fai
 		}
 	}
 	call target as rsrs_target_post{ input:
@@ -254,6 +271,9 @@ workflow ancientDNA_screen{
 	call concatenate as concatenate_spike3k_post{ input:
 		to_concatenate = spike3k_post.snp_target_stats
 	}
+	call concatenate as concatenate_schmutzi{ input:
+		to_concatenate = schmutzi.contamination_estimate
+	}
 	call spike3k_complexity{ input:
 		spike3k_pre_data = concatenate_spike3k_pre.concatenated,
 		spike3k_post_data =concatenate_spike3k_post.concatenated
@@ -267,11 +287,35 @@ workflow ancientDNA_screen{
 		summarize_haplogroups.haplogroups,
 		spike3k_pre.concatenated,
 		spike3k_post.concatenated,
-		spike3k_complexity.estimates
+		spike3k_complexity.estimates,
+		concatenate_schmutzi.concatenated
 	]
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = final_keyed_statistics
+	}
+}
+
+task prepare_reference{
+	File reference
+	
+	command{
+		set -e
+		bwa index ${reference}
+		samtools faidx ${reference}
+	}
+	output{
+		File reference_amb = "${reference}.amb"
+		File reference_ann = "${reference}.ann"
+		File reference_bwt = "${reference}.bwt"
+		File reference_pac = "${reference}.pac"
+		File reference_sa  = "${reference}.sa"
+		File reference_fai = "${reference}.fai"
+	}
+	runtime{
+		cpus: 4
+		requested_memory_mb_per_core: 8192
+		queue: "mcore"
 	}
 }
 
@@ -348,7 +392,7 @@ task merge_and_trim_lane{
 	Array[File] read_files_by_lane
 	String label
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} ${i5_indices} ${i7_indices} ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener ${i5_indices} ${i7_indices} ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
@@ -549,12 +593,14 @@ task snp_target{
 	File reference_amb
 	File reference_ann
 	File reference_bwt
+	File reference_fai
 	File reference_pac
 	File reference_sa
 	
 	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 
 	command{
+		set -e
 		samtools index ${bam}
 		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} ${bam} > ${sample_id_filename}.vcf
 		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
@@ -572,12 +618,19 @@ task spike3k_complexity{
 	File spike3k_post_data
 	
 	command{
+		set -e
 		python ${python_spike3k_complexity_prep} ${spike3k_pre_data} ${spike3k_post_data} > spike3k_for_complexity
 		${spike3k_complexity_binary} -i spike3k_for_complexity -o nick_table
 		python ${python_spike3k_complexity_results} nick_table > spike3k_complexity_estimates
 	}
 	output{
 		File estimates = "spike3k_complexity_estimates"
+	}
+	runtime{
+			cpus: 1
+			runtime_minutes: 240
+			requested_memory_mb_per_core: 4096
+			queue: "short"
 	}
 }
 
@@ -621,10 +674,12 @@ task copy_output{
 task haplogrep{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
+	Int deamination_bases_to_clip
 	String region
 	File bam
 	File haplogrep_jar
 	Int phylotree_version
+	File adna_screen_jar
 	
 	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 	
@@ -640,8 +695,9 @@ task haplogrep{
 
 	command{
 		set -e
-		samtools index ${bam}
-samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${bam} | bcftools call -m -v > ${sample_id_filename}.vcf
+		java -jar ${adna_screen_jar} softclip -b -i ${bam} -o clipped.bam
+		samtools index clipped.bam
+samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} clipped.bam | bcftools call -m -v > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
@@ -690,6 +746,72 @@ task central_measures{
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 		queue: "short"
+	}
+}
+
+task schmutzi{
+	File bam
+	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	String key = sub(sample_id_filename, ".bam$", "") # remove file extension
+	
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_pac
+	File reference_sa
+	File reference_fai
+	
+	File python_schumtzi_output
+	
+	# The schmutzi scripts require many other programs and files, which we need to include
+	File schmutzi_contDeam
+	File schmutzi_pl
+	String path_to_eurasion_freqs
+	File schmutzi_approxDist
+	File schmutzi_bam2prof
+	File schmutzi_contDeam_pl
+	File schmutzi_countRecords
+	File schmutzi_endoCaller
+	File schmutzi_filterlog
+	File schmutzi_insertSize
+	File schmutzi_jointFreqDeaminated
+	File schmutzi_jointFreqDeaminatedDouble
+	File schmutzi_log2ConsensusLog
+	File schmutzi_log2fasta
+	File schmutzi_log2freq
+	File schmutzi_logdiff
+	File schmutzi_logmask
+	File schmutzi_logs2pos
+	File schmutzi_msa2freq
+	File schmutzi_msa2log
+	File schmutzi_msa2singlefreq
+	File schmutzi_mtCont
+	File schmutzi_parseSchmutzi
+	File schmutzi_posteriorDeam
+	File schmutzi_wrapper_pl
+	File schmutzi_wrapperRMDUP_pl
+	
+	File schmutzi_illuminaProf_error
+	File schmutzi_illuminaProf_null
+	
+	File schmutzi_splitEndoVsCont_denisovaHuman
+	File schmutzi_splitEndoVsCont_neandertalHuman
+	File schmutzi_splitEndoVsCont_poshap2splitbam
+
+	# some of these commands may fail
+	# the python command will report nan in this case
+	command{
+		samtools calmd -b ${bam} ${reference} > schmutzi.bam
+		samtools index schmutzi.bam
+		${schmutzi_contDeam_pl} --lengthDeam 40 --library single --out ${key} ${reference} schmutzi.bam
+		${schmutzi_pl} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		
+		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
+	}
+	output{
+		File contamination_estimate = "contamination_estimate"
 	}
 }
 
