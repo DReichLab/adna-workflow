@@ -1,7 +1,7 @@
 workflow ancientDNA_screen{
 	String blc_input_directory
 	String dataset_label
-	String dates
+	String date
 	
 	File i5_indices
 	File i7_indices
@@ -16,6 +16,7 @@ workflow ancientDNA_screen{
 	Int deamination_bases_to_clip
 	Int samples_to_demultiplex
 	
+	File python_lane_name
 	File python_damage
 	File python_target
 	File python_central_measures
@@ -40,6 +41,7 @@ workflow ancientDNA_screen{
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
 		call discover_lane_name_from_filename{ input:
+			python_lane_name = python_lane_name,
 			filename = lane[0]
 		}
 		call merge_and_trim_lane { input : 
@@ -61,6 +63,7 @@ workflow ancientDNA_screen{
 	String read_group = dataset_label
 	scatter(fastq_to_align in collect_filenames.filenames){
 		call discover_lane_name_from_filename as lane_name_for_align{ input:
+			python_lane_name = python_lane_name,
 			filename = fastq_to_align
 		} 
 		call align as align_hs37d5{ input:
@@ -108,6 +111,8 @@ workflow ancientDNA_screen{
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			label = "spike3k_pre",
+			python_snp_target = python_snp_target,
+			reference = reference,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
 			reference_ann = prepare_reference_hs37d5.reference_ann,
 			reference_bwt = prepare_reference_hs37d5.reference_bwt,
@@ -129,7 +134,15 @@ workflow ancientDNA_screen{
 			bam = process_sample_hs37d5.aligned_deduplicated,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
-			label = "spike3k_post"
+			label = "spike3k_post",
+			python_snp_target = python_snp_target,
+			reference = reference,
+			reference_amb = prepare_reference_hs37d5.reference_amb,
+			reference_ann = prepare_reference_hs37d5.reference_ann,
+			reference_bwt = prepare_reference_hs37d5.reference_bwt,
+			reference_pac = prepare_reference_hs37d5.reference_pac,
+			reference_sa = prepare_reference_hs37d5.reference_sa,
+			reference_fai = prepare_reference_hs37d5.reference_fai
 		} 
 	}
 	call target as hs37d5_target_post{ input:
