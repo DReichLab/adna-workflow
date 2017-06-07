@@ -329,6 +329,13 @@ task prepare_reference{
 		set -e
 		bwa index ${reference}
 		samtools faidx ${reference}
+		
+		cp -l ${reference}.amb .
+		cp -l ${reference}.ann .
+		cp -l ${reference}.bwt .
+		cp -l ${reference}.pac .
+		cp -l ${reference}.sa .
+		cp -l ${reference}.fai .		
 	}
 	output{
 		File reference_amb = "${reference}.amb"
