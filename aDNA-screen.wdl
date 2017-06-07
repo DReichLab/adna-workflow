@@ -1,5 +1,8 @@
 workflow ancientDNA_screen{
 	String blc_input_directory
+	String dataset_label
+	String dates
+	
 	File i5_indices
 	File i7_indices
 	File barcodeSets
@@ -55,7 +58,11 @@ workflow ancientDNA_screen{
 	call collect_filenames{ input:
 		filename_arrays = merge_and_trim_lane.fastq_to_align
 	}
+	String read_group = dataset_label
 	scatter(fastq_to_align in collect_filenames.filenames){
+		call discover_lane_name_from_filename as lane_name_for_align{ input:
+			filename = fastq_to_align
+		} 
 		call align as align_hs37d5{ input:
 			fastq_to_align = fastq_to_align,
 			reference = reference,
@@ -63,7 +70,10 @@ workflow ancientDNA_screen{
 			reference_ann = prepare_reference_hs37d5.reference_ann,
 			reference_bwt = prepare_reference_hs37d5.reference_bwt,
 			reference_pac = prepare_reference_hs37d5.reference_pac,
-			reference_sa = prepare_reference_hs37d5.reference_sa
+			reference_sa = prepare_reference_hs37d5.reference_sa,
+			dataset_label = dataset_label,
+			date = date,
+			lane = lane_name_for_align.lane
 		}
 		call align as align_rsrs{ input:
 			fastq_to_align = fastq_to_align,
@@ -72,7 +82,10 @@ workflow ancientDNA_screen{
 			reference_ann = prepare_reference_rsrs.reference_ann,
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
 			reference_pac = prepare_reference_rsrs.reference_pac,
-			reference_sa = prepare_reference_rsrs.reference_sa
+			reference_sa = prepare_reference_rsrs.reference_sa,
+			dataset_label = dataset_label,
+			date = date,
+			lane = lane_name_for_align.lane
 		}
 	}
 	call demultiplex as demultiplex_hs37d5 {input:
@@ -380,7 +393,7 @@ task discover_lane_name_from_filename{
 			cpus: 1
 			runtime_minutes: 10
 			requested_memory_mb_per_core: 2048
-			queue: "short"
+			queue: "mini"
 	}
 }
 
@@ -392,12 +405,13 @@ task merge_and_trim_lane{
 	Array[File] read_files_by_lane
 	String label
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener ${i5_indices} ${i7_indices} ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} -r read_group ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
 		Array[File] fastq_to_align = glob("${label}*.fastq.gz")
 		File statistics = "${label}.stats"
+		String fastq_read_group = read_string("read_group")
 	}
 	runtime{
 			cpus: 1
@@ -431,6 +445,11 @@ task align{
 	Int max_open_gaps
 	Int seed_length
 	Int threads
+	#for read group
+	String dataset_label
+	String date
+	String lane
+	String read_group = "'@RG\tID:" + date + "_" + dataset_label + "_" + lane + "\tDT:" + date + "\tDS:" + dataset_label + "'"
 	
 	File reference
 	File reference_amb
@@ -440,8 +459,9 @@ task align{
 	File reference_sa
 	
 	command {
-		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai && \
-		bwa samse ${reference} aligned.sai ${fastq_to_align} > aligned.sam
+		set -e
+		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai
+		bwa samse -r ${read_group} ${reference} aligned.sai ${fastq_to_align} > aligned.sam
 	}
 	output{
 		File sam = "aligned.sam"
@@ -660,7 +680,7 @@ task copy_output{
 	command{
 		mkdir -p ${output_path};
 		for file in ${sep=' ' files}  ; do 
-			cp -l $file "${output_path}"
+			cp -l $file "${output_path}" || cp $file "${output_path}"
 		done
 	}
 	runtime{
