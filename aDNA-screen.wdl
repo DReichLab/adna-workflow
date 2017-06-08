@@ -484,10 +484,13 @@ task align{
 	File reference_pac
 	File reference_sa
 	
+	# the bwa -r option for specifying the read group leads to problems
+	# bwa uses tab delimiters, but these are illegal in the program group section of a sam file
+	# so we leave out the read group here and plan to insert these at the end of processing
 	command {
 		set -e
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai
-		bwa samse -r ${read_group} ${reference} aligned.sai ${fastq_to_align} > aligned.sam
+		bwa samse ${reference} aligned.sai ${fastq_to_align} > aligned.sam
 	}
 	output{
 		File sam = "aligned.sam"
