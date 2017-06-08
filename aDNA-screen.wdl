@@ -24,19 +24,21 @@ workflow ancientDNA_screen{
 	
 	File spike3k_coordinates
 	
-	File reference
-	
-	File mt_reference
+	# the references need to appear in the same directory as the derived files
+	# in the prepare_reference, we put all of these into the same directory
+	# all subsequent uses of the reference need to use that copy
+	File reference_in
+	File mt_reference_in
 	
 	String output_path_hs37d5_aligned_unfiltered
 	String output_path_hs37d5_aligned_filtered
 	String output_path_rsrs_aligned_filtered
 
 	call prepare_reference as prepare_reference_hs37d5{ input:
-		reference = reference
+		reference = reference_in
 	}
 	call prepare_reference as prepare_reference_rsrs{ input:
-		reference = mt_reference
+		reference = mt_reference_in
 	}
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
@@ -68,7 +70,7 @@ workflow ancientDNA_screen{
 		} 
 		call align as align_hs37d5{ input:
 			fastq_to_align = fastq_to_align,
-			reference = reference,
+			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
 			reference_ann = prepare_reference_hs37d5.reference_ann,
 			reference_bwt = prepare_reference_hs37d5.reference_bwt,
@@ -80,7 +82,7 @@ workflow ancientDNA_screen{
 		}
 		call align as align_rsrs{ input:
 			fastq_to_align = fastq_to_align,
-			reference = mt_reference,
+			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
 			reference_ann = prepare_reference_rsrs.reference_ann,
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
@@ -112,7 +114,7 @@ workflow ancientDNA_screen{
 			minimum_base_quality = minimum_base_quality,
 			label = "spike3k_pre",
 			python_snp_target = python_snp_target,
-			reference = reference,
+			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
 			reference_ann = prepare_reference_hs37d5.reference_ann,
 			reference_bwt = prepare_reference_hs37d5.reference_bwt,
@@ -136,7 +138,7 @@ workflow ancientDNA_screen{
 			minimum_base_quality = minimum_base_quality,
 			label = "spike3k_post",
 			python_snp_target = python_snp_target,
-			reference = reference,
+			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
 			reference_ann = prepare_reference_hs37d5.reference_ann,
 			reference_bwt = prepare_reference_hs37d5.reference_bwt,
@@ -182,7 +184,7 @@ workflow ancientDNA_screen{
 			deamination_bases_to_clip = deamination_bases_to_clip,
 			region = "MT",
 			bam = process_sample_rsrs.aligned_deduplicated,
-			reference = mt_reference,
+			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
 			reference_ann = prepare_reference_rsrs.reference_ann,
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
@@ -192,7 +194,7 @@ workflow ancientDNA_screen{
 		}
 		call schmutzi{ input:
 			bam = bam,
-			reference = mt_reference,
+			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
 			reference_ann = prepare_reference_rsrs.reference_ann,
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
@@ -322,28 +324,32 @@ workflow ancientDNA_screen{
 	}
 }
 
+# output needs to have all files in the same directory
 task prepare_reference{
 	File reference
+	String filename = sub(reference, ".*/", "") # remove leading directories from full path to leave only filename
 	
 	command{
 		set -e
 		bwa index ${reference}
 		samtools faidx ${reference}
 		
-		cp -l ${reference}.amb .
-		cp -l ${reference}.ann .
-		cp -l ${reference}.bwt .
-		cp -l ${reference}.pac .
-		cp -l ${reference}.sa .
-		cp -l ${reference}.fai .		
+		cp -l ${reference}     ${filename}
+		cp -l ${reference}.amb ${filename}.amb
+		cp -l ${reference}.ann ${filename}.ann
+		cp -l ${reference}.bwt ${filename}.bwt
+		cp -l ${reference}.pac ${filename}.pac
+		cp -l ${reference}.sa  ${filename}.sa
+		cp -l ${reference}.fai ${filename}.fai
 	}
 	output{
-		File reference_amb = "${reference}.amb"
-		File reference_ann = "${reference}.ann"
-		File reference_bwt = "${reference}.bwt"
-		File reference_pac = "${reference}.pac"
-		File reference_sa  = "${reference}.sa"
-		File reference_fai = "${reference}.fai"
+		File reference_fa  = "${filename}"
+		File reference_amb = "${filename}.amb"
+		File reference_ann = "${filename}.ann"
+		File reference_bwt = "${filename}.bwt"
+		File reference_pac = "${filename}.pac"
+		File reference_sa  = "${filename}.sa"
+		File reference_fai = "${filename}.fai"
 	}
 	runtime{
 		cpus: 4
