@@ -55,16 +55,15 @@ with open(filename) as f:
 			if 1 <= nchromosome and nchromosome <= 22:
 				autosome_read_count += depth
 			
-		
-		minimum_autosomal_read_hits_for_sex_determination = 50
-		female_threshold = 0.01
-		male_threshold = 0.05
-		sex = 'U'
-		if autosome_read_count >= minimum_autosomal_read_hits_for_sex_determination:
-			if float(y_read_count) / autosome_read_count < female_threshold:
-				sex = 'F'
-			elif float(y_read_count) / autosome_read_count >= male_threshold:
-				sex = 'M'
+	minimum_autosomal_read_hits_for_sex_determination = 50
+	female_threshold = 0.01
+	male_threshold = 0.05
+	sex = 'U'
+	if autosome_read_count >= minimum_autosomal_read_hits_for_sex_determination:
+		if float(y_read_count) / autosome_read_count < female_threshold:
+			sex = 'F'
+		elif float(y_read_count) / autosome_read_count >= male_threshold:
+			sex = 'M'
 
 	print("%s\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%s" % (key,
 													  label + '_autosome', autosome_read_count,
