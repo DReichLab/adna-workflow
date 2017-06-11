@@ -113,6 +113,7 @@ workflow ancientDNA_screen{
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			label = "spike3k_pre",
+			picard_jar = picard_jar,
 			python_snp_target = python_snp_target,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
@@ -137,6 +138,7 @@ workflow ancientDNA_screen{
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			label = "spike3k_post",
+			picard_jar = picard_jar,
 			python_snp_target = python_snp_target,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
@@ -633,6 +635,7 @@ task snp_target{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	String label
+	File picard_jar
 	
 	File python_snp_target
 	
@@ -650,8 +653,9 @@ task snp_target{
 
 	command{
 		set -e
-		samtools index ${bam}
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} ${bam} > ${sample_id_filename}.vcf
+		java -jar ${picard_jar} SortSam I=${bam} O=sorted.bam SORT_ORDER=coordinate
+		samtools index sorted.bam
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
 		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
 	}
 	output{
