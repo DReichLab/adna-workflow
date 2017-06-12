@@ -195,7 +195,7 @@ workflow ancientDNA_screen{
 			adna_screen_jar = adna_screen_jar
 		}
 		call schmutzi{ input:
-			bam = bam,
+			bam = process_sample_rsrs.aligned_deduplicated,
 			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
 			reference_ann = prepare_reference_rsrs.reference_ann,
@@ -748,8 +748,8 @@ task haplogrep{
 
 	command{
 		set -e
-		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped.bam
-		samtools index clipped.bam
+		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o ${sample_id_filename}
+		samtools index ${sample_id_filename}
 samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} clipped.bam | bcftools call -m -v > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
