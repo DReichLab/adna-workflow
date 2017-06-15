@@ -869,6 +869,11 @@ task schmutzi{
 	output{
 		File contamination_estimate = "contamination_estimate"
 	}
+	runtime{
+		cpus: 6
+		requested_memory_mb_per_core: 2048
+		queue: "mcore"
+	}
 }
 
 task prepare_report{
