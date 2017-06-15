@@ -316,8 +316,8 @@ workflow ancientDNA_screen{
 		central_measures_hs37d5.central_measures_output,
 		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups,
-		spike3k_pre.concatenated,
-		spike3k_post.concatenated,
+		concatenate_spike3k_pre.concatenated,
+		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
 		concatenate_schmutzi.concatenated
 	]
