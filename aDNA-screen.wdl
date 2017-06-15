@@ -153,7 +153,7 @@ workflow ancientDNA_screen{
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
 		bams = process_sample_hs37d5.aligned_deduplicated,
-		targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y','human':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
+		targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y','human':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
 	
