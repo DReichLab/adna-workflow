@@ -64,10 +64,6 @@ workflow ancientDNA_screen{
 	}
 	String read_group = dataset_label
 	scatter(fastq_to_align in collect_filenames.filenames){
-		call discover_lane_name_from_filename as lane_name_for_align{ input:
-			python_lane_name = python_lane_name,
-			filename = fastq_to_align
-		} 
 		call align as align_hs37d5{ input:
 			fastq_to_align = fastq_to_align,
 			reference = prepare_reference_hs37d5.reference_fa,
@@ -75,10 +71,7 @@ workflow ancientDNA_screen{
 			reference_ann = prepare_reference_hs37d5.reference_ann,
 			reference_bwt = prepare_reference_hs37d5.reference_bwt,
 			reference_pac = prepare_reference_hs37d5.reference_pac,
-			reference_sa = prepare_reference_hs37d5.reference_sa,
-			dataset_label = dataset_label,
-			date = date,
-			lane = lane_name_for_align.lane
+			reference_sa = prepare_reference_hs37d5.reference_sa
 		}
 		call align as align_rsrs{ input:
 			fastq_to_align = fastq_to_align,
@@ -87,10 +80,7 @@ workflow ancientDNA_screen{
 			reference_ann = prepare_reference_rsrs.reference_ann,
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
 			reference_pac = prepare_reference_rsrs.reference_pac,
-			reference_sa = prepare_reference_rsrs.reference_sa,
-			dataset_label = dataset_label,
-			date = date,
-			lane = lane_name_for_align.lane
+			reference_sa = prepare_reference_rsrs.reference_sa
 		}
 	}
 	call demultiplex as demultiplex_hs37d5 {input:
@@ -422,7 +412,6 @@ task discover_lane_name_from_filename{
 			cpus: 1
 			runtime_minutes: 10
 			requested_memory_mb_per_core: 2048
-			queue: "mini"
 	}
 }
 
@@ -474,11 +463,6 @@ task align{
 	Int max_open_gaps
 	Int seed_length
 	Int threads
-	#for read group
-	String dataset_label
-	String date
-	String lane
-	String read_group = "'@RG\tID:" + date + "_" + dataset_label + "_" + lane + "\tDT:" + date + "\tDS:" + dataset_label + "'"
 	
 	File reference
 	File reference_amb
