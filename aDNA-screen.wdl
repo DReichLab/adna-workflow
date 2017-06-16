@@ -735,6 +735,7 @@ task haplogrep{
 	Int phylotree_version
 	File adna_screen_jar
 	File picard_jar
+	File htsbox
 	
 	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 	
@@ -748,12 +749,13 @@ task haplogrep{
 	File reference_pac
 	File reference_sa
 	
+		#java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
+		#java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=${sample_id_filename} SORT_ORDER=coordinate
+		#samtools index ${sample_id_filename}
+		#samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${sample_id_filename} | bcftools call -m -v > ${sample_id_filename}.vcf
 	command{
 		set -e
-		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
-		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=${sample_id_filename} SORT_ORDER=coordinate
-		samtools index ${sample_id_filename}
-samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${sample_id_filename} | bcftools call -m -v > ${sample_id_filename}.vcf
+		${htsbox} pileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${bam} > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
