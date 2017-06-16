@@ -433,7 +433,6 @@ task merge_and_trim_lane{
 	}
 	runtime{
 			cpus: 1
-			runtime_minutes: 720
 			requested_memory_mb_per_core: 16384
 			queue: "short"
 	}
@@ -484,7 +483,6 @@ task align{
 	}
 	runtime{
 			cpus: "${threads}"
-			runtime_minutes: 600
 			requested_memory_mb_per_core: 8192
 			queue: "mcore"
 	}
