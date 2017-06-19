@@ -737,7 +737,7 @@ task haplogrep{
 		#samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${sample_id_filename} | bcftools call -m -v > ${sample_id_filename}.vcf
 	command{
 		set -e
-		${htsbox} pileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${bam} > ${sample_id_filename}.vcf
+		${htsbox} pileup -vcf ${reference} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${bam} > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
