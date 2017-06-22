@@ -839,6 +839,10 @@ task schmutzi{
 	File schmutzi_splitEndoVsCont_denisovaHuman
 	File schmutzi_splitEndoVsCont_neandertalHuman
 	File schmutzi_splitEndoVsCont_poshap2splitbam
+	
+	#${schmutzi_pl} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+	#${schmutzi_pl}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+	#python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
 
 	# some of these commands may fail
 	# the python command will report nan in this case
@@ -846,10 +850,7 @@ task schmutzi{
 		samtools calmd -b ${bam} ${reference} > schmutzi.bam
 		samtools index schmutzi.bam
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
-		${schmutzi_pl} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		${schmutzi_pl}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		
-		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
+		python ${python_schumtzi_output} ${key} ${key}.cont.est > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
