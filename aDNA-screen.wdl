@@ -696,6 +696,7 @@ task copy_output{
 }
 
 task haplogrep{
+	Int minimum_pileup_depth
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
