@@ -347,7 +347,6 @@ task prepare_reference{
 	runtime{
 		cpus: 4
 		requested_memory_mb_per_core: 8192
-		queue: "mcore"
 	}
 }
 
@@ -394,7 +393,6 @@ task bcl2fastq{
 		cpus: 4
 		runtime_minutes: 240
 		requested_memory_mb_per_core: 8192
-		queue: "mcore"
 	}
 }
 
@@ -434,7 +432,6 @@ task merge_and_trim_lane{
 	runtime{
 			cpus: 1
 			requested_memory_mb_per_core: 16384
-			queue: "short"
 	}
 }
 
@@ -452,7 +449,6 @@ task aggregate_statistics{
 			cpus: 1
 			runtime_minutes: 20
 			requested_memory_mb_per_core: 4096
-			queue: "short"
 	}
 }
 
@@ -484,7 +480,6 @@ task align{
 	runtime{
 			cpus: "${threads}"
 			requested_memory_mb_per_core: 8192
-			queue: "mcore"
 	}
 }
 
@@ -504,7 +499,6 @@ task collect_filenames{
 			cpus: 1
 			runtime_minutes: 10
 			requested_memory_mb_per_core: 2048
-			queue: "short"
 	}
 }
 
@@ -525,7 +519,6 @@ task demultiplex{
 			cpus: 2
 			runtime_minutes: 600
 			requested_memory_mb_per_core: 8000
-			queue: "short"
 	}
 }
 
@@ -583,7 +576,6 @@ task target_forloop{
 			cpus: 1
 			runtime_minutes: 30
 			requested_memory_mb_per_core: 4096
-			queue: "short"
 	}
 }
 
@@ -606,9 +598,8 @@ task target{
 	}
 	runtime{
 			cpus: 2
-			runtime_minutes: 180
+			runtime_minutes: 300
 			requested_memory_mb_per_core: 8192
-			queue: "short"
 	}
 }
 
@@ -666,7 +657,6 @@ task spike3k_complexity{
 			cpus: 1
 			runtime_minutes: 240
 			requested_memory_mb_per_core: 4096
-			queue: "short"
 	}
 }
 
@@ -683,9 +673,8 @@ task concatenate{
 	}
 	runtime{
 			cpus: 1
-			runtime_minutes: 30
+			runtime_minutes: 60
 			requested_memory_mb_per_core: 4096
-			queue: "short"
 	}
 }
 
@@ -703,7 +692,6 @@ task copy_output{
 			cpus: 1
 			runtime_minutes: 300
 			requested_memory_mb_per_core: 2048
-			queue: "short"
 	}
 }
 
@@ -747,7 +735,6 @@ task haplogrep{
 		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 8192
-		queue: "short"
 	}
 }
 
@@ -765,7 +752,6 @@ task summarize_haplogroups{
 		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
-		queue: "short"
 	}
 }
 
@@ -785,7 +771,6 @@ task central_measures{
 		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
-		queue: "short"
 	}
 }
 
@@ -856,9 +841,8 @@ task schmutzi{
 		File contamination_estimate = "contamination_estimate"
 	}
 	runtime{
-		cpus: 6
-		requested_memory_mb_per_core: 2048
-		queue: "mcore"
+		cpus: 2
+		requested_memory_mb_per_core: 6000
 	}
 }
 
@@ -879,6 +863,5 @@ task prepare_report{
 		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
-		queue: "short"
 	}
 }
