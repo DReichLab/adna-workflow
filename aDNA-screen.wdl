@@ -443,7 +443,7 @@ task aggregate_statistics{
 	Array [File] statistics_by_group
 	
 	command{
-		java -cp ${adna_screen_jar} adnascreen.AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
+		java -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
@@ -515,7 +515,7 @@ task demultiplex{
 	Int samples_to_demultiplex
 	
 	command{
-		java -Xmx14g -cp ${adna_screen_jar} adnascreen.DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
+		java -Xmx14g -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
@@ -548,7 +548,7 @@ task process_sample{
 		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=filtered.bam FILTER=includeAligned 
 		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted_coordinate.bam SORT_ORDER=coordinate
 		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true
-		java -cp ${adna_screen_jar} adnascreen.ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
+		java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
 		
 		echo "${sample_id_filename}" > damage
 		java -jar ${picard_jar} ViewSam INPUT=${sample_id_filename} ALIGNMENT_STATUS=Aligned | python ${pmdtools} --first >> damage
@@ -573,7 +573,7 @@ task target_forloop{
 	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
 
 	command{
-		java -cp ${adna_screen_jar} adnascreen.SAMStats -f ${bam} -t ${targets} -l ${sample_id_filename}.histogram -q ${minimum_mapping_quality} > ${sample_id_filename}.stats
+		java -jar ${adna_screen_jar} SAMStats -f ${bam} -t ${targets} -l ${sample_id_filename}.histogram -q ${minimum_mapping_quality} > ${sample_id_filename}.stats
 	}
 	output{
 		File target_stats = "${sample_id_filename}.stats"
