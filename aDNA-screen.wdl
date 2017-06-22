@@ -547,7 +547,7 @@ task process_sample{
 		java -jar ${picard_jar} SortSam I=${unsorted} O=sorted_queryname.bam SORT_ORDER=queryname
 		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=filtered.bam FILTER=includeAligned 
 		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted_coordinate.bam SORT_ORDER=coordinate
-		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true
+		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD
 		java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
 		
 		echo "${sample_id_filename}" > damage
