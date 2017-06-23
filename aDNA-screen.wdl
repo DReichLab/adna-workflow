@@ -834,8 +834,8 @@ task schmutzi{
 		samtools calmd -b ${bam} ${reference} > schmutzi.bam
 		samtools index schmutzi.bam
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
-		${schmutzi_pl} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		${schmutzi_pl}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl} -t 6 --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl} -t 6              --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
 		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
 	}
 	output{
