@@ -826,9 +826,7 @@ task schmutzi{
 	File schmutzi_splitEndoVsCont_neandertalHuman
 	File schmutzi_splitEndoVsCont_poshap2splitbam
 	
-	#${schmutzi_pl} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-	#${schmutzi_pl}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-	#python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
+	
 
 	# some of these commands may fail
 	# the python command will report nan in this case
@@ -836,14 +834,18 @@ task schmutzi{
 		samtools calmd -b ${bam} ${reference} > schmutzi.bam
 		samtools index schmutzi.bam
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
-		python ${python_schumtzi_output} ${key} ${key}.cont.est > contamination_estimate
+		${schmutzi_pl} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
 	}
 	runtime{
-		cpus: 2
-		requested_memory_mb_per_core: 6000
+		cpus: 6
+		requested_memory_mb_per_core: 2000
+		queue: "medium"
+		runtime_minutes: 2400
 	}
 }
 
