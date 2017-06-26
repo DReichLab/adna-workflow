@@ -89,7 +89,7 @@ workflow ancientDNA_screen{
 		aligned_sam_files = align_hs37d5.sam,
 		samples_to_demultiplex = samples_to_demultiplex
 	}
-	call target as hs37d5_target{ input:
+	call chromosome_target as hs37d5_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
 		bams = demultiplex_hs37d5.demultiplexed_bam,
@@ -139,7 +139,7 @@ workflow ancientDNA_screen{
 			reference_fai = prepare_reference_hs37d5.reference_fai
 		} 
 	}
-	call target as hs37d5_target_post{ input:
+	call chromosome_target as hs37d5_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
 		bams = process_sample_hs37d5.aligned_deduplicated,
@@ -153,7 +153,7 @@ workflow ancientDNA_screen{
 		aligned_sam_files = align_rsrs.sam,
 		samples_to_demultiplex = samples_to_demultiplex
 	}
-	call target as rsrs_target{ input:
+	call chromosome_target as rsrs_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
 		bams = demultiplex_rsrs.demultiplexed_bam,
@@ -185,18 +185,28 @@ workflow ancientDNA_screen{
 			adna_screen_jar = adna_screen_jar,
 			picard_jar = picard_jar
 		}
+		call chromosome_target_single as chromosome_target_single_rsrs{ input:
+			adna_screen_jar = adna_screen_jar,
+			bam = process_sample_rsrs.aligned_deduplicated,
+			targets="\"{'MT_post':'MT'}\"",
+			minimum_mapping_quality = minimum_mapping_quality,
+			reference_length = 16569,
+			coverage_field = "MT_post-coverageLength"
+		}
 		call schmutzi{ input:
 			bam = process_sample_rsrs.aligned_deduplicated,
+			picard_jar = picard_jar,
 			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
 			reference_ann = prepare_reference_rsrs.reference_ann,
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
 			reference_pac = prepare_reference_rsrs.reference_pac,
 			reference_sa = prepare_reference_rsrs.reference_sa,
-			reference_fai = prepare_reference_rsrs.reference_fai
+			reference_fai = prepare_reference_rsrs.reference_fai,
+			coverage = chromosome_target_single_rsrs.coverage
 		}
 	}
-	call target as rsrs_target_post{ input:
+	call chromosome_target as rsrs_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
 		bams = process_sample_rsrs.aligned_deduplicated,
@@ -208,13 +218,13 @@ workflow ancientDNA_screen{
 		python_central_measures = python_central_measures,
 		mean_label = "mean_hs37d5",
 		median_label = "median_hs37d5",
-		histograms = hs37d5_target_post.length_histogram
+		histograms = hs37d5_chromosome_target_post.length_histogram
 	}
 	call central_measures as central_measures_rsrs{ input:
 		python_central_measures = python_central_measures,
 		mean_label = "mean_rsrs",
 		median_label = "median_rsrs",
-		histograms = rsrs_target_post.length_histogram
+		histograms = rsrs_chromosome_target_post.length_histogram
 	}
 	call summarize_haplogroups{ input:
 		haplogrep_output = haplogrep_rsrs.haplogroup_report
@@ -231,19 +241,19 @@ workflow ancientDNA_screen{
 	
 	call aggregate_statistics as aggregate_statistics_pre_hs37d5{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = hs37d5_target.target_stats
+		statistics_by_group = hs37d5_chromosome_target.target_stats
 	}
 	call aggregate_statistics as aggregate_statistics_post_hs37d5{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = hs37d5_target_post.target_stats
+		statistics_by_group = hs37d5_chromosome_target_post.target_stats
 	}
 	call aggregate_statistics as aggregate_statistics_pre_rsrs{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = rsrs_target.target_stats
+		statistics_by_group = rsrs_chromosome_target.target_stats
 	}
 	call aggregate_statistics as aggregate_statistics_post_rsrs{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = rsrs_target_post.target_stats
+		statistics_by_group = rsrs_chromosome_target_post.target_stats
 	}
 	
 	Array[File] cumulative_statistics = [
@@ -269,7 +279,7 @@ workflow ancientDNA_screen{
 		output_path = output_path_hs37d5_aligned_filtered
 	}
 	call copy_output as copy_hs37d5_histogram{ input:
-		files = hs37d5_target_post.length_histogram,
+		files = hs37d5_chromosome_target_post.length_histogram,
 		output_path = output_path_hs37d5_aligned_filtered
 	}
 	call copy_output as copy_rsrs_aligned_filtered{ input:
@@ -277,7 +287,7 @@ workflow ancientDNA_screen{
 		output_path = output_path_rsrs_aligned_filtered
 	}
 	call copy_output as copy_rsrs_histogram{ input:
-		files = rsrs_target_post.length_histogram,
+		files = rsrs_chromosome_target_post.length_histogram,
 		output_path = output_path_rsrs_aligned_filtered
 	}
 	call concatenate as concatenate_rsrs_damage{ input:
@@ -320,7 +330,7 @@ workflow ancientDNA_screen{
 # output needs to have all files in the same directory
 task prepare_reference{
 	File reference
-	String filename = sub(reference, ".*/", "") # remove leading directories from full path to leave only filename
+	String filename = basename(reference)
 	
 	command{
 		set -e
@@ -407,9 +417,8 @@ task discover_lane_name_from_filename{
 		String lane = read_string("./lane_name")
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 10
-			requested_memory_mb_per_core: 2048
+		runtime_minutes: 10
+		requested_memory_mb_per_core: 2048
 	}
 }
 
@@ -430,8 +439,7 @@ task merge_and_trim_lane{
 		String fastq_read_group = read_string("read_group")
 	}
 	runtime{
-			cpus: 1
-			requested_memory_mb_per_core: 16384
+		requested_memory_mb_per_core: 16384
 	}
 }
 
@@ -446,9 +454,8 @@ task aggregate_statistics{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 20
-			requested_memory_mb_per_core: 4096
+		runtime_minutes: 20
+		requested_memory_mb_per_core: 4096
 	}
 }
 
@@ -478,8 +485,8 @@ task align{
 		File sam = "aligned.sam"
 	}
 	runtime{
-			cpus: "${threads}"
-			requested_memory_mb_per_core: 8192
+		cpus: "${threads}"
+		requested_memory_mb_per_core: 8192
 	}
 }
 
@@ -496,9 +503,8 @@ task collect_filenames{
 		Array[String] filenames = read_lines("./file_of_filenames")
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 10
-			requested_memory_mb_per_core: 2048
+		runtime_minutes: 10
+		requested_memory_mb_per_core: 2048
 	}
 }
 
@@ -516,9 +522,8 @@ task demultiplex{
 		File statistics = "postalignment_statistics"
 	}
 	runtime{
-			cpus: 2
-			runtime_minutes: 600
-			requested_memory_mb_per_core: 8000
+		cpus: 2
+		requested_memory_mb_per_core: 8000
 	}
 }
 
@@ -533,7 +538,7 @@ task process_sample{
 	String duplicates_label
 	String damage_label
 	
-	String sample_id_filename = sub(unsorted, ".*/", "") # remove leading directories from full path to leave only filename
+	String sample_id_filename = basename(unsorted)
 	
 	command{
 		set -e
@@ -553,41 +558,49 @@ task process_sample{
 		File duplicates_statistics = "${sample_id_filename}.stats"
 		File damage = "damage_statistics"
 	}
+	runtime{
+		cpus: 2
+	}
 }
 
 # This runs too quickly to run on Orchestra short queue
 # The best solution would be to run a loop within this task, but this is not yet supported
-task target_forloop{
+task chromosome_target_single{
 	File adna_screen_jar
+	File python_coverage
 	File bam
 	String targets
 	Int minimum_mapping_quality
+	Int reference_length
+	String coverage_field
 	
-	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	String sample_id = basename(bam, ".bam")
 
 	command{
-		java -jar ${adna_screen_jar} SAMStats -f ${bam} -t ${targets} -l ${sample_id_filename}.histogram -q ${minimum_mapping_quality} > ${sample_id_filename}.stats
+		set -e
+		java -jar ${adna_screen_jar} SAMStats -f ${bam} -t ${targets} -l ${sample_id}.histogram -q ${minimum_mapping_quality} > ${sample_id}.stats
+		python ${python_coverage} ${sample_id}.stats ${reference_length} ${sample_id} ${coverage_field} > coverage
 	}
 	output{
-		File target_stats = "${sample_id_filename}.stats"
-		File length_histogram = "${sample_id_filename}.histogram"
+		File target_stats = "${sample_id}.stats"
+		File length_histogram = "${sample_id}.histogram"
+		Float coverage = read_float("coverage")
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 30
-			requested_memory_mb_per_core: 4096
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 4096
 	}
 }
 
 # Alternative in place of looping in WDL, run loop in python
-task target{
+task chromosome_target{
 	File python_target
 	File adna_screen_jar
 	Array[File] bams
 	String targets
 	Int minimum_mapping_quality
 	
-	#String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	#String sample_id_filename = basename(bam, ".bam")
 
 	command{
 		python ${python_target} ${adna_screen_jar} ${targets} ${minimum_mapping_quality} ${sep=' ' bams}
@@ -597,9 +610,9 @@ task target{
 		Array[File] length_histogram = glob("*.histogram")
 	}
 	runtime{
-			cpus: 2
-			runtime_minutes: 300
-			requested_memory_mb_per_core: 8192
+		cpus: 2
+		runtime_minutes: 300
+		requested_memory_mb_per_core: 8192
 	}
 }
 
@@ -623,7 +636,7 @@ task snp_target{
 	File reference_pac
 	File reference_sa
 	
-	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	String sample_id_filename = basename(bam)
 
 	command{
 		set -e
@@ -654,9 +667,8 @@ task spike3k_complexity{
 		File estimates = "spike3k_complexity_estimates"
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 240
-			requested_memory_mb_per_core: 4096
+		runtime_minutes: 240
+		requested_memory_mb_per_core: 4096
 	}
 }
 
@@ -672,9 +684,8 @@ task concatenate{
 		File concatenated = "concatenated"
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 60
-			requested_memory_mb_per_core: 4096
+		runtime_minutes: 60
+		requested_memory_mb_per_core: 4096
 	}
 }
 
@@ -689,9 +700,8 @@ task copy_output{
 		done
 	}
 	runtime{
-			cpus: 1
-			runtime_minutes: 300
-			requested_memory_mb_per_core: 2048
+		runtime_minutes: 300
+		requested_memory_mb_per_core: 2048
 	}
 }
 
@@ -708,7 +718,7 @@ task haplogrep{
 	File picard_jar
 	File htsbox
 	
-	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	String sample_id_filename = basename(bam)
 	
 	# value from samtools for bwa
 	Int excessive_mismatch_penalty = 50
@@ -733,7 +743,6 @@ task haplogrep{
 		File haplogroup_report = "${sample_id_filename}.haplogroup"
 	}
 	runtime{
-		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 8192
 	}
@@ -750,7 +759,6 @@ task summarize_haplogroups{
 		File haplogroups = "haplogroups"
 	}
 	runtime{
-		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 	}
@@ -769,7 +777,6 @@ task central_measures{
 		File central_measures_output = "central_measures"
 	}
 	runtime{
-		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 	}
@@ -777,9 +784,10 @@ task central_measures{
 
 task schmutzi{
 	File bam
-	String sample_id_filename = sub(bam, ".*/", "") # remove leading directories from full path to leave only filename
+	String sample_id_filename = basename(bam)
 	String key = sub(sample_id_filename, ".bam$", "") # remove file extension
 	Int deamination_length
+	Float coverage
 	
 	File reference
 	File reference_amb
@@ -790,6 +798,7 @@ task schmutzi{
 	File reference_fai
 	
 	File python_schumtzi_output
+	File picard_jar
 	
 	# The schmutzi scripts require many other programs and files, which we need to include
 	File schmutzi_contDeam
@@ -826,26 +835,28 @@ task schmutzi{
 	File schmutzi_splitEndoVsCont_neandertalHuman
 	File schmutzi_splitEndoVsCont_poshap2splitbam
 	
-	
+	# We downsample to 300x MT coverage
+	Float threshold = 300.0
+	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1
+	Int threads = if (coverage >= 50) then 8 else 4
 
 	# some of these commands may fail
 	# the python command will report nan in this case
 	command{
-		samtools calmd -b ${bam} ${reference} > schmutzi.bam
+		java -jar ${picard_jar} DownsampleSam I=${bam} O=downsampled.bam PROBABLITY=${retain_probability}
+		samtools calmd -b downsampled.bam ${reference} > schmutzi.bam
 		samtools index schmutzi.bam
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
-		${schmutzi_pl} -t 6 --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		${schmutzi_pl} -t 6              --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl} -t ${threads} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl} -t ${threads}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
 		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
 	}
 	runtime{
-		cpus: 6
-		requested_memory_mb_per_core: 2000
-		queue: "medium"
-		runtime_minutes: 2400
+		cpus: threads
+		requested_memory_mb_per_core: if (threads <= 4) then 8000 else 4000
 	}
 }
 
@@ -863,7 +874,6 @@ task prepare_report{
 		File report = "report"
 	}
 	runtime{
-		cpus: 1
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 	}
