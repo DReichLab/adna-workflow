@@ -21,6 +21,7 @@ workflow ancientDNA_screen{
 	File python_target
 	File python_central_measures
 	File python_snp_target
+	File python_coverage
 	
 	File spike3k_coordinates
 	
@@ -187,6 +188,7 @@ workflow ancientDNA_screen{
 		}
 		call chromosome_target_single as chromosome_target_single_rsrs{ input:
 			adna_screen_jar = adna_screen_jar,
+			python_coverage = python_coverage,
 			bam = process_sample_rsrs.aligned_deduplicated,
 			targets="\"{'MT_post':'MT'}\"",
 			minimum_mapping_quality = minimum_mapping_quality,
