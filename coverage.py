@@ -26,3 +26,7 @@ with open(filename) as f:
 				if field == labels[n]:
 					coverage = float(values[n]) / reference_length
 					print(coverage)
+					sys.exit(0)
+
+# if the value does not appear, there is no coverage so print 0
+print(0)
