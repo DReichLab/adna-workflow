@@ -845,7 +845,7 @@ task schmutzi{
 	# some of these commands may fail
 	# the python command will report nan in this case
 	command{
-		java -jar ${picard_jar} DownsampleSam I=${bam} O=downsampled.bam PROBABLITY=${retain_probability}
+		java -jar ${picard_jar} DownsampleSam I=${bam} O=downsampled.bam PROBABILITY=${retain_probability}
 		samtools calmd -b downsampled.bam ${reference} > schmutzi.bam
 		samtools index schmutzi.bam
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
