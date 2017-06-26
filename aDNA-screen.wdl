@@ -839,7 +839,7 @@ task schmutzi{
 	
 	# We downsample to 300x MT coverage
 	Float threshold = 300.0
-	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1
+	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1.0
 	Int threads = if (coverage >= 50) then 8 else 4
 
 	# some of these commands may fail
