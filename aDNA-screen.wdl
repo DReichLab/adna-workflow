@@ -11,6 +11,10 @@ workflow ancientDNA_screen{
 	File picard_jar
 	File pmdtools
 	
+	Float missing_alignments_fraction
+	Int max_open_gaps
+	Int seed_length
+	
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
@@ -29,7 +33,8 @@ workflow ancientDNA_screen{
 	# in the prepare_reference, we put all of these into the same directory
 	# all subsequent uses of the reference need to use that copy
 	File reference_in
-	File mt_reference_in
+	File mt_reference_rsrs_in
+	File mt_reference_rcrs_in
 	
 	String output_path_hs37d5_aligned_unfiltered
 	String output_path_hs37d5_aligned_filtered
@@ -39,7 +44,10 @@ workflow ancientDNA_screen{
 		reference = reference_in
 	}
 	call prepare_reference as prepare_reference_rsrs{ input:
-		reference = mt_reference_in
+		reference = mt_reference_rsrs_in
+	}
+	call prepare_reference as prepare_reference_rcrs{ input:
+		reference = mt_reference_rcrs_in
 	}
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
@@ -66,6 +74,9 @@ workflow ancientDNA_screen{
 	String read_group = dataset_label
 	scatter(fastq_to_align in collect_filenames.filenames){
 		call align as align_hs37d5{ input:
+			missing_alignments_fraction = missing_alignments_fraction,
+			max_open_gaps = max_open_gaps,
+			seed_length = seed_length,
 			fastq_to_align = fastq_to_align,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
@@ -75,6 +86,9 @@ workflow ancientDNA_screen{
 			reference_sa = prepare_reference_hs37d5.reference_sa
 		}
 		call align as align_rsrs{ input:
+			missing_alignments_fraction = missing_alignments_fraction,
+			max_open_gaps = max_open_gaps,
+			seed_length = seed_length,
 			fastq_to_align = fastq_to_align,
 			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
@@ -172,17 +186,20 @@ workflow ancientDNA_screen{
 			damage_label = "damage_rsrs"
 		}
 		call haplogrep as haplogrep_rsrs{ input:
+			missing_alignments_fraction = missing_alignments_fraction,
+			max_open_gaps = max_open_gaps,
+			seed_length = seed_length,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
 			region = "MT",
 			bam = process_sample_rsrs.aligned_deduplicated,
-			reference = prepare_reference_rsrs.reference_fa,
-			reference_amb = prepare_reference_rsrs.reference_amb,
-			reference_ann = prepare_reference_rsrs.reference_ann,
-			reference_bwt = prepare_reference_rsrs.reference_bwt,
-			reference_pac = prepare_reference_rsrs.reference_pac,
-			reference_sa = prepare_reference_rsrs.reference_sa,
+			reference = prepare_reference_rcrs.reference_fa,
+			reference_amb = prepare_reference_rcrs.reference_amb,
+			reference_ann = prepare_reference_rcrs.reference_ann,
+			reference_bwt = prepare_reference_rcrs.reference_bwt,
+			reference_pac = prepare_reference_rcrs.reference_pac,
+			reference_sa = prepare_reference_rcrs.reference_sa,
 			adna_screen_jar = adna_screen_jar,
 			picard_jar = picard_jar
 		}
@@ -708,6 +725,10 @@ task copy_output{
 }
 
 task haplogrep{
+	Float missing_alignments_fraction
+	Int max_open_gaps
+	Int seed_length
+	
 	Int minimum_pileup_depth
 	Int minimum_mapping_quality
 	Int minimum_base_quality
@@ -736,16 +757,21 @@ task haplogrep{
 		#java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=${sample_id_filename} SORT_ORDER=coordinate
 		#samtools index ${sample_id_filename}
 		#samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${sample_id_filename} | bcftools call -m -v > ${sample_id_filename}.vcf
+		
 	command{
 		set -e
-		${htsbox} pileup -vcf ${reference} -s ${minimum_pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${bam} > ${sample_id_filename}.vcf
+		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_rcrs.fastq 
+		bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} for_alignment_to_rcrs.fastq > realigned.sai
+		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq > realigned.sam
+		${htsbox} pileup -vcf ${reference} -s ${minimum_pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} realigned.sam > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
 		File haplogroup_report = "${sample_id_filename}.haplogroup"
 	}
 	runtime{
-		runtime_minutes: 30
+		cpus: 2
+		runtime_minutes: 120
 		requested_memory_mb_per_core: 8192
 	}
 }
