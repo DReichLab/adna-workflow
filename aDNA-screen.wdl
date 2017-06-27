@@ -867,6 +867,7 @@ task schmutzi{
 	Float threshold = 300.0
 	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1.0
 	Int threads = if (coverage >= 50) then 8 else 4
+	Int iterations
 
 	# some of these commands may fail
 	# the python command will report nan in this case
@@ -875,8 +876,8 @@ task schmutzi{
 		samtools calmd -b downsampled.bam ${reference} > schmutzi.bam
 		samtools index schmutzi.bam
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
-		${schmutzi_pl} -t ${threads} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		${schmutzi_pl} -t ${threads}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl} --iterations ${iterations} -t ${threads} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
+		${schmutzi_pl} --iterations ${iterations} -t ${threads}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
 		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
 	}
 	output{
