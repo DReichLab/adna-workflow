@@ -185,7 +185,7 @@ workflow ancientDNA_screen{
 			duplicates_label = "duplicates_rsrs",
 			damage_label = "damage_rsrs"
 		}
-		call haplogrep as haplogrep_rsrs{ input:
+		call haplogrep as haplogrep_rcrs{ input:
 			missing_alignments_fraction = missing_alignments_fraction,
 			max_open_gaps = max_open_gaps,
 			seed_length = seed_length,
@@ -246,7 +246,7 @@ workflow ancientDNA_screen{
 		histograms = rsrs_chromosome_target_post.length_histogram
 	}
 	call summarize_haplogroups{ input:
-		haplogrep_output = haplogrep_rsrs.haplogroup_report
+		haplogrep_output = haplogrep_rcrs.haplogroup_report
 	}
 
 	call aggregate_statistics as aggregate_statistics_duplicates_hs37d5{ input:
@@ -741,7 +741,7 @@ task haplogrep{
 	File picard_jar
 	File htsbox
 	
-	String sample_id_filename = basename(bam)
+	String sample_id_filename = basename(bam, ".bam")
 	
 	# value from samtools for bwa
 	Int excessive_mismatch_penalty = 50
@@ -762,8 +762,8 @@ task haplogrep{
 		set -e
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_rcrs.fastq 
 		bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} for_alignment_to_rcrs.fastq > realigned.sai
-		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq > realigned.sam
-		${htsbox} pileup -vcf ${reference} -s ${minimum_pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} realigned.sam > ${sample_id_filename}.vcf
+		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq | samtools view -bS - > ${sample_id_filename}.bam
+		${htsbox} pileup -vcf ${reference} -s ${minimum_pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
