@@ -782,7 +782,8 @@ task haplogrep{
 		set -e
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_rcrs.fastq 
 		bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} for_alignment_to_rcrs.fastq > realigned.sai
-		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq | samtools view -bS - > ${sample_id_filename}.bam
+		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq | samtools view -bS - > realigned.bam
+		java -jar ${picard_jar} SortSam I=realigned.bam O=${sample_id_filename}.bam SORT_ORDER=coordinate
 		${htsbox} pileup -vcf ${reference} -s ${pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
