@@ -703,7 +703,7 @@ task snp_target{
 	command{
 		set -e
 		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
-		java -jar ${picard_jar} SortSam I=$clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
+		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
 		samtools index sorted.bam
 		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
 		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
