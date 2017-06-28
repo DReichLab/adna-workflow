@@ -27,7 +27,6 @@ workflow ancientDNA_screen{
 	File python_snp_target
 	File python_coverage
 	File python_floor
-	File python_calico
 	
 	File htsbox
 	
@@ -252,7 +251,8 @@ workflow ancientDNA_screen{
 			reference_ann = prepare_reference_human_95_consensus.reference_ann,
 			reference_bwt = prepare_reference_human_95_consensus.reference_bwt,
 			reference_pac = prepare_reference_human_95_consensus.reference_pac,
-			reference_sa = prepare_reference_human_95_consensus.reference_sa
+			reference_sa = prepare_reference_human_95_consensus.reference_sa,
+			reference_fai = prepare_reference_human_95_consensus.reference_fai
 		}
 	}
 	call chromosome_target as rsrs_chromosome_target_post{ input:
