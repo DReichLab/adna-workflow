@@ -128,6 +128,7 @@ workflow ancientDNA_screen{
 			label = "spike3k_pre",
 			htsbox = htsbox,
 			picard_jar = picard_jar,
+			adna_screen_jar = adna_screen_jar,
 			python_snp_target = python_snp_target,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
@@ -155,6 +156,7 @@ workflow ancientDNA_screen{
 			label = "spike3k_post",
 			htsbox = htsbox,
 			picard_jar = picard_jar,
+			adna_screen_jar = adna_screen_jar,
 			python_snp_target = python_snp_target,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
@@ -218,6 +220,7 @@ workflow ancientDNA_screen{
 		call chromosome_target_single as chromosome_target_single_rsrs{ input:
 			adna_screen_jar = adna_screen_jar,
 			python_coverage = python_coverage,
+			python_floor = python_floor,
 			bam = process_sample_rsrs.aligned_deduplicated,
 			targets="\"{'MT_post':'MT'}\"",
 			minimum_mapping_quality = minimum_mapping_quality,
