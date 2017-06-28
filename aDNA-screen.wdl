@@ -27,6 +27,8 @@ workflow ancientDNA_screen{
 	File python_snp_target
 	File python_coverage
 	
+	File htsbox
+	
 	File spike3k_coordinates
 	
 	# the references need to appear in the same directory as the derived files
@@ -117,7 +119,9 @@ workflow ancientDNA_screen{
 			bam = bam,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
+			deamination_bases_to_clip = deamination_bases_to_clip,
 			label = "spike3k_pre",
+			htsbox = htsbox,
 			picard_jar = picard_jar,
 			python_snp_target = python_snp_target,
 			reference = prepare_reference_hs37d5.reference_fa,
@@ -142,7 +146,9 @@ workflow ancientDNA_screen{
 			bam = process_sample_hs37d5.aligned_deduplicated,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
+			deamination_bases_to_clip = deamination_bases_to_clip,
 			label = "spike3k_post",
+			htsbox = htsbox,
 			picard_jar = picard_jar,
 			python_snp_target = python_snp_target,
 			reference = prepare_reference_hs37d5.reference_fa,
@@ -201,7 +207,8 @@ workflow ancientDNA_screen{
 			reference_pac = prepare_reference_rcrs.reference_pac,
 			reference_sa = prepare_reference_rcrs.reference_sa,
 			adna_screen_jar = adna_screen_jar,
-			picard_jar = picard_jar
+			picard_jar = picard_jar,
+			htsbox = htsbox,
 		}
 		call chromosome_target_single as chromosome_target_single_rsrs{ input:
 			adna_screen_jar = adna_screen_jar,
@@ -640,8 +647,10 @@ task snp_target{
 	File bam
 	Int minimum_mapping_quality
 	Int minimum_base_quality
+	Int deamination_bases_to_clip
 	String label
 	File picard_jar
+	File htsbox
 	
 	File python_snp_target
 	
@@ -657,11 +666,13 @@ task snp_target{
 	
 	String sample_id_filename = basename(bam)
 
+	#samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
+	
 	command{
 		set -e
 		java -jar ${picard_jar} SortSam I=${bam} O=sorted.bam SORT_ORDER=coordinate
 		samtools index sorted.bam
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
+		${htsbox} pileup -vcf ${reference} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} -b ${coordinates} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
 		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
 	}
 	output{
