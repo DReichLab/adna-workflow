@@ -26,6 +26,7 @@ workflow ancientDNA_screen{
 	File python_central_measures
 	File python_snp_target
 	File python_coverage
+	File python_floor
 	
 	File htsbox
 	
@@ -209,6 +210,7 @@ workflow ancientDNA_screen{
 			adna_screen_jar = adna_screen_jar,
 			picard_jar = picard_jar,
 			htsbox = htsbox,
+			coverage_int = chromosome_target_single_rsrs.coverage_int
 		}
 		call chromosome_target_single as chromosome_target_single_rsrs{ input:
 			adna_screen_jar = adna_screen_jar,
@@ -594,6 +596,7 @@ task process_sample{
 task chromosome_target_single{
 	File adna_screen_jar
 	File python_coverage
+	File python_floor
 	File bam
 	String targets
 	Int minimum_mapping_quality
@@ -606,11 +609,13 @@ task chromosome_target_single{
 		set -e
 		java -jar ${adna_screen_jar} SAMStats -f ${bam} -t ${targets} -l ${sample_id}.histogram -q ${minimum_mapping_quality} > ${sample_id}.stats
 		python ${python_coverage} ${sample_id}.stats ${reference_length} ${sample_id} ${coverage_field} > coverage
+		python ${floor} coverage > coverage_int
 	}
 	output{
 		File target_stats = "${sample_id}.stats"
 		File length_histogram = "${sample_id}.histogram"
 		Float coverage = read_float("coverage")
+		Int coverage_int = read_int("coverage_int")
 	}
 	runtime{
 		runtime_minutes: 30
@@ -752,6 +757,10 @@ task haplogrep{
 	File picard_jar
 	File htsbox
 	
+	Int coverage_int
+	Int pileup_depth_from_coverage = floor(coverage_int / 10)
+	Int pileup_depth = if(pileup_depth_from_coverage > minimum_pileup_depth) then pileup_depth_from_coverage else minimum_pileup_depth
+	
 	String sample_id_filename = basename(bam, ".bam")
 	
 	# value from samtools for bwa
@@ -774,7 +783,7 @@ task haplogrep{
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_rcrs.fastq 
 		bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} for_alignment_to_rcrs.fastq > realigned.sai
 		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq | samtools view -bS - > ${sample_id_filename}.bam
-		${htsbox} pileup -vcf ${reference} -s ${minimum_pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
+		${htsbox} pileup -vcf ${reference} -s ${pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
