@@ -32,7 +32,10 @@ headersToReport = ['raw',
 				   'spike3k_complexity',
 				   'contamination',
 				   'contamination_lower',
-				   'contamination_upper'
+				   'contamination_upper',
+				   'contamination_rare_variant',
+				   'contamination_rare_variant_lower',
+				   'contamination_rare_variant_upper'
 				   ]
 
 samples = dict()

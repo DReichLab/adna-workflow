@@ -27,6 +27,7 @@ workflow ancientDNA_screen{
 	File python_snp_target
 	File python_coverage
 	File python_floor
+	File python_calico
 	
 	File htsbox
 	
@@ -38,6 +39,7 @@ workflow ancientDNA_screen{
 	File reference_in
 	File mt_reference_rsrs_in
 	File mt_reference_rcrs_in
+	File mt_reference_human_95_consensus
 	
 	String output_path_hs37d5_aligned_unfiltered
 	String output_path_hs37d5_aligned_filtered
@@ -51,6 +53,9 @@ workflow ancientDNA_screen{
 	}
 	call prepare_reference as prepare_reference_rcrs{ input:
 		reference = mt_reference_rcrs_in
+	}
+	call prepare_reference as prepare_reference_human_95_consensus{ input:
+		reference = mt_reference_human_95_consensus
 	}
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
@@ -199,7 +204,6 @@ workflow ancientDNA_screen{
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
-			region = "MT",
 			bam = process_sample_rsrs.aligned_deduplicated,
 			reference = prepare_reference_rcrs.reference_fa,
 			reference_amb = prepare_reference_rcrs.reference_amb,
@@ -232,6 +236,23 @@ workflow ancientDNA_screen{
 			reference_sa = prepare_reference_rsrs.reference_sa,
 			reference_fai = prepare_reference_rsrs.reference_fai,
 			coverage = chromosome_target_single_rsrs.coverage
+		}
+		call contamination_rare_variant{ input:
+			bam = process_sample_rsrs.aligned_deduplicated,
+			picard_jar = picard_jar,
+			adna_screen_jar = adna_screen_jar,
+			missing_alignments_fraction = missing_alignments_fraction,
+			max_open_gaps = max_open_gaps,
+			seed_length = seed_length,
+			minimum_mapping_quality = minimum_mapping_quality,
+			minimum_base_quality = minimum_base_quality,
+			deamination_bases_to_clip = deamination_bases_to_clip,
+			reference = prepare_reference_human_95_consensus.reference_fa,
+			reference_amb = prepare_reference_human_95_consensus.reference_amb,
+			reference_ann = prepare_reference_human_95_consensus.reference_ann,
+			reference_bwt = prepare_reference_human_95_consensus.reference_bwt,
+			reference_pac = prepare_reference_human_95_consensus.reference_pac,
+			reference_sa = prepare_reference_human_95_consensus.reference_sa
 		}
 	}
 	call chromosome_target as rsrs_chromosome_target_post{ input:
@@ -333,6 +354,9 @@ workflow ancientDNA_screen{
 	call concatenate as concatenate_schmutzi{ input:
 		to_concatenate = schmutzi.contamination_estimate
 	}
+	call concatenate as concatenate_contamination_rare_variant{ input:
+		to_concatenate = contamination_rare_variant.contamination_estimate
+	}
 	call spike3k_complexity{ input:
 		spike3k_pre_data = concatenate_spike3k_pre.concatenated,
 		spike3k_post_data =concatenate_spike3k_post.concatenated
@@ -347,7 +371,8 @@ workflow ancientDNA_screen{
 		concatenate_spike3k_pre.concatenated,
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
-		concatenate_schmutzi.concatenated
+		concatenate_schmutzi.concatenated,
+		concatenate_contamination_rare_variant.concatenated
 	]
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
@@ -609,7 +634,7 @@ task chromosome_target_single{
 		set -e
 		java -jar ${adna_screen_jar} SAMStats -f ${bam} -t ${targets} -l ${sample_id}.histogram -q ${minimum_mapping_quality} > ${sample_id}.stats
 		python ${python_coverage} ${sample_id}.stats ${reference_length} ${sample_id} ${coverage_field} > coverage
-		python ${floor} coverage > coverage_int
+		python ${python_floor} coverage > coverage_int
 	}
 	output{
 		File target_stats = "${sample_id}.stats"
@@ -655,12 +680,11 @@ task snp_target{
 	Int deamination_bases_to_clip
 	String label
 	File picard_jar
+	File adna_screen_jar
 	File htsbox
 	
 	File python_snp_target
-	
-	Int excessive_mismatch_penalty = 50
-	
+		
 	File reference
 	File reference_amb
 	File reference_ann
@@ -671,13 +695,14 @@ task snp_target{
 	
 	String sample_id_filename = basename(bam)
 
-	#samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
+	#${htsbox} pileup -vcf ${reference} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} -b ${coordinates} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
 	
 	command{
 		set -e
-		java -jar ${picard_jar} SortSam I=${bam} O=sorted.bam SORT_ORDER=coordinate
+		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
+		java -jar ${picard_jar} SortSam I=$clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
 		samtools index sorted.bam
-		${htsbox} pileup -vcf ${reference} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} -b ${coordinates} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
 		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
 	}
 	output{
@@ -749,7 +774,7 @@ task haplogrep{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
-	String region
+	String region = "MT"
 	File bam
 	File haplogrep_jar
 	Int phylotree_version
@@ -758,13 +783,10 @@ task haplogrep{
 	File htsbox
 	
 	Int coverage_int
-	Int pileup_depth_from_coverage = floor(coverage_int / 10)
+	Int pileup_depth_from_coverage = coverage_int / 10
 	Int pileup_depth = if(pileup_depth_from_coverage > minimum_pileup_depth) then pileup_depth_from_coverage else minimum_pileup_depth
 	
 	String sample_id_filename = basename(bam, ".bam")
-	
-	# value from samtools for bwa
-	Int excessive_mismatch_penalty = 50
 	
 	File reference
 	File reference_amb
@@ -773,18 +795,15 @@ task haplogrep{
 	File reference_pac
 	File reference_sa
 	
-		#java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
-		#java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=${sample_id_filename} SORT_ORDER=coordinate
-		#samtools index ${sample_id_filename}
-		#samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -C ${excessive_mismatch_penalty} -r ${region} -u -f ${reference} ${sample_id_filename} | bcftools call -m -v > ${sample_id_filename}.vcf
-		
 	command{
 		set -e
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_rcrs.fastq 
 		bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} for_alignment_to_rcrs.fastq > realigned.sai
 		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq | samtools view -bS - > realigned.bam
-		java -jar ${picard_jar} SortSam I=realigned.bam O=${sample_id_filename}.bam SORT_ORDER=coordinate
-		${htsbox} pileup -vcf ${reference} -s ${pileup_depth} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
+		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted_realigned.bam
+		java -jar ${picard_jar} SortSam I=clipped_unsorted_realigned.bam O=${sample_id_filename}.bam SORT_ORDER=coordinate
+		samtools index ${sample_id_filename}.bam
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -r ${region} -u -f ${reference} ${sample_id_filename}.bam | bcftools call -m -v --ploidy 1 > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
@@ -792,7 +811,7 @@ task haplogrep{
 	}
 	runtime{
 		cpus: 2
-		runtime_minutes: 120
+		runtime_minutes: 180
 		requested_memory_mb_per_core: 8192
 	}
 }
@@ -907,6 +926,50 @@ task schmutzi{
 	runtime{
 		cpus: threads
 		requested_memory_mb_per_core: if (threads <= 4) then 8000 else 4000
+	}
+}
+
+task contamination_rare_variant{
+	File bam
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
+	
+	Float missing_alignments_fraction
+	Int max_open_gaps
+	Int seed_length
+	Int threads = 2
+
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_pac
+	File reference_sa
+	File reference_fai
+	
+	File picard_jar
+	File adna_screen_jar
+	File python_calico
+	File python_contamination_rare_variant_results
+	
+	String sample_id = basename(bam, ".bam")
+	
+	command{
+		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=sample.fastq
+		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} sample.fastq > realigned.sai
+		bwa samse ${reference} realigned.sai sample.fastq | samtools view -bS - > realigned.bam
+		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted.bam
+		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam
+		samtools index sorted.bam
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -f ${reference} sorted.bam | python ${python_calico} --maxdepth 100000 --indels > contamination_rare_variant_results
+		python ${python_contamination_rare_variant_results} ${sample_id} contamination_rare_variant_results > contamination_estimate
+	}
+	output{
+		File contamination_estimate = "contamination_estimate"
+	}
+	runtime{
+		cpus: threads
 	}
 }
 
