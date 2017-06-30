@@ -119,9 +119,13 @@ workflow ancientDNA_screen{
 		minimum_mapping_quality = minimum_mapping_quality
 	}
 	scatter(bam in demultiplex_hs37d5.demultiplexed_bam){
+		call filter_aligned_only as filter_aligned_only_hs37d5 { input:
+			picard_jar = picard_jar,
+			bam = bam			
+		}
 		call snp_target as spike3k_pre{ input:
 			coordinates = spike3k_coordinates,
-			bam = bam,
+			bam = filter_aligned_only_hs37d5.filtered,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
@@ -138,18 +142,18 @@ workflow ancientDNA_screen{
 			reference_sa = prepare_reference_hs37d5.reference_sa,
 			reference_fai = prepare_reference_hs37d5.reference_fai
 		}
-		call process_sample as process_sample_hs37d5 { input: 
+		call duplicates_and_damage as duplicates_and_damage_hs37d5 { input: 
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
 			pmdtools = pmdtools,
-			unsorted = bam,
+			unsorted = filter_aligned_only_hs37d5.filtered,
 			python_damage = python_damage,
 			duplicates_label = "duplicates_hs37d5",
 			damage_label = "damage_hs37d5"
 		}
 		call snp_target as spike3k_post{ input:
 			coordinates = spike3k_coordinates,
-			bam = process_sample_hs37d5.aligned_deduplicated,
+			bam = duplicates_and_damage_hs37d5.aligned_deduplicated,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
@@ -170,7 +174,7 @@ workflow ancientDNA_screen{
 	call chromosome_target as hs37d5_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = process_sample_hs37d5.aligned_deduplicated,
+		bams = duplicates_and_damage_hs37d5.aligned_deduplicated,
 		targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y','human_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -189,11 +193,15 @@ workflow ancientDNA_screen{
 		minimum_mapping_quality = minimum_mapping_quality
 	}
 	scatter(bam in demultiplex_rsrs.demultiplexed_bam){
-		call process_sample as process_sample_rsrs{ input: 
+		call filter_aligned_only as filter_aligned_only_rsrs{ input:
+			picard_jar = picard_jar,
+			bam = bam
+		}
+		call duplicates_and_damage as duplicates_and_damage_rsrs{ input: 
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
 			pmdtools = pmdtools,
-			unsorted = bam,
+			unsorted = filter_aligned_only_rsrs.filtered,
 			python_damage = python_damage,
 			duplicates_label = "duplicates_rsrs",
 			damage_label = "damage_rsrs"
@@ -205,7 +213,7 @@ workflow ancientDNA_screen{
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
-			bam = process_sample_rsrs.aligned_deduplicated,
+			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
 			reference = prepare_reference_rcrs.reference_fa,
 			reference_amb = prepare_reference_rcrs.reference_amb,
 			reference_ann = prepare_reference_rcrs.reference_ann,
@@ -221,14 +229,14 @@ workflow ancientDNA_screen{
 			adna_screen_jar = adna_screen_jar,
 			python_coverage = python_coverage,
 			python_floor = python_floor,
-			bam = process_sample_rsrs.aligned_deduplicated,
+			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
 			targets="\"{'MT_post':'MT'}\"",
 			minimum_mapping_quality = minimum_mapping_quality,
 			reference_length = 16569,
 			coverage_field = "MT_post-coverageLength"
 		}
 		call schmutzi{ input:
-			bam = process_sample_rsrs.aligned_deduplicated,
+			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
 			picard_jar = picard_jar,
 			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
@@ -240,7 +248,7 @@ workflow ancientDNA_screen{
 			coverage = chromosome_target_single_rsrs.coverage
 		}
 		call contamination_rare_variant{ input:
-			bam = process_sample_rsrs.aligned_deduplicated,
+			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
 			missing_alignments_fraction = missing_alignments_fraction,
@@ -261,7 +269,7 @@ workflow ancientDNA_screen{
 	call chromosome_target as rsrs_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = process_sample_rsrs.aligned_deduplicated,
+		bams = duplicates_and_damage_rsrs.aligned_deduplicated,
 		targets="\"{'MT_post':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -284,11 +292,11 @@ workflow ancientDNA_screen{
 
 	call aggregate_statistics as aggregate_statistics_duplicates_hs37d5{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = process_sample_hs37d5.duplicates_statistics
+		statistics_by_group = duplicates_and_damage_hs37d5.duplicates_statistics
 	}
 	call aggregate_statistics as aggregate_statistics_duplicates_rsrs{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = process_sample_rsrs.duplicates_statistics
+		statistics_by_group = duplicates_and_damage_rsrs.duplicates_statistics
 	}
 	
 	call aggregate_statistics as aggregate_statistics_pre_hs37d5{ input:
@@ -327,7 +335,7 @@ workflow ancientDNA_screen{
 		output_path = output_path_hs37d5_aligned_unfiltered
 	}
 	call copy_output as copy_hs37d5_aligned_filtered{ input:
-		files = process_sample_hs37d5.aligned_deduplicated,
+		files = duplicates_and_damage_hs37d5.aligned_deduplicated,
 		output_path = output_path_hs37d5_aligned_filtered
 	}
 	call copy_output as copy_hs37d5_histogram{ input:
@@ -335,7 +343,7 @@ workflow ancientDNA_screen{
 		output_path = output_path_hs37d5_aligned_filtered
 	}
 	call copy_output as copy_rsrs_aligned_filtered{ input:
-		files = process_sample_rsrs.aligned_deduplicated,
+		files = duplicates_and_damage_rsrs.aligned_deduplicated,
 		output_path = output_path_rsrs_aligned_filtered
 	}
 	call copy_output as copy_rsrs_histogram{ input:
@@ -343,10 +351,10 @@ workflow ancientDNA_screen{
 		output_path = output_path_rsrs_aligned_filtered
 	}
 	call concatenate as concatenate_rsrs_damage{ input:
-		to_concatenate = process_sample_rsrs.damage
+		to_concatenate = duplicates_and_damage_rsrs.damage
 	}
 	call concatenate as concatenate_hs37d5_damage{ input:
-		to_concatenate = process_sample_hs37d5.damage
+		to_concatenate = duplicates_and_damage_hs37d5.damage
 	}
 	call concatenate as concatenate_spike3k_pre{ input:
 		to_concatenate = spike3k_pre.snp_target_stats
@@ -583,9 +591,26 @@ task demultiplex{
 	}
 }
 
+# filter unaligned reads
+task filter_aligned_only{
+	File picard_jar
+	File bam
+	
+	String filename = basename(bam)
+	
+	command{
+		set -e
+		java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
+		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned 
+	}
+	output{
+		File filtered = filename
+	}
+}
+
 # filter out unaligned and duplicate reads
 # compute damage
-task process_sample{
+task duplicates_and_damage{
 	File picard_jar
 	File adna_screen_jar
 	File pmdtools
@@ -598,9 +623,7 @@ task process_sample{
 	
 	command{
 		set -e
-		java -jar ${picard_jar} SortSam I=${unsorted} O=sorted_queryname.bam SORT_ORDER=queryname
-		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=filtered.bam FILTER=includeAligned 
-		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted_coordinate.bam SORT_ORDER=coordinate
+		java -jar ${picard_jar} SortSam I=unsorted.bam O=sorted_coordinate.bam SORT_ORDER=coordinate
 		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD
 		java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
 		
