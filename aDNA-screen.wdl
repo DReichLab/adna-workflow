@@ -986,7 +986,7 @@ task contamination_rare_variant{
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} sample.fastq > realigned.sai
 		bwa samse ${reference} realigned.sai sample.fastq | samtools view -bS - > realigned.bam
 		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted.bam
-		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam
+		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
 		samtools index sorted.bam
 		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -f ${reference} sorted.bam | python ${python_calico} --maxdepth 100000 --indels > contamination_rare_variant_results
 		python ${python_contamination_rare_variant_results} ${sample_id} contamination_rare_variant_results > contamination_estimate
