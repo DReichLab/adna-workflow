@@ -396,6 +396,7 @@ task prepare_reference{
 	File reference
 	String filename = basename(reference)
 	
+	# java -jar ${picard_jar} CreateSequenceDictionary R=${reference} O=${reference}.dict
 	command{
 		set -e
 		bwa index ${reference}
@@ -608,8 +609,6 @@ task filter_aligned_only{
 	}
 }
 
-# filter out unaligned and duplicate reads
-# compute damage
 task duplicates_and_damage{
 	File picard_jar
 	File adna_screen_jar
@@ -730,6 +729,46 @@ task snp_target{
 		samtools index sorted.bam
 		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
 		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
+	}
+	output{
+		File snp_target_stats = "snp_target_stats"
+	}
+}
+
+# This counts reads similarly to snp_target, but uses a bed file to look for read overlaps in an interval around the SNP. 
+task snp_target_bed{
+	File coordinates_autosome
+	File coordinates_x
+	File coordinates_y
+	File bam
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
+	String label
+	File picard_jar
+	File adna_screen_jar
+	
+	File python_snp_target_bed
+		
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_fai
+	File reference_pac
+	File reference_sa
+	
+	String sample_id_filename = basename(bam)
+	
+	command{
+		set -e
+		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
+		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
+		samtools index sorted.bam
+		samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} sorted.bam > ${sample_id_filename}.autosome
+		samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        sorted.bam > ${sample_id_filename}.x
+		samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_y}        sorted.bam > ${sample_id_filename}.y
+		python ${python_snp_target_bed} ${label} ${sample_id_filename}.autosome ${sample_id_filename}.x ${sample_id_filename}.y > snp_target_stats
 	}
 	output{
 		File snp_target_stats = "snp_target_stats"
