@@ -1100,7 +1100,7 @@ task contammix{
 		cat consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
 		Rscript ${contammix_estimate} --samFn realigned.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
-		python ${python_contammix_results} > contamination_estimate
+		python ${python_contammix_results} sample_id out_contammix > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
