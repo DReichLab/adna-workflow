@@ -30,7 +30,9 @@ workflow ancientDNA_screen{
 	
 	File htsbox
 	
-	File spike3k_coordinates
+	File spike3k_coordinates_autosome
+	File spike3k_coordinates_x
+	File spike3k_coordinates_y
 	
 	# the references need to appear in the same directory as the derived files
 	# in the prepare_reference, we put all of these into the same directory
@@ -123,17 +125,18 @@ workflow ancientDNA_screen{
 			picard_jar = picard_jar,
 			bam = bam			
 		}
-		call snp_target as spike3k_pre{ input:
-			coordinates = spike3k_coordinates,
+		call snp_target_bed as spike3k_pre{ input:
+			coordinates_autosome = spike3k_coordinates_autosome,
+			coordinates_x = spike3k_coordinates_x,
+			coordinates_y = spike3k_coordinates_y,
 			bam = filter_aligned_only_hs37d5.filtered,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
 			label = "spike3k_pre",
-			htsbox = htsbox,
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
-			python_snp_target = python_snp_target,
+			python_snp_target_bed = python_snp_target_bed,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
 			reference_ann = prepare_reference_hs37d5.reference_ann,
@@ -151,17 +154,18 @@ workflow ancientDNA_screen{
 			duplicates_label = "duplicates_hs37d5",
 			damage_label = "damage_hs37d5"
 		}
-		call snp_target as spike3k_post{ input:
-			coordinates = spike3k_coordinates,
+		call snp_target_bed as spike3k_post{ input:
+			coordinates_autosome = spike3k_coordinates_autosome,
+			coordinates_x = spike3k_coordinates_x,
+			coordinates_y = spike3k_coordinates_y,
 			bam = duplicates_and_damage_hs37d5.aligned_deduplicated,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
 			label = "spike3k_post",
-			htsbox = htsbox,
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
-			python_snp_target = python_snp_target,
+			python_snp_target_bed = python_snp_target_bed,
 			reference = prepare_reference_hs37d5.reference_fa,
 			reference_amb = prepare_reference_hs37d5.reference_amb,
 			reference_ann = prepare_reference_hs37d5.reference_ann,
