@@ -30,12 +30,17 @@ headersToReport = ['raw',
 				   'spike3k_post_y',
 				   'spike3k_post_sex',
 				   'spike3k_complexity',
-				   'contamination',
-				   'contamination_lower',
-				   'contamination_upper',
+				   'contamination_schmutzi',
+				   'contamination_schmutzi_lower',
+				   'contamination_schmutzi_upper',
 				   'contamination_rare_variant',
 				   'contamination_rare_variant_lower',
-				   'contamination_rare_variant_upper'
+				   'contamination_rare_variant_upper',
+				   'contamination_contammix',
+				   'contamination_contammix_lower',
+				   'contamination_contammix_upper',
+				   'contamination_contammix_gelman',
+				   'contamination_contammix_inferred_error'
 				   ]
 
 samples = dict()

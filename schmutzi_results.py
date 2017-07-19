@@ -20,7 +20,7 @@ try:
 except:
 	pass
 finally:
-	print('%s\t%s\t%f\t%s\t%f\t%s\t%f' % (key, 'contamination', contamination,
-					   'contamination_lower', lower, 
-					   'contamination_upper', upper)
+	print('%s\t%s\t%f\t%s\t%f\t%s\t%f' % (key, 'contamination_schmutzi', contamination,
+					   'contamination_schmutzi_lower', lower, 
+					   'contamination_schmutzi_upper', upper)
 	   )

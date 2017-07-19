@@ -108,7 +108,7 @@ workflow ancientDNA_screen{
 	call demultiplex as demultiplex_hs37d5 {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_sam_files = align_hs37d5.sam,
+		aligned_bam_files = align_hs37d5.bam,
 		samples_to_demultiplex = samples_to_demultiplex
 	}
 	call chromosome_target as hs37d5_chromosome_target{ input:
@@ -182,7 +182,7 @@ workflow ancientDNA_screen{
 	call demultiplex as demultiplex_rsrs {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_sam_files = align_rsrs.sam,
+		aligned_bam_files = align_rsrs.bam,
 		samples_to_demultiplex = samples_to_demultiplex
 	}
 	call chromosome_target as rsrs_chromosome_target{ input:
@@ -264,6 +264,24 @@ workflow ancientDNA_screen{
 			reference_pac = prepare_reference_human_95_consensus.reference_pac,
 			reference_sa = prepare_reference_human_95_consensus.reference_sa,
 			reference_fai = prepare_reference_human_95_consensus.reference_fai
+		}
+		call contammix{ input:
+			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
+			picard_jar = picard_jar,
+			htsbox = htsbox,
+			missing_alignments_fraction = missing_alignments_fraction,
+			max_open_gaps = max_open_gaps,
+			seed_length = seed_length,
+			minimum_mapping_quality = minimum_mapping_quality,
+			minimum_base_quality = minimum_base_quality,
+			deamination_bases_to_clip = deamination_bases_to_clip,
+			reference = prepare_reference_rsrs.reference_fa,
+			reference_amb = prepare_reference_rsrs.reference_amb,
+			reference_ann = prepare_reference_rsrs.reference_ann,
+			reference_bwt = prepare_reference_rsrs.reference_bwt,
+			reference_pac = prepare_reference_rsrs.reference_pac,
+			reference_sa = prepare_reference_rsrs.reference_sa,
+			reference_fai = prepare_reference_rsrs.reference_fai
 		}
 	}
 	call chromosome_target as rsrs_chromosome_target_post{ input:
@@ -368,6 +386,9 @@ workflow ancientDNA_screen{
 	call concatenate as concatenate_contamination_rare_variant{ input:
 		to_concatenate = contamination_rare_variant.contamination_estimate
 	}
+	call concatenate as concatenate_contammix{ input:
+		to_concatenate = contammix.contamination_estimate
+	}
 	call spike3k_complexity{ input:
 		spike3k_pre_data = concatenate_spike3k_pre.concatenated,
 		spike3k_post_data =concatenate_spike3k_post.concatenated
@@ -383,7 +404,8 @@ workflow ancientDNA_screen{
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
 		concatenate_schmutzi.concatenated,
-		concatenate_contamination_rare_variant.concatenated
+		concatenate_contamination_rare_variant.concatenated,
+		concatenate_contammix.concatenated
 	]
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
@@ -544,10 +566,10 @@ task align{
 	command {
 		set -e
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} ${fastq_to_align} > aligned.sai
-		bwa samse ${reference} aligned.sai ${fastq_to_align} > aligned.sam
+		bwa samse ${reference} aligned.sai ${fastq_to_align} | samtools view -bS - > aligned.bam
 	}
 	output{
-		File sam = "aligned.sam"
+		File bam = "aligned.bam"
 	}
 	runtime{
 		cpus: "${threads}"
@@ -576,11 +598,11 @@ task collect_filenames{
 task demultiplex{
 	File adna_screen_jar
 	File prealignment_statistics
-	Array[File] aligned_sam_files
+	Array[File] aligned_bam_files
 	Int samples_to_demultiplex
 	
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_sam_files} > postalignment_statistics
+		java -Xmx14g -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${sep=' ' aligned_bam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
@@ -1029,6 +1051,56 @@ task contamination_rare_variant{
 		samtools index sorted.bam
 		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -f ${reference} sorted.bam | python ${python_calico} --maxdepth 100000 --indels > contamination_rare_variant_results
 		python ${python_contamination_rare_variant_results} ${sample_id} contamination_rare_variant_results > contamination_estimate
+	}
+	output{
+		File contamination_estimate = "contamination_estimate"
+	}
+	runtime{
+		cpus: threads
+	}
+}
+
+task contammix{
+	File bam
+	File picard_jar
+	File htsbox
+	File potential_contaminants_fa
+	File contammix_estimate
+	File python_contammix_results
+	
+	Float missing_alignments_fraction
+	Int max_open_gaps
+	Int seed_length
+	
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
+	
+	Int threads
+	
+	# this reference is only for computing the consensus sequence
+	# all later alignment for contammix is relative to this consensus sequence
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_pac
+	File reference_sa
+	File reference_fai
+	
+	String sample_id = basename(bam, ".bam")
+	
+	command{
+		set -e
+		${htsbox} pileup -f ${reference} -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -M ${bam} > consensus.fa
+		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_consensus.fastq 
+		bwa index consensus.fa
+		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} consensus.fa for_alignment_to_consensus.fastq > realigned.sai
+		bwa samse consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
+		cat consensus.fa ${potential_contaminants_fa} > all_fasta
+		mafft all_fasta > multiple_alignment.fa
+		Rscript ${contammix_estimate} --samFn realigned.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
+		python ${python_contammix_results} > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
