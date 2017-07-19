@@ -226,7 +226,6 @@ workflow ancientDNA_screen{
 			reference_sa = prepare_reference_rcrs.reference_sa,
 			adna_screen_jar = adna_screen_jar,
 			picard_jar = picard_jar,
-			htsbox = htsbox,
 			coverage_int = chromosome_target_single_rsrs.coverage_int
 		}
 		call chromosome_target_single as chromosome_target_single_rsrs{ input:
@@ -732,7 +731,6 @@ task snp_target{
 	String label
 	File picard_jar
 	File adna_screen_jar
-	File htsbox
 	
 	File python_snp_target
 		
@@ -871,7 +869,6 @@ task haplogrep{
 	Int phylotree_version
 	File adna_screen_jar
 	File picard_jar
-	File htsbox
 	
 	Int coverage_int
 	Int pileup_depth_from_coverage = coverage_int / 10
@@ -1111,6 +1108,7 @@ task contammix{
 	}
 	runtime{
 		cpus: threads
+		requested_memory_mb_per_core: 4096
 	}
 }
 
