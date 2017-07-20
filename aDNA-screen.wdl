@@ -1092,7 +1092,6 @@ task contammix{
 	String sample_id = basename(bam, ".bam")
 	
 	command{
-		set -e
 		${htsbox} pileup -f ${reference} -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -M ${bam} > consensus.fa
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_consensus.fastq 
 		bwa index consensus.fa
@@ -1101,7 +1100,7 @@ task contammix{
 		cat consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
 		Rscript ${contammix_estimate} --samFn realigned.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
-		python ${python_contammix_results} sample_id out_contammix > contamination_estimate
+		python ${python_contammix_results} ${sample_id} out_contammix > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
