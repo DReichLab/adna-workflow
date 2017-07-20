@@ -25,6 +25,7 @@ workflow ancientDNA_screen{
 	File python_target
 	File python_central_measures
 	File python_snp_target
+	File python_snp_target_bed
 	File python_coverage
 	File python_floor
 	
@@ -122,7 +123,7 @@ workflow ancientDNA_screen{
 	}
 	scatter(bam in demultiplex_hs37d5.demultiplexed_bam){
 		call filter_aligned_only as filter_aligned_only_hs37d5 { input:
-			picard_jar = picard_jar,
+			#picard_jar = picard_jar,
 			bam = bam			
 		}
 		call snp_target_bed as spike3k_pre{ input:
@@ -198,7 +199,7 @@ workflow ancientDNA_screen{
 	}
 	scatter(bam in demultiplex_rsrs.demultiplexed_bam){
 		call filter_aligned_only as filter_aligned_only_rsrs{ input:
-			picard_jar = picard_jar,
+			#picard_jar = picard_jar,
 			bam = bam
 		}
 		call duplicates_and_damage as duplicates_and_damage_rsrs{ input: 
@@ -619,7 +620,7 @@ task demultiplex{
 
 # filter unaligned reads
 task filter_aligned_only{
-	File picard_jar
+	#File picard_jar
 	File bam
 	
 	String filename = basename(bam)
