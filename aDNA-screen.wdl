@@ -624,10 +624,11 @@ task filter_aligned_only{
 	
 	String filename = basename(bam)
 	
+	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
+	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
+	#java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned
 	command{
-		set -e
-		java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
-		java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned 
+		samtools view -h -b -F 4 -o ${filename} ${bam}
 	}
 	output{
 		File filtered = filename
