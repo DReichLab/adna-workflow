@@ -285,7 +285,8 @@ workflow ancientDNA_screen{
 			reference_bwt = prepare_reference_rsrs.reference_bwt,
 			reference_pac = prepare_reference_rsrs.reference_pac,
 			reference_sa = prepare_reference_rsrs.reference_sa,
-			reference_fai = prepare_reference_rsrs.reference_fai
+			reference_fai = prepare_reference_rsrs.reference_fai,
+			coverage = chromosome_target_single_rsrs.coverage
 		}
 	}
 	call chromosome_target as rsrs_chromosome_target_post{ input:
@@ -1091,6 +1092,8 @@ task contammix{
 	File reference_sa
 	File reference_fai
 	
+	Int coverage
+	
 	String sample_id = basename(bam, ".bam")
 	
 	command{
@@ -1109,6 +1112,7 @@ task contammix{
 	}
 	runtime{
 		cpus: threads
+		requested_memory_mb_per_core: if (coverage >= 500) then 8000 else 4096
 	}
 }
 
