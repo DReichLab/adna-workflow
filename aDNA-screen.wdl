@@ -1109,7 +1109,6 @@ task contammix{
 	}
 	runtime{
 		cpus: threads
-		requested_memory_mb_per_core: 4096
 	}
 }
 
