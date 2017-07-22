@@ -1093,6 +1093,9 @@ task contammix{
 	File reference_fai
 	
 	Int coverage
+	# We downsample to 600x MT coverage
+	Float threshold = 600.0
+	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1.0
 	
 	String sample_id = basename(bam, ".bam")
 	
@@ -1102,9 +1105,10 @@ task contammix{
 		bwa index consensus.fa
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} consensus.fa for_alignment_to_consensus.fastq > realigned.sai
 		bwa samse consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
+		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=downsampled.bam PROBABILITY=${retain_probability}
 		cat consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
-		Rscript ${contammix_estimate} --samFn realigned.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
+		Rscript ${contammix_estimate} --samFn downsampled.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
 		python ${python_contammix_results} ${sample_id} out_contammix > contamination_estimate
 	}
 	output{
@@ -1112,7 +1116,7 @@ task contammix{
 	}
 	runtime{
 		cpus: threads
-		requested_memory_mb_per_core: if (coverage >= 500) then 8000 else 4096
+		requested_memory_mb_per_core: if (coverage >= 400) then 8000 else 4096
 	}
 }
 
