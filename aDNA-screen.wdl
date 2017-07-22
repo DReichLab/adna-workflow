@@ -1092,7 +1092,7 @@ task contammix{
 	File reference_sa
 	File reference_fai
 	
-	Int coverage
+	Float coverage
 	# We downsample to 600x MT coverage
 	Float threshold = 600.0
 	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1.0
