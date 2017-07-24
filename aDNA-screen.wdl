@@ -1105,14 +1105,15 @@ task contammix{
 		bwa index consensus.fa
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} consensus.fa for_alignment_to_consensus.fastq > realigned.sai
 		bwa samse consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
-		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=downsampled.bam PROBABILITY=${retain_probability}
+		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=${retain_probability}
 		cat consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
-		Rscript ${contammix_estimate} --samFn downsampled.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
+		Rscript ${contammix_estimate} --samFn ${sample_id}.downsampled.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
 		python ${python_contammix_results} ${sample_id} out_contammix > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
+		File plot = "data_fig.pdf"
 	}
 	runtime{
 		cpus: threads
