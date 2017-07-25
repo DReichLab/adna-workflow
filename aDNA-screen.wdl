@@ -1113,7 +1113,6 @@ task contammix{
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
-		File plot = "data_fig.pdf"
 	}
 	runtime{
 		cpus: threads
