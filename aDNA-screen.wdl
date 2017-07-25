@@ -1081,6 +1081,8 @@ task contammix{
 	Int deamination_bases_to_clip
 	
 	Int threads
+	Int chains
+	Int seed
 	
 	# this reference is only for computing the consensus sequence
 	# all later alignment for contammix is relative to this consensus sequence
@@ -1108,15 +1110,16 @@ task contammix{
 		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=${retain_probability}
 		cat consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
-		Rscript ${contammix_estimate} --samFn ${sample_id}.downsampled.bam --malnFn multiple_alignment.fa --consId MT --nChains ${threads} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --tabOutput > out_contammix
+		Rscript ${contammix_estimate} --samFn ${sample_id}.downsampled.bam --malnFn multiple_alignment.fa --consId MT --nChains ${chains} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --seed ${seed} --tabOutput > out_contammix
 		python ${python_contammix_results} ${sample_id} out_contammix > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
 	}
 	runtime{
+		queue: "medium"
+		runtime_minutes: 1440
 		cpus: threads
-		requested_memory_mb_per_core: if (coverage >= 400) then 8000 else 4096
 	}
 }
 
