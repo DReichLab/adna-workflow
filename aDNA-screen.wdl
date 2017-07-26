@@ -1101,11 +1101,12 @@ task contammix{
 	
 	String sample_id = basename(bam, ".bam")
 	
-	#${htsbox} pileup -f ${reference} -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -M ${bam} > consensus.fa
+	#samtools mpileup -u -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -f ${reference} ${bam} | bcftools call -c -O z --ploidy 1 -o calls.vcf.gz
+	#tabix calls.vcf.gz
+	#cat ${reference} | bcftools consensus calls.vcf.gz > consensus.fa
+	
 	command{
-		samtools mpileup -u -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -f ${reference} ${bam} | bcftools call -c -O z --ploidy 1 -o calls.vcf.gz
-		tabix calls.vcf.gz
-		cat ${reference} | bcftools consensus calls.vcf.gz > consensus.fa
+		${htsbox} pileup -f ${reference} -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -M ${bam} > consensus.fa
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_consensus.fastq 
 		bwa index consensus.fa
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} consensus.fa for_alignment_to_consensus.fastq > realigned.sai
