@@ -894,7 +894,7 @@ task haplogrep{
 		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted_realigned.bam
 		java -jar ${picard_jar} SortSam I=clipped_unsorted_realigned.bam O=${sample_id_filename}.bam SORT_ORDER=coordinate
 		samtools index ${sample_id_filename}.bam
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -r ${region} -u -f ${reference} ${sample_id_filename}.bam | bcftools call -m -v --ploidy 1 > ${sample_id_filename}.vcf
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -r ${region} -u -f ${reference} ${sample_id_filename}.bam | bcftools call -c -v --ploidy 1 > ${sample_id_filename}.vcf
 		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
 	}
 	output{
