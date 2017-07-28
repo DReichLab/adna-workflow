@@ -1070,6 +1070,7 @@ task contammix{
 	File htsbox
 	File potential_contaminants_fa
 	File contammix_estimate
+	File python_contammix_multiprocess
 	File python_contammix_results
 	
 	Float missing_alignments_fraction
@@ -1081,6 +1082,7 @@ task contammix{
 	Int deamination_bases_to_clip
 	
 	Int threads
+	Int copies
 	Int chains
 	Int seed
 	
@@ -1114,15 +1116,12 @@ task contammix{
 		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=${retain_probability}
 		cat consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
-		Rscript ${contammix_estimate} --samFn ${sample_id}.downsampled.bam --malnFn multiple_alignment.fa --consId MT --nChains ${chains} --figure data_fig --baseq ${minimum_base_quality} --trimBases ${deamination_bases_to_clip} --seed ${seed} --tabOutput > out_contammix
-		python ${python_contammix_results} ${sample_id} out_contammix > contamination_estimate
+		python ${python_contammix_multiprocess} ${copies} ${sample_id} ${contammix_estimate} ${sample_id}.downsampled.bam multiple_alignment.fa ${chains} ${minimum_base_quality} ${deamination_bases_to_clip} ${seed} > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
 	}
 	runtime{
-		queue: "medium"
-		runtime_minutes: 1440
 		cpus: threads
 	}
 }
