@@ -24,7 +24,7 @@ def contammix(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, nu
 	except:
 		pass
 	if result == None:
-		sys.stderr.write(result)
+		sys.stderr.write('None')
 	else:
 		sys.stderr.write(result)
 	sys.stderr.write('\n')
