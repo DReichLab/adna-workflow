@@ -23,7 +23,11 @@ def contammix(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, nu
 		result = check_output(["Rscript", contammix_estimate_script, "--samFn", bamFilename, "--malnFn", multipleAlignmentFASTA, "--consId", "MT", "--nChains", numChains, "--figure", "diagnostic_plots.pdf", "--baseq", minimum_base_quality, "--trimBases", deamination_bases_to_clip, "--seed", seed, "--tabOutput"])
 	except:
 		pass
-	sys.stderr.write(result)
+	if result == None:
+		sys.stderr.write(result)
+	else:
+		sys.stderr.write(result)
+	sys.stderr.write('\n')
 	resultsQueue.put(result)
 
 #
