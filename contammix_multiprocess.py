@@ -71,6 +71,7 @@ while copyCount > 0:
 		for p in processes:
 			if p.is_alive():
 				p.terminate()
+		copyCount = 0
 	except:
 		pass
 
