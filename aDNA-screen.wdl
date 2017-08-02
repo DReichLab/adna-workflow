@@ -373,6 +373,10 @@ workflow ancientDNA_screen{
 		files = rsrs_chromosome_target_post.length_histogram,
 		output_path = output_path_rsrs_aligned_filtered
 	}
+	call copy_output as copy_rsrs_histogram{ input:
+		files = contammix.consensus,
+		output_path = output_path_rsrs_aligned_filtered
+	}
 	call concatenate as concatenate_rsrs_damage{ input:
 		to_concatenate = duplicates_and_damage_rsrs.damage
 	}
@@ -1107,18 +1111,19 @@ task contammix{
 	#cat ${reference} | bcftools consensus calls.vcf.gz > consensus.fa
 	
 	command{
-		${htsbox} pileup -f ${reference} -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -M ${bam} > consensus.fa
+		${htsbox} pileup -f ${reference} -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -M ${bam} > ${sample_id}.consensus.fa
 		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_consensus.fastq 
-		bwa index consensus.fa
-		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} consensus.fa for_alignment_to_consensus.fastq > realigned.sai
-		bwa samse consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
+		bwa index ${sample_id}.consensus.fa
+		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${sample_id}.consensus.fa for_alignment_to_consensus.fastq > realigned.sai
+		bwa samse ${sample_id}.consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
 		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=${retain_probability}
-		cat consensus.fa ${potential_contaminants_fa} > all_fasta
+		cat ${sample_id}.consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
 		python ${python_contammix_multiprocess} ${copies} ${sample_id} ${contammix_estimate} ${sample_id}.downsampled.bam multiple_alignment.fa ${chains} ${minimum_base_quality} ${deamination_bases_to_clip} ${seed} > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
+		File consensus = "${sample_id}.consensus.fa"
 	}
 	runtime{
 		cpus: threads
