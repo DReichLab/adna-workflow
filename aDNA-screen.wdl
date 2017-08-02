@@ -1071,7 +1071,6 @@ task contammix{
 	File potential_contaminants_fa
 	File contammix_estimate
 	File python_contammix_multiprocess
-	File python_contammix_results
 	
 	Float missing_alignments_fraction
 	Int max_open_gaps
