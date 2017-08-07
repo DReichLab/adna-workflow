@@ -442,7 +442,7 @@ task prepare_reference{
 		bwa index ${reference}
 		samtools faidx ${reference}
 		
-		cp -l ${reference}     ${filename}
+		cp -s ${reference}     ${filename}
 		cp -l ${reference}.amb ${filename}.amb
 		cp -l ${reference}.ann ${filename}.ann
 		cp -l ${reference}.bwt ${filename}.bwt
