@@ -43,9 +43,11 @@ workflow ancientDNA_screen{
 	File mt_reference_rcrs_in
 	File mt_reference_human_95_consensus
 	
-	String output_path_hs37d5_aligned_unfiltered
-	String output_path_hs37d5_aligned_filtered
-	String output_path_rsrs_aligned_filtered
+	String output_path_parent
+	String output_path = output_path_parent + "/" + date + "_" + dataset_label
+	String output_path_hs37d5_aligned_unfiltered = output_path + "/hs37d5_aligned_unfiltered"
+	String output_path_hs37d5_aligned_filtered = output_path + "/hs37d5_aligned_filtered"
+	String output_path_rsrs_aligned_filtered = output_path + "/rsrs_aligned_filtered"
 
 	call prepare_reference as prepare_reference_hs37d5{ input:
 		reference = reference_in
@@ -373,7 +375,7 @@ workflow ancientDNA_screen{
 		files = rsrs_chromosome_target_post.length_histogram,
 		output_path = output_path_rsrs_aligned_filtered
 	}
-	call copy_output as copy_rsrs_histogram{ input:
+	call copy_output as copy_consensus_mt{ input:
 		files = contammix.consensus,
 		output_path = output_path_rsrs_aligned_filtered
 	}
@@ -418,7 +420,14 @@ workflow ancientDNA_screen{
 	]
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
-		keyed_statistics = final_keyed_statistics
+		keyed_statistics = final_keyed_statistics,
+		dataset_label = dataset_label,
+		date = date
+	}
+	Array[File] report_array = [prepare_report.report]
+	call copy_output as copy_report{ input:
+		files = report_array,
+		output_path = output_path
 	}
 }
 
@@ -1137,11 +1146,14 @@ task prepare_report{
 	# they do not contain a leading number of reads
 	Array[File] keyed_statistics
 	
+	String dataset_label
+	String date
+	
 	command{
-		python ${python_prepare_report} ${aggregated_statistics} ${sep=' ' keyed_statistics} > report
+		python ${python_prepare_report} ${aggregated_statistics} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
 	}
 	output{
-		File report = "report"
+		File report = "${date}_${dataset_label}.report"
 	}
 	runtime{
 		runtime_minutes: 30
