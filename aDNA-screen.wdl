@@ -472,8 +472,7 @@ task bcl2fastq{
 		bcl2fastq \
 			-R ${blc_input_directory} \
 			-o ./ \
-			--create-fastq-for-index-reads \
-			--use-bases-mask Y76,I7,I7,Y76
+			--create-fastq-for-index-reads
 	}
 	
 	output{
