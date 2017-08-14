@@ -534,13 +534,12 @@ task merge_and_trim_lane{
 	Array[File] read_files_by_lane
 	String label
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} -r read_group ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
 		Array[File] fastq_to_align = glob("${label}*.fastq.gz")
 		File statistics = "${label}.stats"
-		String fastq_read_group = read_string("read_group")
 	}
 	runtime{
 		requested_memory_mb_per_core: 16384
