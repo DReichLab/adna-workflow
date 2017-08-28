@@ -662,7 +662,7 @@ task duplicates_and_damage{
 	command{
 		set -e
 		java -jar ${picard_jar} SortSam I=${unsorted} O=sorted_coordinate.bam SORT_ORDER=coordinate
-		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD
+		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false
 		java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
 		
 		echo "${sample_id_filename}" > damage
