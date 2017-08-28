@@ -61,14 +61,33 @@ def addToSamples(f):
 		
 		for n in range(0, len(labels)):
 			samples[sampleID][labels[n]] = values[n]
+			
+def isCoverageLabel(label):
+	return "coverageLength" in label
 				
+# if a coverage label, normalize the coverage length sum to a coverage multiplier
+# otherwise, do nothing
+def coverageNormalization(originalLabel, value):
+	label = originalLabel
+	length = 1
+	if isCoverageLabel(label):
+		label = originalLabel.replace('Length', '')
+		if label.startswith('MT'):
+			length = 16569
+		elif label.startswith('autosome'):
+			length = 2881033286
+		elif label.startswith('X'):
+			length = 155270560
+		elif label.startswith('Y'):
+			length = 59373566
+	return label, (float(value) / length)
 
 # read from stats
 statsFilename = sys.argv[1]
 with open(statsFilename, "r") as f:
 	line = f.readline()
 	total_reads = int(line)
-	eprint('Total reads: ', total_reads)
+	print('Total reads: ', total_reads)
 	addToSamples(f)
 
 # read from damages, medians, haplogroups
@@ -80,7 +99,11 @@ for filename in filenames:
 # print headers
 print ('Index-Barcode Key', end='\t')
 for header in headersToReport:
-	print(header, end='\t')
+	headerToPrint = header
+	# if a coverage label, shorten it
+	if isCoverageLabel(header):
+		headerToPrint, unusedValue = coverageNormalization(header, 0)
+	print(headerToPrint, end='\t')
 print ('') # includes newline
 # output in preset header order
 for sampleID in samples:
@@ -90,7 +113,12 @@ for sampleID in samples:
 			print(sampleID, end='\t')
 			for label in headersToReport:
 				if label in thisSample:
-					print(thisSample[label], end='')
+					# adjust coverage values, and pass through non-coverage values
+					value = thisSample[label]
+					if isCoverageLabel(label):
+						ignoredLabel, value = coverageNormalization(label, value)
+						value = '%.4g' % value
+					print(value, end='')
 				print('\t', end='')
 			print('')
 	except KeyError:
