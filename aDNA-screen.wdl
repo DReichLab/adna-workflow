@@ -241,18 +241,18 @@ workflow ancientDNA_screen{
 			reference_length = 16569,
 			coverage_field = "MT_post-coverageLength"
 		}
-		call schmutzi{ input:
-			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
-			picard_jar = picard_jar,
-			reference = prepare_reference_rsrs.reference_fa,
-			reference_amb = prepare_reference_rsrs.reference_amb,
-			reference_ann = prepare_reference_rsrs.reference_ann,
-			reference_bwt = prepare_reference_rsrs.reference_bwt,
-			reference_pac = prepare_reference_rsrs.reference_pac,
-			reference_sa = prepare_reference_rsrs.reference_sa,
-			reference_fai = prepare_reference_rsrs.reference_fai,
-			coverage = chromosome_target_single_rsrs.coverage
-		}
+#		call schmutzi{ input:
+#			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
+#			picard_jar = picard_jar,
+#			reference = prepare_reference_rsrs.reference_fa,
+#			reference_amb = prepare_reference_rsrs.reference_amb,
+#			reference_ann = prepare_reference_rsrs.reference_ann,
+#			reference_bwt = prepare_reference_rsrs.reference_bwt,
+#			reference_pac = prepare_reference_rsrs.reference_pac,
+#			reference_sa = prepare_reference_rsrs.reference_sa,
+#			reference_fai = prepare_reference_rsrs.reference_fai,
+#			coverage = chromosome_target_single_rsrs.coverage
+#		}
 		call contamination_rare_variant{ input:
 			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
 			picard_jar = picard_jar,
@@ -391,9 +391,9 @@ workflow ancientDNA_screen{
 	call concatenate as concatenate_spike3k_post{ input:
 		to_concatenate = spike3k_post.snp_target_stats
 	}
-	call concatenate as concatenate_schmutzi{ input:
-		to_concatenate = schmutzi.contamination_estimate
-	}
+#	call concatenate as concatenate_schmutzi{ input:
+#		to_concatenate = schmutzi.contamination_estimate
+#	}
 	call concatenate as concatenate_contamination_rare_variant{ input:
 		to_concatenate = contamination_rare_variant.contamination_estimate
 	}
@@ -414,7 +414,7 @@ workflow ancientDNA_screen{
 		concatenate_spike3k_pre.concatenated,
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
-		concatenate_schmutzi.concatenated,
+#		concatenate_schmutzi.concatenated,
 		concatenate_contamination_rare_variant.concatenated,
 		concatenate_contammix.concatenated
 	]
