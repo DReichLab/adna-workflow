@@ -630,7 +630,7 @@ task demultiplex{
 	}
 }
 
-# filter unaligned reads
+# filter out unaligned reads
 task filter_aligned_only{
 	#File picard_jar
 	File bam
@@ -666,7 +666,7 @@ task duplicates_and_damage{
 		java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
 		
 		echo "${sample_id_filename}" > damage
-		java -jar ${picard_jar} ViewSam INPUT=${sample_id_filename} ALIGNMENT_STATUS=Aligned | python ${pmdtools} --first >> damage
+		samtools view ${sample_id_filename} | python ${pmdtools} --first >> damage
 		python ${python_damage} ${damage_label} damage > damage_statistics
 	}
 	output{
