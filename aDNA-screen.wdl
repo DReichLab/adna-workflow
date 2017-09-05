@@ -63,6 +63,19 @@ workflow ancientDNA_screen{
 	}
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
+		call barcode_count_check{ input:
+			adna_screen_jar = adna_screen_jar,
+			i5_indices = i5_indices,
+			i7_indices = i7_indices,
+			barcodeSets = barcodeSets,
+			read_files_by_lane = lane
+		}
+	}
+	call aggregate_statistics as aggregate_barcode_count_statistics{ input :
+		adna_screen_jar=adna_screen_jar,
+		statistics_by_group=barcode_count_check.barcode_count_statistics
+	}
+	scatter(lane in bcl2fastq.read_files_by_lane){
 		call discover_lane_name_from_filename{ input:
 			python_lane_name = python_lane_name,
 			filename = lane[0]
@@ -73,7 +86,8 @@ workflow ancientDNA_screen{
 			i7_indices = i7_indices,
 			barcodeSets = barcodeSets,
 			read_files_by_lane = lane,
-			label = discover_lane_name_from_filename.lane
+			label = discover_lane_name_from_filename.lane,
+			barcode_count_statistics = aggregate_barcode_count_statistics.statistics
 		}
 	}
 	call aggregate_statistics as aggregate_lane_statistics{ input :
@@ -526,6 +540,25 @@ task discover_lane_name_from_filename{
 	}
 }
 
+# Count the number of paired reads that would demultiplex with barcodes, and those without
+task barcode_count_check{
+	File adna_screen_jar
+	File i5_indices
+	File i7_indices
+	File barcodeSets
+	Array[File] read_files_by_lane
+	
+	command{
+		java -Xmx14g -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
+	}
+	output{
+		File barcode_count_statistics = "barcodeCount.stats"
+	}
+	runtime{
+		requested_memory_mb_per_core: 16384
+	}
+}
+
 task merge_and_trim_lane{
 	File adna_screen_jar
 	File i5_indices
@@ -533,6 +566,8 @@ task merge_and_trim_lane{
 	File barcodeSets
 	Array[File] read_files_by_lane
 	String label
+	File barcode_count_statistics
+	
 	command{
 		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
