@@ -153,14 +153,7 @@ workflow ancientDNA_screen{
 			label = "spike3k_pre",
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
-			python_snp_target_bed = python_snp_target_bed,
-			reference = prepare_reference_hs37d5.reference_fa,
-			reference_amb = prepare_reference_hs37d5.reference_amb,
-			reference_ann = prepare_reference_hs37d5.reference_ann,
-			reference_bwt = prepare_reference_hs37d5.reference_bwt,
-			reference_pac = prepare_reference_hs37d5.reference_pac,
-			reference_sa = prepare_reference_hs37d5.reference_sa,
-			reference_fai = prepare_reference_hs37d5.reference_fai
+			python_snp_target_bed = python_snp_target_bed
 		}
 		call duplicates_and_damage as duplicates_and_damage_hs37d5 { input: 
 			picard_jar = picard_jar,
@@ -182,14 +175,7 @@ workflow ancientDNA_screen{
 			label = "spike3k_post",
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
-			python_snp_target_bed = python_snp_target_bed,
-			reference = prepare_reference_hs37d5.reference_fa,
-			reference_amb = prepare_reference_hs37d5.reference_amb,
-			reference_ann = prepare_reference_hs37d5.reference_ann,
-			reference_bwt = prepare_reference_hs37d5.reference_bwt,
-			reference_pac = prepare_reference_hs37d5.reference_pac,
-			reference_sa = prepare_reference_hs37d5.reference_sa,
-			reference_fai = prepare_reference_hs37d5.reference_fai
+			python_snp_target_bed = python_snp_target_bed
 		} 
 	}
 	call chromosome_target as hs37d5_chromosome_target_post{ input:
@@ -822,15 +808,6 @@ task snp_target_bed{
 	File adna_screen_jar
 	
 	File python_snp_target_bed
-		
-	File reference
-	File reference_amb
-	File reference_ann
-	File reference_bwt
-	File reference_fai
-	File reference_pac
-	File reference_sa
-	
 	String sample_id_filename = basename(bam)
 	
 	command{
