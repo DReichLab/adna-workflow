@@ -469,10 +469,13 @@ task bcl2fastq{
 	String blc_input_directory
 
 	command{
+		set -e
+		touch empty
 		bcl2fastq \
 			-R ${blc_input_directory} \
 			-o ./ \
-			--create-fastq-for-index-reads
+			--create-fastq-for-index-reads \
+			--sample-sheet empty
 	}
 	
 	output{
