@@ -105,8 +105,10 @@ for header in headersToReport:
 		headerToPrint, unusedValue = coverageNormalization(header, 0)
 	print(headerToPrint, end='\t')
 print ('') # includes newline
+
+sorted_samples = sorted(samples, key=lambda x: int(samples[x]['raw']), reverse=True)
 # output in preset header order
-for sampleID in samples:
+for sampleID in sorted_samples:
 	thisSample = samples[sampleID]
 	try:
 		if int(samples[sampleID]['raw']) >= 500:
