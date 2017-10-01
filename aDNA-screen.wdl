@@ -508,7 +508,6 @@ task bcl2fastq{
 	}
 	runtime{
 		cpus: 4
-		runtime_minutes: 240
 		requested_memory_mb_per_core: 8192
 	}
 }
@@ -581,7 +580,7 @@ task aggregate_statistics{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
-		runtime_minutes: 20
+		runtime_minutes: 60
 		requested_memory_mb_per_core: 4096
 	}
 }
@@ -630,7 +629,7 @@ task collect_filenames{
 		Array[String] filenames = read_lines("./file_of_filenames")
 	}
 	runtime{
-		runtime_minutes: 10
+		runtime_minutes: 60
 		requested_memory_mb_per_core: 2048
 	}
 }
@@ -731,7 +730,7 @@ task chromosome_target_single{
 		Int coverage_int = read_int("coverage_int")
 	}
 	runtime{
-		runtime_minutes: 30
+		runtime_minutes: 300
 		requested_memory_mb_per_core: 4096
 	}
 }
@@ -755,7 +754,6 @@ task chromosome_target{
 	}
 	runtime{
 		cpus: 2
-		runtime_minutes: 300
 		requested_memory_mb_per_core: 8192
 	}
 }
@@ -878,7 +876,6 @@ task copy_output{
 		done
 	}
 	runtime{
-		runtime_minutes: 300
 		requested_memory_mb_per_core: 2048
 	}
 }
@@ -928,7 +925,6 @@ task haplogrep{
 	}
 	runtime{
 		cpus: 2
-		runtime_minutes: 180
 		requested_memory_mb_per_core: 8192
 	}
 }
@@ -944,7 +940,6 @@ task summarize_haplogroups{
 		File haplogroups = "haplogroups"
 	}
 	runtime{
-		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 	}
 }
@@ -962,7 +957,6 @@ task central_measures{
 		File central_measures_output = "central_measures"
 	}
 	runtime{
-		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 	}
 }
@@ -1169,7 +1163,6 @@ task prepare_report{
 		File report = "${date}_${dataset_label}.report"
 	}
 	runtime{
-		runtime_minutes: 30
 		requested_memory_mb_per_core: 4096
 	}
 }
