@@ -524,7 +524,7 @@ task discover_lane_name_from_filename{
 	}
 	runtime{
 		runtime_minutes: 10
-		requested_memory_mb_per_core: 2048
+		requested_memory_mb_per_core: 1024
 	}
 }
 
@@ -669,6 +669,10 @@ task filter_aligned_only{
 	}
 	output{
 		File filtered = filename
+	}
+	runtime{
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 1000
 	}
 }
 
@@ -825,6 +829,9 @@ task snp_target_bed{
 	output{
 		File snp_target_stats = "snp_target_stats"
 	}
+	runtime{
+		runtime_minutes: 120
+	}
 }
 
 task spike3k_complexity{
@@ -925,8 +932,8 @@ task haplogrep{
 		File haplogroup_report = "${sample_id_filename}.haplogroup"
 	}
 	runtime{
-		cpus: 2
-		requested_memory_mb_per_core: 8192
+		runtime_minutes: 60
+		requested_memory_mb_per_core: 2000
 	}
 }
 
@@ -1050,7 +1057,7 @@ task contamination_rare_variant{
 	Float missing_alignments_fraction
 	Int max_open_gaps
 	Int seed_length
-	Int threads = 2
+	Int threads = 1
 
 	File reference
 	File reference_amb
@@ -1082,6 +1089,8 @@ task contamination_rare_variant{
 	}
 	runtime{
 		cpus: threads
+		runtime_minutes: 60
+		requested_memory_mb_per_core: 4096
 	}
 }
 
@@ -1117,9 +1126,9 @@ task contammix{
 	File reference_fai
 	
 	Float coverage
-	# We downsample to 600x MT coverage
-	Float threshold = 600.0
-	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1.0
+	# We downsample to max MT coverage
+	Float max_coverage
+	Float retain_probability = if (coverage > max_coverage) then (max_coverage / coverage) else 1.0
 	
 	String sample_id = basename(bam, ".bam")
 	
