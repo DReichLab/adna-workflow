@@ -643,7 +643,7 @@ task demultiplex{
 	File? barcodes
 	
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile" + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
+		java -Xmx14g -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
