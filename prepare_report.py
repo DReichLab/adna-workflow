@@ -54,7 +54,9 @@ def addToSamples(f):
 	for line in f:
 		#key label1 value1 label2 value2 ...
 		tokens = str.strip(line).split('\t')
-		sampleID = tokens[0]
+		# to workaround Cromwell problem where task output filenames cannot contain ':'
+		# we re-replace alternate character with ':' for analysis
+		sampleID = tokens[0].replace('-', ':')
 		labels = tokens[1:len(tokens):2]
 		values = tokens[2:len(tokens):2]
 		
