@@ -2,8 +2,10 @@ from __future__ import print_function
 # combine statistics from samples with damage reports into a tab-separated file readable by MS Excel
 import sys
 
-headersToReport = ['raw', 
+headersToReport = ['library_id',
+				   'raw', 
 				   'merged', 
+				   '%_endogenous_pre',
 				   'autosome_pre', 'autosome_pre-coverageLength', 
 				   'autosome_post', 'autosome_post-coverageLength',
 				   'X_pre', 'X_pre-coverageLength', 
@@ -89,12 +91,37 @@ with open(statsFilename, "r") as f:
 	total_reads = int(line)
 	print('Total reads: ', total_reads)
 	addToSamples(f)
+	
+# mapping from index and barcodes to sample/extract/library ID
+keyMapping = dict()
+keyMappingFilename = sys.argv[2]
+with open(keyMappingFilename, "r") as f:
+	for line in f:
+		index_barcode_key, sample_extract_library_id = line.split('\t')
+		keyMapping[index_barcode_key] = sample_extract_library_id
 
 # read from damages, medians, haplogroups
-filenames = sys.argv[2:len(sys.argv)]
+# these are all files with the index barcode keys and additional keyed fields
+filenames = sys.argv[3:len(sys.argv)]
 for filename in filenames:
 	with open(filename, "r") as f:
 		addToSamples(f)
+		
+# fill in additional fields
+for sampleID in samples:
+	# add sample/extract/library ID, if available
+	samples[sampleID]['library_id'] = keyMapping.get(sampleID, "")
+	# add % endogenous
+	singleSample = samples[sampleID]
+	if ('autosome_pre' in singleSample
+	 or 'X_pre' in singleSample
+	 or 'Y_pre' in singleSample
+	 or 'MT_pre' in singleSample):
+		samples[sampleID]['%_endogenous_pre'] = float(
+			int(samples[sampleID].get('autosome_pre', '0'))
+			+ int(samples[sampleID].get('X_pre', '0'))
+			+ int(samples[sampleID].get('Y_pre', '0'))
+			+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['raw'])
 
 # print headers
 print ('Index-Barcode Key', end='\t')

@@ -1161,6 +1161,7 @@ task contammix{
 task prepare_report{
 	File python_prepare_report
 	File aggregated_statistics
+	File index_barcode_keys
 	# these files contain statistics that are not necessarily count based
 	# they do not contain a leading number of reads
 	Array[File] keyed_statistics
@@ -1169,7 +1170,7 @@ task prepare_report{
 	String date
 	
 	command{
-		python ${python_prepare_report} ${aggregated_statistics} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
+		python ${python_prepare_report} ${aggregated_statistics} ${index_barcode_keys} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
 	}
 	output{
 		File report = "${date}_${dataset_label}.report"
