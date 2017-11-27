@@ -764,43 +764,6 @@ task chromosome_target{
 	}
 }
 
-task snp_target{
-	File coordinates
-	File bam
-	Int minimum_mapping_quality
-	Int minimum_base_quality
-	Int deamination_bases_to_clip
-	String label
-	File picard_jar
-	File adna_screen_jar
-	
-	File python_snp_target
-		
-	File reference
-	File reference_amb
-	File reference_ann
-	File reference_bwt
-	File reference_fai
-	File reference_pac
-	File reference_sa
-	
-	String sample_id_filename = basename(bam)
-
-	#${htsbox} pileup -vcf ${reference} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -T ${deamination_bases_to_clip} -b ${coordinates} ${sample_id_filename}.bam > ${sample_id_filename}.vcf
-	
-	command{
-		set -e
-		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
-		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
-		samtools index sorted.bam
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -v -u -f ${reference} -l ${coordinates} sorted.bam > ${sample_id_filename}.vcf
-		python ${python_snp_target} ${label} ${sample_id_filename}.vcf > snp_target_stats
-	}
-	output{
-		File snp_target_stats = "snp_target_stats"
-	}
-}
-
 # This counts reads similarly to snp_target, but uses a bed file to look for read overlaps in an interval around the SNP. 
 task snp_target_bed{
 	File coordinates_autosome
