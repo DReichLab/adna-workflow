@@ -100,7 +100,7 @@ keyMappingFilename = sys.argv[2]
 with open(keyMappingFilename, "r") as f:
 	for line in f:
 		index_barcode_key, sample_extract_library_id = line.split('\t')
-		keyMapping[index_barcode_key] = sample_extract_library_id
+		keyMapping[index_barcode_key] = sample_extract_library_id.strip()
 
 # read from damages, medians, haplogroups
 # these are all files with the index barcode keys and additional keyed fields
