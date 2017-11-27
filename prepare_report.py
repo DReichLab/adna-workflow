@@ -5,7 +5,7 @@ import sys
 headersToReport = ['library_id',
 				   'raw', 
 				   'merged', 
-				   '%_endogenous_pre',
+				   'endogenous_pre',
 				   'autosome_pre', 'autosome_pre-coverageLength', 
 				   'autosome_post', 'autosome_post-coverageLength',
 				   'X_pre', 'X_pre-coverageLength', 
@@ -119,7 +119,7 @@ for sampleID in samples:
 	 or 'X_pre' in singleSample
 	 or 'Y_pre' in singleSample
 	 or 'MT_pre' in singleSample):
-		samples[sampleID]['%_endogenous_pre'] = float(
+		samples[sampleID]['endogenous_pre'] = float(
 			int(samples[sampleID].get('autosome_pre', '0'))
 			+ int(samples[sampleID].get('X_pre', '0'))
 			+ int(samples[sampleID].get('Y_pre', '0'))
