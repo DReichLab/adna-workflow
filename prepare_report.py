@@ -86,6 +86,19 @@ def coverageNormalization(originalLabel, value):
 			length = 59373566
 	return label, (float(value) / length)
 
+def printSample(sampleID, thisSample):
+	print(sampleID, end='\t')
+	for label in headersToReport:
+		if thisSample is not None and label in thisSample:
+			# adjust coverage values, and pass through non-coverage values
+			value = thisSample[label]
+			if isCoverageLabel(label):
+				ignoredLabel, value = coverageNormalization(label, value)
+				value = '%.4g' % value
+			print(value, end='')
+		print('\t', end='')
+	print('')
+
 # read from stats
 statsFilename = sys.argv[1]
 with open(statsFilename, "r") as f:
@@ -109,7 +122,7 @@ for filename in filenames:
 	with open(filename, "r") as f:
 		addToSamples(f)
 		
-# fill in additional fields
+# populate additional sample fields
 for sampleID in samples:
 	# add sample/extract/library ID, if available
 	samples[sampleID]['library_id'] = keyMapping.get(sampleID, "")
@@ -136,21 +149,15 @@ for header in headersToReport:
 print ('') # includes newline
 
 sorted_samples = sorted(samples, key=lambda x: int(samples[x]['raw']), reverse=True)
-# output in preset header order
+# output each sample with data using preset header order
 for sampleID in sorted_samples:
 	thisSample = samples[sampleID]
 	try:
-		if int(samples[sampleID]['raw']) >= 500:
-			print(sampleID, end='\t')
-			for label in headersToReport:
-				if label in thisSample:
-					# adjust coverage values, and pass through non-coverage values
-					value = thisSample[label]
-					if isCoverageLabel(label):
-						ignoredLabel, value = coverageNormalization(label, value)
-						value = '%.4g' % value
-					print(value, end='')
-				print('\t', end='')
-			print('')
+		if int(samples[sampleID]['raw']) >= 500 or sampleID in keyMapping:
+			printSample(sampleID, thisSample)
 	except KeyError:
 		eprint('KeyError', sampleID)
+# samples that are expected, but do not have results
+for sampleID in keyMapping:
+	if sampleID not in samples:
+		print('%s\t%s' % (sampleID, keyMapping[sampleID]) )
