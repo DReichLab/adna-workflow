@@ -22,6 +22,7 @@ workflow ancientDNA_screen{
 	
 	File python_lane_name
 	File python_damage
+	File python_damage_two_bases
 	File python_target
 	File python_central_measures
 	File python_snp_target
@@ -178,6 +179,14 @@ workflow ancientDNA_screen{
 			python_snp_target_bed = python_snp_target_bed
 		} 
 	}
+	call damage_loop as damage_loop_hs37d5{ input:
+		pmdtools = pmdtools,
+		python_damage_two_bases = python_damage_two_bases,
+		bams = duplicates_and_damage_hs37d5.aligned_deduplicated,
+		damage_label = "damage_hs37d5",
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality
+	}
 	call chromosome_target as hs37d5_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
@@ -291,6 +300,14 @@ workflow ancientDNA_screen{
 			coverage = chromosome_target_single_rsrs.coverage
 		}
 	}
+	call damage_loop as damage_loop_rsrs{ input:
+		pmdtools = pmdtools,
+		python_damage_two_bases = python_damage_two_bases,
+		bams = duplicates_and_damage_rsrs.aligned_deduplicated,
+		damage_label = "damage_rsrs",
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality
+	}
 	call chromosome_target as rsrs_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
@@ -379,12 +396,6 @@ workflow ancientDNA_screen{
 		files = contammix.consensus,
 		output_path = output_path_rsrs_aligned_filtered
 	}
-	call concatenate as concatenate_rsrs_damage{ input:
-		to_concatenate = duplicates_and_damage_rsrs.damage
-	}
-	call concatenate as concatenate_hs37d5_damage{ input:
-		to_concatenate = duplicates_and_damage_hs37d5.damage
-	}
 	call concatenate as concatenate_spike3k_pre{ input:
 		to_concatenate = spike3k_pre.snp_target_stats
 	}
@@ -406,8 +417,8 @@ workflow ancientDNA_screen{
 	}
 	
 	Array[File] final_keyed_statistics = [
-		concatenate_hs37d5_damage.concatenated,
-		concatenate_rsrs_damage.concatenated,
+		damage_loop_hs37d5.damage_all_samples_two_bases,
+		damage_loop_rsrs.damage_all_samples_two_bases,
 		central_measures_hs37d5.central_measures_output,
 		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups,
@@ -706,6 +717,28 @@ task duplicates_and_damage{
 	}
 	runtime{
 		cpus: 2
+	}
+}
+
+task damage_loop{
+	File pmdtools
+	File python_damage_two_bases
+	Array[File] bams
+	String damage_label
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	
+	command{
+		set -e
+		for bam in ${sep=' ' bams}
+		do
+			damage_filename=$(basename $bam .sam).damage
+			samtools view $bam | python ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > $damage_filename
+			python ${python_damage_two_bases} ${damage_label} $damage_filename >> damage_all_samples_two_bases
+		done
+	}
+	output{
+		File damage_all_samples_two_bases = "damage_all_samples_two_bases"
 	}
 }
 
