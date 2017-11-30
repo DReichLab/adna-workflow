@@ -732,7 +732,7 @@ task damage_loop{
 		set -e
 		for bam in ${sep=' ' bams}
 		do
-			damage_filename=$(basename $bam .sam).damage
+			damage_filename=$(basename $bam .bam).damage
 			samtools view $bam | python ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > $damage_filename
 			python ${python_damage_two_bases} ${damage_label} $damage_filename >> damage_all_samples_two_bases
 		done
