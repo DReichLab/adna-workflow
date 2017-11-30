@@ -740,6 +740,9 @@ task damage_loop{
 	output{
 		File damage_all_samples_two_bases = "damage_all_samples_two_bases"
 	}
+	runtime{
+		requested_memory_mb_per_core: 2000
+	}
 }
 
 # This runs too quickly to run on Orchestra short queue
