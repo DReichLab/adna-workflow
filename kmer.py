@@ -1,6 +1,9 @@
 from __future__ import print_function
 import sys
 
+# Analyze the distribution of barcode pairs for each index pair
+# Each index pair is output on a row, with the 10 most common barcode pairs in descending order of counts
+
 filename = sys.argv[1]
 
 def parse_index_barcode_key(index_barcode_key):
@@ -12,9 +15,10 @@ def parse_index_barcode_key(index_barcode_key):
 index_pairs = dict()
 index_pair_counts = dict()
 
+# make one pass through all data to count the number of reads for each index pair
 with open(filename) as f:
 	line = f.readline() # total reads
-	totalReads = int(line)
+	total_reads = int(line)
 	for line in f:
 		fields = line.split('\t')
 		index_barcode_key = fields[0]
@@ -31,15 +35,25 @@ with open(filename) as f:
 		# accounting for barcode pair within index pair
 		index_pair_counts[index_pair] = index_pair_counts.get(index_pair, 0) + int(raw_count)
 		index_pairs[index_pair][barcode_pair] = int(raw_count)
+		
+number_top_barcode_pairs = 10
+# print field headers
+print ('i5 index\ti7 index\tnum reads\tfrac total\t', end='')
+for i in range(1, number_top_barcode_pairs + 1):
+	print('top barcode pair {0} p5\ttop barcode pair {0} p7\tfrac index pair reads {0}\tnum reads {0}'.format(i) ,end='\t')
+print('')
 
+# counts and fractions of barcode pairs
 sorted_index_pair_counts = sorted(index_pair_counts, key=lambda x: index_pair_counts[x], reverse=True)
 for index_pair in sorted_index_pair_counts:
 	index_pair_count = index_pair_counts[index_pair]
 	barcode_pair_counts = index_pairs[index_pair]
 	sorted_barcode_pairs = sorted(barcode_pair_counts, key=lambda x: barcode_pair_counts[x], reverse=True)
-	print('%s\t%d' % (index_pair, index_pair_count), end='')
-	for barcode_pair in sorted_barcode_pairs[:10]:
+	i5, i7 = index_pair.split('_')
+	print('{}\t{}\t{:d}\t{:.4f}'.format(i5, i7, index_pair_count, float(index_pair_count) / total_reads), end='')
+	for barcode_pair in sorted_barcode_pairs[:number_top_barcode_pairs]:
 		barcode_pair_count = barcode_pair_counts[barcode_pair]
-		print ('\t%s\t%.3f\t%d' % (barcode_pair, float(barcode_pair_count) / index_pair_count, barcode_pair_count), end='')
+		p5, p7 = barcode_pair.split('_')
+		print ('\t{}\t{}\t{:.3f}\t{:d}'.format(p5, p7, float(barcode_pair_count) / index_pair_count, barcode_pair_count), end='')
 	print('')
 	
