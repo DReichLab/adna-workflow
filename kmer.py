@@ -4,7 +4,8 @@ import sys
 # Analyze the distribution of barcode pairs for each index pair
 # Each index pair is output on a row, with the 10 most common barcode pairs in descending order of counts
 
-filename = sys.argv[1]
+barcodes_filename = sys.argv[1]
+counts_filename = sys.argv[2]
 
 def parse_index_barcode_key(index_barcode_key):
 	i5, i7, p5, p7 = index_barcode_key.split('_')
@@ -14,9 +15,17 @@ def parse_index_barcode_key(index_barcode_key):
 
 index_pairs = dict()
 index_pair_counts = dict()
+barcodes = dict()
+
+with open(barcodes_filename) as f:
+	for line in f:
+		fields = line.strip().split('\t')
+		barcode_sequence = fields[0]
+		name = fields[1]
+		barcodes[barcode_sequence] = name
 
 # make one pass through all data to count the number of reads for each index pair
-with open(filename) as f:
+with open(counts_filename) as f:
 	line = f.readline() # total reads
 	total_reads = int(line)
 	for line in f:
@@ -40,7 +49,7 @@ number_top_barcode_pairs = 10
 # print field headers
 print ('i5 index\ti7 index\tnum reads\tfrac total\t', end='')
 for i in range(1, number_top_barcode_pairs + 1):
-	print('top barcode pair {0} p5\ttop barcode pair {0} p7\tfrac index pair reads {0}\tnum reads {0}'.format(i) ,end='\t')
+	print('top barcode pair {0} p5\tp5 name\ttop barcode pair {0} p7\tp7 name\tfrac index pair reads {0}\tnum reads {0}'.format(i) ,end='\t')
 print('')
 
 # counts and fractions of barcode pairs
@@ -54,6 +63,6 @@ for index_pair in sorted_index_pair_counts:
 	for barcode_pair in sorted_barcode_pairs[:number_top_barcode_pairs]:
 		barcode_pair_count = barcode_pair_counts[barcode_pair]
 		p5, p7 = barcode_pair.split('_')
-		print ('\t{}\t{}\t{:.3f}\t{:d}'.format(p5, p7, float(barcode_pair_count) / index_pair_count, barcode_pair_count), end='')
+		print ('\t{}\t{}\t{}\t{}\t{:.3f}\t{:d}'.format(p5, barcodes.get(p5, ''), p7, barcodes.get(p7, ''), float(barcode_pair_count) / index_pair_count, barcode_pair_count), end='')
 	print('')
 	
