@@ -406,6 +406,11 @@ workflow ancientDNA_screen{
 		files = contammix.consensus,
 		output_path = output_path_rsrs_aligned_filtered
 	}
+	Array[File] kmer_array = [kmer_analysis.analysis]
+	call copy_output as copy_kmer{input :
+		files = kmer_array,
+		output_path = output_path
+	}
 	call concatenate as concatenate_spike3k_pre{ input:
 		to_concatenate = spike3k_pre.snp_target_stats
 	}
@@ -1179,7 +1184,7 @@ task kmer_analysis{
 		python ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} > ${date}_${dataset_label}.kmer
 	}
 	output{
-		File kmer_analysis = "${date}_${dataset_label}.kmer"
+		File analysis = "${date}_${dataset_label}.kmer"
 	}
 	runtime{
 		runtime_minutes: 60
