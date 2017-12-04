@@ -7,7 +7,7 @@ workflow ancientDNA_screen{
 	File i7_indices
 	File barcodeSets
 	
-	File barcode_q_only
+	File barcodes_q_only
 	
 	File adna_screen_jar
 	File picard_jar
@@ -100,7 +100,7 @@ workflow ancientDNA_screen{
 	}
 	call kmer_analysis{ input :
 		python_kmer_analysis = python_kmer_analysis,
-		barcode_q_only = barcode_q_only,
+		barcodes_q_only = barcodes_q_only,
 		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
 		dataset_label = dataset_label,
 		date = date
@@ -1169,14 +1169,14 @@ task contammix{
 
 task kmer_analysis{
 	File python_kmer_analysis
-	File barcode_q_only
+	File barcodes_q_only
 	File counts_by_index_barcode_key
 	
 	String dataset_label
 	String date
 
 	command{
-		python ${python_kmer_analysis} ${barcode_q_only} ${counts_by_index_barcode_key} > ${date}_${dataset_label}.kmer
+		python ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} > ${date}_${dataset_label}.kmer
 	}
 	output{
 		File kmer_analysis = "${date}_${dataset_label}.kmer"
