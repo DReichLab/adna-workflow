@@ -7,6 +7,8 @@ workflow ancientDNA_screen{
 	File i7_indices
 	File barcodeSets
 	
+	File barcode_q_only
+	
 	File adna_screen_jar
 	File picard_jar
 	File pmdtools
@@ -29,6 +31,7 @@ workflow ancientDNA_screen{
 	File python_snp_target_bed
 	File python_coverage
 	File python_floor
+	File python_kmer_analysis
 	
 	File htsbox
 	
@@ -94,6 +97,13 @@ workflow ancientDNA_screen{
 	call aggregate_statistics as aggregate_lane_statistics{ input :
 		adna_screen_jar=adna_screen_jar,
 		statistics_by_group=merge_and_trim_lane.statistics
+	}
+	call kmer_analysis{ input :
+		python_kmer_analysis = python_kmer_analysis,
+		barcode_q_only = barcode_q_only,
+		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
+		dataset_label = dataset_label,
+		date = date
 	}
 	call collect_filenames{ input:
 		filename_arrays = merge_and_trim_lane.fastq_to_align
@@ -1157,6 +1167,27 @@ task contammix{
 	}
 }
 
+task kmer_analysis{
+	File python_kmer_analysis
+	File barcode_q_only
+	File counts_by_index_barcode_key
+	
+	String dataset_label
+	String date
+
+	command{
+		python ${python_kmer_analysis} ${barcode_q_only} ${counts_by_index_barcode_key} > ${date}_${dataset_label}.kmer
+	}
+	output{
+		File kmer_analysis = "${date}_${dataset_label}.kmer"
+	}
+	runtime{
+		runtime_minutes: 60
+		requested_memory_mb_per_core: 1000
+	}
+	
+}
+
 task prepare_report{
 	File python_prepare_report
 	File aggregated_statistics
@@ -1175,6 +1206,6 @@ task prepare_report{
 		File report = "${date}_${dataset_label}.report"
 	}
 	runtime{
-		requested_memory_mb_per_core: 4096
+		requested_memory_mb_per_core: 2000
 	}
 }
