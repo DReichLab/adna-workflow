@@ -148,16 +148,15 @@ workflow ancientDNA_screen{
 		targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y','human_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
-	scatter(bam in demultiplex_hs37d5.demultiplexed_bam){
-		call filter_aligned_only as filter_aligned_only_hs37d5 { input:
-			#picard_jar = picard_jar,
-			bam = bam			
-		}
+	call filter_aligned_only as filter_aligned_only_hs37d5 { input:
+		bams = demultiplex_hs37d5.demultiplexed_bam
+	}
+	scatter(bam in filter_aligned_only_hs37d5.filtered){
 		call snp_target_bed as spike3k_pre{ input:
 			coordinates_autosome = spike3k_coordinates_autosome,
 			coordinates_x = spike3k_coordinates_x,
 			coordinates_y = spike3k_coordinates_y,
-			bam = filter_aligned_only_hs37d5.filtered,
+			bam = bam,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
 			deamination_bases_to_clip = deamination_bases_to_clip,
@@ -218,16 +217,15 @@ workflow ancientDNA_screen{
 		targets="\"{'MT_pre':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
-	scatter(bam in demultiplex_rsrs.demultiplexed_bam){
-		call filter_aligned_only as filter_aligned_only_rsrs{ input:
-			#picard_jar = picard_jar,
-			bam = bam
-		}
+	call filter_aligned_only as filter_aligned_only_rsrs{ input:
+		bams = demultiplex_rsrs.demultiplexed_bam
+	}
+	scatter(bam in filter_aligned_only_rsrs.filtered){
 		call duplicates_and_damage as duplicates_and_damage_rsrs{ input: 
 			picard_jar = picard_jar,
 			adna_screen_jar = adna_screen_jar,
 			pmdtools = pmdtools,
-			unsorted = filter_aligned_only_rsrs.filtered,
+			unsorted = bam,
 			python_damage = python_damage,
 			duplicates_label = "duplicates_rsrs",
 			damage_label = "damage_rsrs"
@@ -272,24 +270,24 @@ workflow ancientDNA_screen{
 #			reference_fai = prepare_reference_rsrs.reference_fai,
 #			coverage = chromosome_target_single_rsrs.coverage
 #		}
-		call contamination_rare_variant{ input:
-			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
-			picard_jar = picard_jar,
-			adna_screen_jar = adna_screen_jar,
-			missing_alignments_fraction = missing_alignments_fraction,
-			max_open_gaps = max_open_gaps,
-			seed_length = seed_length,
-			minimum_mapping_quality = minimum_mapping_quality,
-			minimum_base_quality = minimum_base_quality,
-			deamination_bases_to_clip = deamination_bases_to_clip,
-			reference = prepare_reference_human_95_consensus.reference_fa,
-			reference_amb = prepare_reference_human_95_consensus.reference_amb,
-			reference_ann = prepare_reference_human_95_consensus.reference_ann,
-			reference_bwt = prepare_reference_human_95_consensus.reference_bwt,
-			reference_pac = prepare_reference_human_95_consensus.reference_pac,
-			reference_sa = prepare_reference_human_95_consensus.reference_sa,
-			reference_fai = prepare_reference_human_95_consensus.reference_fai
-		}
+#		call contamination_rare_variant{ input:
+#			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
+#			picard_jar = picard_jar,
+#			adna_screen_jar = adna_screen_jar,
+#			missing_alignments_fraction = missing_alignments_fraction,
+#			max_open_gaps = max_open_gaps,
+#			seed_length = seed_length,
+#			minimum_mapping_quality = minimum_mapping_quality,
+#			minimum_base_quality = minimum_base_quality,
+#			deamination_bases_to_clip = deamination_bases_to_clip,
+#			reference = prepare_reference_human_95_consensus.reference_fa,
+#			reference_amb = prepare_reference_human_95_consensus.reference_amb,
+#			reference_ann = prepare_reference_human_95_consensus.reference_ann,
+#			reference_bwt = prepare_reference_human_95_consensus.reference_bwt,
+#			reference_pac = prepare_reference_human_95_consensus.reference_pac,
+#			reference_sa = prepare_reference_human_95_consensus.reference_sa,
+#			reference_fai = prepare_reference_human_95_consensus.reference_fai
+#		}
 		call contammix{ input:
 			bam = duplicates_and_damage_rsrs.aligned_deduplicated,
 			picard_jar = picard_jar,
@@ -420,9 +418,9 @@ workflow ancientDNA_screen{
 #	call concatenate as concatenate_schmutzi{ input:
 #		to_concatenate = schmutzi.contamination_estimate
 #	}
-	call concatenate as concatenate_contamination_rare_variant{ input:
-		to_concatenate = contamination_rare_variant.contamination_estimate
-	}
+#	call concatenate as concatenate_contamination_rare_variant{ input:
+#		to_concatenate = contamination_rare_variant.contamination_estimate
+#	}
 	call concatenate as concatenate_contammix{ input:
 		to_concatenate = contammix.contamination_estimate
 	}
@@ -441,7 +439,7 @@ workflow ancientDNA_screen{
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
 #		concatenate_schmutzi.concatenated,
-		concatenate_contamination_rare_variant.concatenated,
+#		concatenate_contamination_rare_variant.concatenated,
 		concatenate_contammix.concatenated
 	]
 	call prepare_report{ input:
@@ -684,21 +682,23 @@ task demultiplex{
 # filter out unaligned reads
 task filter_aligned_only{
 	#File picard_jar
-	File bam
-	
-	String filename = basename(bam)
+	Array[File] bams
 	
 	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
 	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
 	#java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned
 	command{
-		samtools view -h -b -F 4 -o ${filename} ${bam}
+		set -e
+		for bam in ${sep=' ' bams}
+		do
+			filename=$(basename $bam)
+			samtools view -h -b -F 4 -o $(filename) $bam
+		done
 	}
 	output{
-		File filtered = filename
+		Array[File] filtered = glob("*.bam")
 	}
 	runtime{
-		runtime_minutes: 120
 		requested_memory_mb_per_core: 1000
 	}
 }
