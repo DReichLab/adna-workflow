@@ -681,24 +681,35 @@ task demultiplex{
 
 # filter out unaligned reads
 task filter_aligned_only{
-	#File picard_jar
 	Array[File] bams
+	Int processes = 10
 	
 	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
 	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
 	#java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned
 	command{
 		set -e
-		for bam in ${sep=' ' bams}
-		do
-			filename=$(basename $bam)
-			samtools view -h -b -F 4 -o $(filename) $bam
-		done
+		python <<CODE
+		from multiprocessing import Pool
+		from os.path import basename
+		import subprocess
+		
+		def filter_bam_aligned_only(bam):
+			output_filename = basename(bam)
+			subprocess.check_output("samtools view -h -b -F 4 -o %s %s" % (output_filename, bam), shell=True)
+		
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply(filter_bam_aligned_only, args=(bam,)) for bam in bams]
+		CODE
 	}
 	output{
 		Array[File] filtered = glob("*.bam")
 	}
 	runtime{
+		cpus: processes
 		requested_memory_mb_per_core: 1000
 	}
 }
