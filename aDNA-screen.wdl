@@ -151,40 +151,38 @@ workflow ancientDNA_screen{
 	call filter_aligned_only as filter_aligned_only_hs37d5 { input:
 		bams = demultiplex_hs37d5.demultiplexed_bam
 	}
-	scatter(bam in filter_aligned_only_hs37d5.filtered){
-		call snp_target_bed as spike3k_pre{ input:
-			coordinates_autosome = spike3k_coordinates_autosome,
-			coordinates_x = spike3k_coordinates_x,
-			coordinates_y = spike3k_coordinates_y,
-			bam = bam,
-			minimum_mapping_quality = minimum_mapping_quality,
-			minimum_base_quality = minimum_base_quality,
-			deamination_bases_to_clip = deamination_bases_to_clip,
-			label = "spike3k_pre",
-			picard_jar = picard_jar,
-			adna_screen_jar = adna_screen_jar,
-			python_snp_target_bed = python_snp_target_bed
-		}
-		call duplicates as duplicates_hs37d5 { input: 
-			picard_jar = picard_jar,
-			adna_screen_jar = adna_screen_jar,
-			pmdtools = pmdtools,
-			unsorted = filter_aligned_only_hs37d5.filtered,
-			duplicates_label = "duplicates_hs37d5"
-		}
-		call snp_target_bed as spike3k_post{ input:
-			coordinates_autosome = spike3k_coordinates_autosome,
-			coordinates_x = spike3k_coordinates_x,
-			coordinates_y = spike3k_coordinates_y,
-			bam = duplicates_hs37d5.aligned_deduplicated,
-			minimum_mapping_quality = minimum_mapping_quality,
-			minimum_base_quality = minimum_base_quality,
-			deamination_bases_to_clip = deamination_bases_to_clip,
-			label = "spike3k_post",
-			picard_jar = picard_jar,
-			adna_screen_jar = adna_screen_jar,
-			python_snp_target_bed = python_snp_target_bed
-		} 
+	call snp_target_bed as spike3k_pre{ input:
+		coordinates_autosome = spike3k_coordinates_autosome,
+		coordinates_x = spike3k_coordinates_x,
+		coordinates_y = spike3k_coordinates_y,
+		bams = filter_aligned_only_hs37d5.filtered,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip,
+		label = "spike3k_pre",
+		picard_jar = picard_jar,
+		adna_screen_jar = adna_screen_jar,
+		python_snp_target_bed = python_snp_target_bed
+	}
+	call duplicates as duplicates_hs37d5 { input: 
+		picard_jar = picard_jar,
+		adna_screen_jar = adna_screen_jar,
+		pmdtools = pmdtools,
+		unsorted = filter_aligned_only_hs37d5.filtered,
+		duplicates_label = "duplicates_hs37d5"
+	}
+	call snp_target_bed as spike3k_post{ input:
+		coordinates_autosome = spike3k_coordinates_autosome,
+		coordinates_x = spike3k_coordinates_x,
+		coordinates_y = spike3k_coordinates_y,
+		bams = duplicates_hs37d5.aligned_deduplicated,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip,
+		label = "spike3k_post",
+		picard_jar = picard_jar,
+		adna_screen_jar = adna_screen_jar,
+		python_snp_target_bed = python_snp_target_bed
 	}
 	call damage_loop as damage_loop_hs37d5{ input:
 		pmdtools = pmdtools,
@@ -218,14 +216,14 @@ workflow ancientDNA_screen{
 	call filter_aligned_only as filter_aligned_only_rsrs{ input:
 		bams = demultiplex_rsrs.demultiplexed_bam
 	}
-	scatter(bam in filter_aligned_only_rsrs.filtered){
-		call duplicates as duplicates_rsrs{ input: 
-			picard_jar = picard_jar,
-			adna_screen_jar = adna_screen_jar,
-			pmdtools = pmdtools,
-			unsorted = bam,
-			duplicates_label = "duplicates_rsrs"
-		}
+	call duplicates as duplicates_rsrs{ input: 
+		picard_jar = picard_jar,
+		adna_screen_jar = adna_screen_jar,
+		pmdtools = pmdtools,
+		unsorted = filter_aligned_only_rsrs.filtered,
+		duplicates_label = "duplicates_rsrs"
+	}
+	scatter(bam in duplicates_rsrs.aligned_deduplicated){
 		call haplogrep as haplogrep_rcrs{ input:
 			missing_alignments_fraction = missing_alignments_fraction,
 			max_open_gaps = max_open_gaps,
@@ -717,21 +715,40 @@ task duplicates{
 	Array[File] unsorted
 	String duplicates_label
 	
-	String sample_id_filename = basename(unsorted)
+	Int processes = 10
 	
 	command{
 		set -e
-		java -jar ${picard_jar} SortSam I=${unsorted} O=sorted_coordinate.bam SORT_ORDER=coordinate
-		java -jar ${picard_jar} MarkDuplicates I=sorted_coordinate.bam O=${sample_id_filename} M=${sample_id_filename}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false
-		java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} ${sample_id_filename}.dedup_stats > ${sample_id_filename}.stats
+		
+		python <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+		
+		def deduplicate_bam(bam):
+			sample_id_filename = basename(bam)
+			sample_id_filename_no_extension, extension = splitext(sample_id_filename)
+			
+			sorted_bam = sample_id_filename_no_extension + ".sorted_coordinate.bam"
+			
+			subprocess.check_output("java -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (bam, sorted_bam), shell=True)
+			subprocess.check_output("java -jar ${picard_jar} MarkDuplicates I=%s O=%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} %s.dedup_stats > %s.stats" % (sample_id_filename, sample_id_filename), shell=True)
+		
+		bams_string = "${sep=',' unsorted}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply(deduplicate_bam, args=(bam,)) for bam in bams]
+		CODE
 	}
 	output{
-		String id = sample_id_filename
-		File aligned_deduplicated = "${sample_id_filename}"
-		File duplicates_statistics = "${sample_id_filename}.stats"
+		Array[File] aligned_deduplicated = glob("*.bam")
+		Array[File] duplicates_statistics = glob("*.stats")
 	}
 	runtime{
-		cpus: 2
+		cpus: processes
+		requested_memory_mb_per_core: 4000
 	}
 }
 
@@ -820,7 +837,7 @@ task snp_target_bed{
 	File coordinates_autosome
 	File coordinates_x
 	File coordinates_y
-	File bam
+	Array[File] bams
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
@@ -829,23 +846,45 @@ task snp_target_bed{
 	File adna_screen_jar
 	
 	File python_snp_target_bed
-	String sample_id_filename = basename(bam)
+	
+	Int processes = 10
 	
 	command{
 		set -e
-		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i ${bam} -o clipped_unsorted.bam
-		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
-		samtools index sorted.bam
-		samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} sorted.bam > ${sample_id_filename}.autosome
-		samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        sorted.bam > ${sample_id_filename}.x
-		samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_y}        sorted.bam > ${sample_id_filename}.y
-		python ${python_snp_target_bed} ${label} ${sample_id_filename}.autosome ${sample_id_filename}.x ${sample_id_filename}.y > snp_target_stats
+		
+		python <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+		
+		def count_SNPs(bam):
+			sample_id_filename = basename(bam)
+			sample_id_filename_no_extension, extension = splitext(sample_id_filename)
+			
+			clipped_bam = sample_id_filename_no_extension + ".clipped.bam"
+			clipped_sorted_bam = sample_id_filename_no_extension + ".clipped.sorted.bam"
+			
+			subprocess.check_output("java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
+			subprocess.check_output("java -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
+			subprocess.check_output("samtools index %s" % (clipped_sorted_bam,), shell=True)
+			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} sorted.bam > %s.autosome" % (sample_id_filename,), shell=True)
+			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        sorted.bam > %s.x" % (sample_id_filename,), shell=True)
+			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_y}        sorted.bam > %s.y" % (sample_id_filename,), shell=True)
+			subprocess.check_output("python ${python_snp_target_bed} ${label} %s.autosome %s.x %s.y > %s.snp_target_stats" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
+			
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply(count_SNPs, args=(bam,)) for bam in bams]
+		CODE
 	}
 	output{
-		File snp_target_stats = "snp_target_stats"
+		Array[File] snp_target_stats = glob("*.snp_target_stats")
 	}
 	runtime{
-		runtime_minutes: 120
+		cpus: processes
+		requested_memory_mb_per_core: 3000
 	}
 }
 
