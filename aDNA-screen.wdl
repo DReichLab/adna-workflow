@@ -692,7 +692,9 @@ task filter_aligned_only{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply(filter_bam_aligned_only, args=(bam,)) for bam in bams]
+		[pool.apply_async(filter_bam_aligned_only, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
 		CODE
 	}
 	output{
@@ -735,7 +737,9 @@ task duplicates{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply(deduplicate_bam, args=(bam,)) for bam in bams]
+		[pool.apply_async(deduplicate_bam, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
 		CODE
 	}
 	output{
@@ -756,19 +760,43 @@ task damage_loop{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	
+	Int processes = 10
+	
 	command{
 		set -e
-		for bam in ${sep=' ' bams}
-		do
-			damage_filename=$(basename $bam .bam).damage
-			samtools view $bam | python ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > $damage_filename
-			python ${python_damage_two_bases} ${damage_label} $damage_filename >> damage_all_samples_two_bases
-		done
+		python <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+		
+		def damage_for_bam(bam):
+			sample_id_filename = basename(bam)
+			sample_id_filename_no_extension, extension = splitext(sample_id_filename)
+			
+			damage_filename = sample_id_filename_no_extension + ".damage"
+			
+			subprocess.check_output("samtools view %s | python ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > %s" %(bam, damage_filename), shell=True)
+			damage_result = subprocess.check_output("python ${python_damage_two_bases} ${damage_label} %s" % (damage_filename,), shell=True)
+			return damage_result.strip()
+			
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		results = [pool.apply_async(damage_for_bam, args=(bam, resultsQueue)) for bam in bams]
+		pool.close()
+		pool.join()
+		with open('damage_all_samples_two_bases', 'w') as f:
+			for result in results:
+				f.write(result.get())
+				f.write('\n')
+		CODE
 	}
 	output{
 		File damage_all_samples_two_bases = "damage_all_samples_two_bases"
 	}
 	runtime{
+		cpus: processes
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -862,7 +890,9 @@ task snp_target_bed{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply(count_SNPs, args=(bam,)) for bam in bams]
+		[pool.apply_async(count_SNPs, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
 		CODE
 	}
 	output{
@@ -977,8 +1007,9 @@ task haplogrep{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply(haplogrep_run, args=(bam,)) for bam in bams]	
-		
+		[pool.apply_async(haplogrep_run, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
 		CODE
 	}
 	output{
