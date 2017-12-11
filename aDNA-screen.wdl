@@ -223,35 +223,45 @@ workflow ancientDNA_screen{
 		unsorted = filter_aligned_only_rsrs.filtered,
 		duplicates_label = "duplicates_rsrs"
 	}
+	call haplogrep as haplogrep_rcrs{ input:
+		missing_alignments_fraction = missing_alignments_fraction,
+		max_open_gaps = max_open_gaps,
+		seed_length = seed_length,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip,
+		bams = duplicates_rsrs.aligned_deduplicated,
+		reference = prepare_reference_rcrs.reference_fa,
+		reference_amb = prepare_reference_rcrs.reference_amb,
+		reference_ann = prepare_reference_rcrs.reference_ann,
+		reference_bwt = prepare_reference_rcrs.reference_bwt,
+		reference_pac = prepare_reference_rcrs.reference_pac,
+		reference_sa = prepare_reference_rcrs.reference_sa,
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar
+	}
+	call damage_loop as damage_loop_rsrs{ input:
+		pmdtools = pmdtools,
+		python_damage_two_bases = python_damage_two_bases,
+		bams = duplicates_rsrs.aligned_deduplicated,
+		damage_label = "damage_rsrs",
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality
+	}
+	call chromosome_target as rsrs_chromosome_target_post{ input:
+		python_target = python_target,
+		adna_screen_jar = adna_screen_jar,
+		bams = duplicates_rsrs.aligned_deduplicated,
+		targets="\"{'MT_post':'MT'}\"",
+		minimum_mapping_quality = minimum_mapping_quality
+	}
+	call chromosome_coverage as rsrs_coverage{ input:
+		bam_stats = rsrs_chromosome_target_post.target_stats,
+		python_coverage = python_coverage,
+		reference_length = 16569,
+		coverage_field = "MT_post-coverageLength"
+	}
 	scatter(bam in duplicates_rsrs.aligned_deduplicated){
-		call haplogrep as haplogrep_rcrs{ input:
-			missing_alignments_fraction = missing_alignments_fraction,
-			max_open_gaps = max_open_gaps,
-			seed_length = seed_length,
-			minimum_mapping_quality = minimum_mapping_quality,
-			minimum_base_quality = minimum_base_quality,
-			deamination_bases_to_clip = deamination_bases_to_clip,
-			bam = duplicates_rsrs.aligned_deduplicated,
-			reference = prepare_reference_rcrs.reference_fa,
-			reference_amb = prepare_reference_rcrs.reference_amb,
-			reference_ann = prepare_reference_rcrs.reference_ann,
-			reference_bwt = prepare_reference_rcrs.reference_bwt,
-			reference_pac = prepare_reference_rcrs.reference_pac,
-			reference_sa = prepare_reference_rcrs.reference_sa,
-			adna_screen_jar = adna_screen_jar,
-			picard_jar = picard_jar,
-			coverage_int = chromosome_target_single_rsrs.coverage_int
-		}
-		call chromosome_target_single as chromosome_target_single_rsrs{ input:
-			adna_screen_jar = adna_screen_jar,
-			python_coverage = python_coverage,
-			python_floor = python_floor,
-			bam = duplicates_rsrs.aligned_deduplicated,
-			targets="\"{'MT_post':'MT'}\"",
-			minimum_mapping_quality = minimum_mapping_quality,
-			reference_length = 16569,
-			coverage_field = "MT_post-coverageLength"
-		}
 #		call schmutzi{ input:
 #			bam = duplicates_rsrs.aligned_deduplicated,
 #			picard_jar = picard_jar,
@@ -299,23 +309,8 @@ workflow ancientDNA_screen{
 			reference_pac = prepare_reference_rsrs.reference_pac,
 			reference_sa = prepare_reference_rsrs.reference_sa,
 			reference_fai = prepare_reference_rsrs.reference_fai,
-			coverage = chromosome_target_single_rsrs.coverage
+			coverages = rsrs_coverage.coverages
 		}
-	}
-	call damage_loop as damage_loop_rsrs{ input:
-		pmdtools = pmdtools,
-		python_damage_two_bases = python_damage_two_bases,
-		bams = duplicates_rsrs.aligned_deduplicated,
-		damage_label = "damage_rsrs",
-		minimum_mapping_quality = minimum_mapping_quality,
-		minimum_base_quality = minimum_base_quality
-	}
-	call chromosome_target as rsrs_chromosome_target_post{ input:
-		python_target = python_target,
-		adna_screen_jar = adna_screen_jar,
-		bams = duplicates_rsrs.aligned_deduplicated,
-		targets="\"{'MT_post':'MT'}\"",
-		minimum_mapping_quality = minimum_mapping_quality
 	}
 	
 	call central_measures as central_measures_hs37d5{ input:
@@ -832,6 +827,28 @@ task chromosome_target{
 	}
 }
 
+task chromosome_coverage{
+	Array[File] bam_stats
+	File python_coverage
+	Int reference_length
+	String coverage_field
+	
+	command{
+		set -e
+		for bam in ${sep=' ' bam_stats}
+		do
+			sample_id = basename($bam, ".stats")
+			python ${python_coverage} $sample_id.stats ${reference_length} $sample_id ${coverage_field} >> coverages
+		done
+	}
+	output{
+		File coverages = "coverages"
+	}
+	runtime{
+		requested_memory_mb_per_core: 2000
+	}
+}
+
 # This counts reads similarly to snp_target, but uses a bed file to look for read overlaps in an interval around the SNP. 
 task snp_target_bed{
 	File coordinates_autosome
@@ -947,22 +964,15 @@ task haplogrep{
 	Int max_open_gaps
 	Int seed_length
 	
-	Int minimum_pileup_depth
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
 	String region = "MT"
-	File bam
+	Array[File] bams
 	File haplogrep_jar
 	Int phylotree_version
 	File adna_screen_jar
 	File picard_jar
-	
-	Int coverage_int
-	Int pileup_depth_from_coverage = coverage_int / 10
-	Int pileup_depth = if(pileup_depth_from_coverage > minimum_pileup_depth) then pileup_depth_from_coverage else minimum_pileup_depth
-	
-	String sample_id_filename = basename(bam, ".bam")
 	
 	File reference
 	File reference_amb
@@ -971,22 +981,42 @@ task haplogrep{
 	File reference_pac
 	File reference_sa
 	
+	Int processes = 10
+	
 	command{
 		set -e
-		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=for_alignment_to_rcrs.fastq 
-		bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} for_alignment_to_rcrs.fastq > realigned.sai
-		bwa samse ${reference} realigned.sai for_alignment_to_rcrs.fastq | samtools view -bS - > realigned.bam
-		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted_realigned.bam
-		java -jar ${picard_jar} SortSam I=clipped_unsorted_realigned.bam O=${sample_id_filename}.bam SORT_ORDER=coordinate
-		samtools index ${sample_id_filename}.bam
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -r ${region} -u -f ${reference} ${sample_id_filename}.bam | bcftools call -c -v --ploidy 1 > ${sample_id_filename}.vcf
-		java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in ${sample_id_filename}.vcf --out ${sample_id_filename}.haplogroup
+		
+		python <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+				
+		def haplogrep_run(bam):
+			sample_id_filename = basename(bam)
+			sample_id, extension = splitext(sample_id_filename)
+			
+			subprocess.check_output("java -jar ${picard_jar} SamToFastq I=%s FASTQ=%s.fastq" % (bam, sample_id), shell=True)
+			subprocess.check_output("bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} %s.fastq > %s.sai" % (sample_id, sample_id), shell=True)
+			subprocess.check_output("bwa samse ${reference} %s.sai %s.fastq | samtools view -bS - > %s.realigned.bam" % (sample_id, sample_id, sample_id), shell=True)
+			subprocess.check_output("java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s.realigned.bam -o %s.clipped_unsorted_realigned.bam" % (sample_id, sample_id), shell=True)
+			subprocess.check_output("java -jar ${picard_jar} SortSam I=%s.clipped_unsorted_realigned.bam O=%s.bam SORT_ORDER=coordinate" % (sample_id, sample_id), shell=True)
+			subprocess.check_output("samtools index %s.bam" % (sample_id,), shell=True)
+			subprocess.check_output("samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -r ${region} -u -f ${reference} %s.bam | bcftools call -c -v --ploidy 1 > %s.vcf" % (sample_id, sample_id), shell=True)
+			subprocess.check_output("java -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in %s.vcf --out %s.haplogroup" % (sample_id, sample_id), shell=True)
+		
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply(haplogrep_run, args=(bam,)) for bam in bams]	
+		
+		CODE
 	}
 	output{
-		File haplogroup_report = "${sample_id_filename}.haplogroup"
+		Array[File] haplogroup_report = glob("*.haplogroup")
 	}
 	runtime{
-		runtime_minutes: 60
+		cpus: processes
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -1179,10 +1209,9 @@ task contammix{
 	File reference_sa
 	File reference_fai
 	
-	Float coverage
+	File coverages
 	# We downsample to max MT coverage
 	Float max_coverage
-	Float retain_probability = if (coverage > max_coverage) then (max_coverage / coverage) else 1.0
 	
 	String sample_id = basename(bam, ".bam")
 	
@@ -1196,7 +1225,22 @@ task contammix{
 		bwa index ${sample_id}.consensus.fa
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${sample_id}.consensus.fa for_alignment_to_consensus.fastq > realigned.sai
 		bwa samse ${sample_id}.consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
-		java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=${retain_probability}
+		
+		python <<CODE
+		# read in coverages from file
+		coverage_by_sampleID = dict()
+		filename = ${coverages}
+		with open(filename) as f:
+			for line in f:
+				sampleID, coverage = line.split('\t')
+				coverage_float = float(coverage)
+				coverage_by_sampleID[sampleID] = coverage_float
+		
+		coverage = coverage_by_sampleID[${sample_id}]
+		retain_probability = (${max_coverage} / coverage) if (coverage > ${max_coverage}) else 1.0
+		subprocess.check_output("java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=%s" % (retain_probability,), shell=True)
+		CODE
+		
 		cat ${sample_id}.consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
 		python ${python_contammix_multiprocess} ${copies} ${sample_id} ${contammix_estimate} ${sample_id}.downsampled.bam multiple_alignment.fa ${chains} ${minimum_base_quality} ${deamination_bases_to_clip} ${seed} > contamination_estimate
