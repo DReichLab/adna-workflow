@@ -272,6 +272,7 @@ workflow ancientDNA_screen{
 #			reference_pac = prepare_reference_rsrs.reference_pac,
 #			reference_sa = prepare_reference_rsrs.reference_sa,
 #			reference_fai = prepare_reference_rsrs.reference_fai,
+# TODO when using schmutzi, need to read coverage in from file as in contammix
 #			coverage = chromosome_target_single_rsrs.coverage
 #		}
 #		call contamination_rare_variant{ input:
@@ -769,38 +770,6 @@ task damage_loop{
 	}
 	runtime{
 		requested_memory_mb_per_core: 2000
-	}
-}
-
-# This runs too quickly to run on Orchestra short queue
-# The best solution would be to run a loop within this task, but this is not yet supported
-task chromosome_target_single{
-	File adna_screen_jar
-	File python_coverage
-	File python_floor
-	File bam
-	String targets
-	Int minimum_mapping_quality
-	Int reference_length
-	String coverage_field
-	
-	String sample_id = basename(bam, ".bam")
-
-	command{
-		set -e
-		java -jar ${adna_screen_jar} SAMStats -f ${bam} -t ${targets} -l ${sample_id}.histogram -q ${minimum_mapping_quality} > ${sample_id}.stats
-		python ${python_coverage} ${sample_id}.stats ${reference_length} ${sample_id} ${coverage_field} > coverage
-		python ${python_floor} coverage > coverage_int
-	}
-	output{
-		File target_stats = "${sample_id}.stats"
-		File length_histogram = "${sample_id}.histogram"
-		Float coverage = read_float("coverage")
-		Int coverage_int = read_int("coverage_int")
-	}
-	runtime{
-		runtime_minutes: 300
-		requested_memory_mb_per_core: 4096
 	}
 }
 
