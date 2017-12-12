@@ -1230,14 +1230,14 @@ task contammix{
 		python <<CODE
 		# read in coverages from file
 		coverage_by_sampleID = dict()
-		filename = ${coverages}
+		filename = '${coverages}'
 		with open(filename) as f:
 			for line in f:
 				sampleID, coverage = line.split('\t')
 				coverage_float = float(coverage)
 				coverage_by_sampleID[sampleID] = coverage_float
 		
-		coverage = coverage_by_sampleID[${sample_id}]
+		coverage = coverage_by_sampleID['${sample_id}']
 		retain_probability = (${max_coverage} / coverage) if (coverage > ${max_coverage}) else 1.0
 		subprocess.check_output("java -jar ${picard_jar} DownsampleSam I=realigned.bam O=${sample_id}.downsampled.bam PROBABILITY=%s" % (retain_probability,), shell=True)
 		CODE
