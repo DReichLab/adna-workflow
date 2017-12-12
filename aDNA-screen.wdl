@@ -294,7 +294,7 @@ workflow ancientDNA_screen{
 #			reference_fai = prepare_reference_human_95_consensus.reference_fai
 #		}
 		call contammix{ input:
-			bam = duplicates_rsrs.aligned_deduplicated,
+			bam = bam,
 			picard_jar = picard_jar,
 			htsbox = htsbox,
 			missing_alignments_fraction = missing_alignments_fraction,
@@ -717,6 +717,7 @@ task duplicates{
 	
 	command{
 		set -e
+		mkdir deduplicated
 		
 		python <<CODE
 		from multiprocessing import Pool
@@ -730,7 +731,7 @@ task duplicates{
 			sorted_bam = sample_id_filename_no_extension + ".sorted_coordinate.bam"
 			
 			subprocess.check_output("java -Xmx9g -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (bam, sorted_bam), shell=True)
-			subprocess.check_output("java -Xmx9g -jar ${picard_jar} MarkDuplicates I=%s O=%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("java -Xmx9g -jar ${picard_jar} MarkDuplicates I=%s O=deduplicated/%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
 			subprocess.check_output("java -Xmx9g -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} %s.dedup_stats > %s.stats" % (sample_id_filename, sample_id_filename), shell=True)
 		
 		bams_string = "${sep=',' unsorted}"
@@ -743,7 +744,7 @@ task duplicates{
 		CODE
 	}
 	output{
-		Array[File] aligned_deduplicated = glob("*.bam")
+		Array[File] aligned_deduplicated = glob("deduplicated/*.bam")
 		Array[File] duplicates_statistics = glob("*.stats")
 	}
 	runtime{
