@@ -713,7 +713,7 @@ task duplicates{
 	Array[File] unsorted
 	String duplicates_label
 	
-	Int processes = 10
+	Int processes = 8
 	
 	command{
 		set -e
@@ -729,9 +729,9 @@ task duplicates{
 			
 			sorted_bam = sample_id_filename_no_extension + ".sorted_coordinate.bam"
 			
-			subprocess.check_output("java -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (bam, sorted_bam), shell=True)
-			subprocess.check_output("java -jar ${picard_jar} MarkDuplicates I=%s O=%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
-			subprocess.check_output("java -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} %s.dedup_stats > %s.stats" % (sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("java -Xmx9g -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (bam, sorted_bam), shell=True)
+			subprocess.check_output("java -Xmx9g -jar ${picard_jar} MarkDuplicates I=%s O=%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES_FOR_READ_ENDS_MAP =1000" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("java -Xmx9g -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} %s.dedup_stats > %s.stats" % (sample_id_filename, sample_id_filename), shell=True)
 		
 		bams_string = "${sep=',' unsorted}"
 		bams = bams_string.split(',')
@@ -748,7 +748,7 @@ task duplicates{
 	}
 	runtime{
 		cpus: processes
-		requested_memory_mb_per_core: 4000
+		requested_memory_mb_per_core: 10000
 	}
 }
 
