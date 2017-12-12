@@ -835,7 +835,7 @@ task chromosome_coverage{
 		set -e
 		for bam in ${sep=' ' bam_stats}
 		do
-			sample_id = basename($bam, ".stats")
+			sample_id=$(basename $bam .stats)
 			python ${python_coverage} $sample_id.stats ${reference_length} $sample_id ${coverage_field} >> coverages
 		done
 	}
