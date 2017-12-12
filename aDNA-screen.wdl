@@ -783,7 +783,7 @@ task damage_loop{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		results = [pool.apply_async(damage_for_bam, args=(bam, resultsQueue)) for bam in bams]
+		results = [pool.apply_async(damage_for_bam, args=(bam,)) for bam in bams]
 		pool.close()
 		pool.join()
 		with open('damage_all_samples_two_bases', 'w') as f:
