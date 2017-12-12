@@ -1228,6 +1228,8 @@ task contammix{
 		bwa samse ${sample_id}.consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
 		
 		python <<CODE
+		import subprocess
+		
 		# read in coverages from file
 		coverage_by_sampleID = dict()
 		filename = '${coverages}'
