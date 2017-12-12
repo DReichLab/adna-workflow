@@ -833,10 +833,10 @@ task chromosome_coverage{
 	
 	command{
 		set -e
-		for bam in ${sep=' ' bam_stats}
+		for bam_stat in ${sep=' ' bam_stats}
 		do
-			sample_id=$(basename $bam .stats)
-			python ${python_coverage} $sample_id.stats ${reference_length} $sample_id ${coverage_field} >> coverages
+			sample_id=$(basename bam_stat .bam.stats)
+			python ${python_coverage} $bam_stat ${reference_length} $sample_id ${coverage_field} >> coverages
 		done
 	}
 	output{
