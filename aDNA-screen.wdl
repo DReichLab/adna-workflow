@@ -862,7 +862,7 @@ task snp_target_bed{
 	File python_snp_target_bed
 	
 	Int processes = 10
-	
+
 	command{
 		set -e
 		
@@ -878,12 +878,12 @@ task snp_target_bed{
 			clipped_bam = sample_id_filename_no_extension + ".clipped.bam"
 			clipped_sorted_bam = sample_id_filename_no_extension + ".clipped.sorted.bam"
 			
-			subprocess.check_output("java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
-			subprocess.check_output("java -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
+			subprocess.check_output("java -Xmx2500m -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
+			subprocess.check_output("java -Xmx2500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
 			subprocess.check_output("samtools index %s" % (clipped_sorted_bam,), shell=True)
-			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} sorted.bam > %s.autosome" % (sample_id_filename,), shell=True)
-			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        sorted.bam > %s.x" % (sample_id_filename,), shell=True)
-			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_y}        sorted.bam > %s.y" % (sample_id_filename,), shell=True)
+			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} %s > %s.autosome" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        %s > %s.x" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_y}        %s > %s.y" % (clipped_sorted_bam, sample_id_filename), shell=True)
 			subprocess.check_output("python ${python_snp_target_bed} ${label} %s.autosome %s.x %s.y > %s.snp_target_stats" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
 			
 		bams_string = "${sep=',' bams}"
