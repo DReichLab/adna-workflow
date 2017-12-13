@@ -142,7 +142,7 @@ for sampleID in samples:
 			int(samples[sampleID].get('autosome_pre', '0'))
 			+ int(samples[sampleID].get('X_pre', '0'))
 			+ int(samples[sampleID].get('Y_pre', '0'))
-			+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['raw'])
+			+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
 
 # print headers
 print ('Index-Barcode Key', end='\t')
