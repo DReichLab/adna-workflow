@@ -6,6 +6,7 @@ import sys
 
 barcodes_filename = sys.argv[1]
 counts_filename = sys.argv[2]
+sample_sheet_filename = sys.argv[3]
 
 def parse_index_barcode_key(index_barcode_key):
 	i5, i7, p5, p7 = index_barcode_key.split('_')
@@ -16,6 +17,7 @@ def parse_index_barcode_key(index_barcode_key):
 index_pairs = dict()
 index_pair_counts = dict()
 barcodes = dict()
+sample_sheet = dict()
 
 with open(barcodes_filename) as f:
 	for line in f:
@@ -45,11 +47,16 @@ with open(counts_filename) as f:
 		index_pair_counts[index_pair] = index_pair_counts.get(index_pair, 0) + int(raw_count)
 		index_pairs[index_pair][barcode_pair] = int(raw_count)
 		
+with open(sample_sheet_filename) as f:
+	for line in f:
+		sampleID, libraryID = map(lambda x:x.strip(), line.split('\t'))
+		sample_sheet[sampleID] = libraryID
+		
 number_top_barcode_pairs = 10
 # print field headers
 print ('i5 index\ti7 index\tnum reads\tfrac total\t', end='')
 for i in range(1, number_top_barcode_pairs + 1):
-	print('top barcode pair {0} p5\tp5 name\ttop barcode pair {0} p7\tp7 name\tfrac index pair reads {0}\tnum reads {0}'.format(i) ,end='\t')
+	print('top library ID {0}\ttop barcode pair {0} p5\tp5 name\ttop barcode pair {0} p7\tp7 name\tfrac index pair reads {0}\tnum reads {0}'.format(i) ,end='\t')
 print('')
 
 # counts and fractions of barcode pairs
@@ -59,10 +66,14 @@ for index_pair in sorted_index_pair_counts:
 	barcode_pair_counts = index_pairs[index_pair]
 	sorted_barcode_pairs = sorted(barcode_pair_counts, key=lambda x: barcode_pair_counts[x], reverse=True)
 	i5, i7 = index_pair.split('_')
+	# statistics for this index pair
 	print('{}\t{}\t{:d}\t{:.4f}'.format(i5, i7, index_pair_count, float(index_pair_count) / total_reads), end='')
+	# statistics for top 10 barcodes for this index pair
 	for barcode_pair in sorted_barcode_pairs[:number_top_barcode_pairs]:
 		barcode_pair_count = barcode_pair_counts[barcode_pair]
+		index_barcode_key = '{}_{}'.format(index_pair, barcode_pair)
+		libraryID = sample_sheet.get(index_barcode_key, '')
 		p5, p7 = barcode_pair.split('_')
-		print ('\t{}\t{}\t{}\t{}\t{:.3f}\t{:d}'.format(p5, barcodes.get(p5, ''), p7, barcodes.get(p7, ''), float(barcode_pair_count) / index_pair_count, barcode_pair_count), end='')
+		print ('\t{}\t{}\t{}\t{}\t{}\t{:.3f}\t{:d}'.format(libraryID, p5, barcodes.get(p5, ''), p7, barcodes.get(p7, ''), float(barcode_pair_count) / index_pair_count, barcode_pair_count), end='')
 	print('')
 	

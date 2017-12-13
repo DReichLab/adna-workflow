@@ -19,6 +19,7 @@ workflow ancientDNA_screen{
 	
 	Int minimum_mapping_quality
 	Int minimum_base_quality
+	File index_barcode_keys
 	Int deamination_bases_to_clip
 	Int samples_to_demultiplex
 	
@@ -102,6 +103,7 @@ workflow ancientDNA_screen{
 		python_kmer_analysis = python_kmer_analysis,
 		barcodes_q_only = barcodes_q_only,
 		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
+		index_barcode_keys = index_barcode_keys,
 		dataset_label = dataset_label,
 		date = date
 	}
@@ -139,7 +141,8 @@ workflow ancientDNA_screen{
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
 		aligned_bam_files = align_hs37d5.bam,
-		samples_to_demultiplex = samples_to_demultiplex
+		samples_to_demultiplex = samples_to_demultiplex,
+		index_barcode_keys = index_barcode_keys
 	}
 	call chromosome_target as hs37d5_chromosome_target{ input:
 		python_target = python_target,
@@ -204,7 +207,8 @@ workflow ancientDNA_screen{
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
 		aligned_bam_files = align_rsrs.bam,
-		samples_to_demultiplex = samples_to_demultiplex
+		samples_to_demultiplex = samples_to_demultiplex,
+		index_barcode_keys = index_barcode_keys
 	}
 	call chromosome_target as rsrs_chromosome_target{ input:
 		python_target = python_target,
@@ -435,6 +439,7 @@ workflow ancientDNA_screen{
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = final_keyed_statistics,
+		index_barcode_keys = index_barcode_keys,
 		dataset_label = dataset_label,
 		date = date
 	}
@@ -1262,12 +1267,13 @@ task kmer_analysis{
 	File python_kmer_analysis
 	File barcodes_q_only
 	File counts_by_index_barcode_key
+	File index_barcode_keys
 	
 	String dataset_label
 	String date
 
 	command{
-		python ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} > ${date}_${dataset_label}.kmer
+		python ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} ${index_barcode_keys} > ${date}_${dataset_label}.kmer
 	}
 	output{
 		File analysis = "${date}_${dataset_label}.kmer"
