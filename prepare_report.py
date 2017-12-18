@@ -2,7 +2,8 @@ from __future__ import print_function
 # combine statistics from samples with damage reports into a tab-separated file readable by MS Excel
 import sys
 
-headersToReport = ['library_id',
+headersToReport = ['sample_sheet_key',
+				   'library_id',
 				   'raw', 
 				   'merged', 
 				   'endogenous_pre',
@@ -105,65 +106,97 @@ def printSample(sampleID, thisSample):
 		print('\t', end='')
 	print('')
 
-# read from stats
-statsFilename = sys.argv[1]
-with open(statsFilename, "r") as f:
-	line = f.readline()
-	total_reads = int(line)
-	print('Total reads: ', total_reads)
-	addToSamples(f)
-	
-# mapping from index and barcodes to sample/extract/library ID
-keyMapping = dict()
-keyMappingFilename = sys.argv[2]
-with open(keyMappingFilename, "r") as f:
-	for line in f:
-		index_barcode_key, sample_extract_library_id = line.split('\t')
-		keyMapping[index_barcode_key] = sample_extract_library_id.strip()
+# match a barcode pair with the sample sheet barcodes
+# each of the Q barcodes comprises 4 7-base-pair sequences
+# for example: Q2 = {13, 14, 15, 16}
+# the demultiplexing will use the Q sequences, so 13 will appear as Q2
+# if the sample sheet uses 13, match a Q2 with 13
+# returns:
+# 	1: index-barcode 4 tuple
+#	2: sample/extract/library id if any, or empty string
+def findSampleSheetEntry(sampleID, keyMapping):
+	libraryID = keyMapping.get(sampleID, '')
+	sampleSheetID = ''
+	if libraryID != '':
+		sampleSheetID = sampleID
+	else:
+		i5, i7, p5_set, p7_set = sampleID.split('_')
+		for p5 in p5_set.split(':'):
+			for p7 in p7_set.split(':'):
+				trialSampleID = '{}_{}_{}_{}'.format(i5, i7, p5, p7)
+				trialLibraryID = keyMapping.get(trialSampleID, '')
+				
+				if libraryID == '':
+					if trialLibraryID != '':
+						libraryID = trialLibraryID
+						sampleSheetID = trialSampleID
+				# if there is more than one libraryID that matches, we have a nonprogramming problem
+				elif trialLibraryID != '':
+					libraryID = 'MULTIPLE'
+					sampleSheetID = 'MULTIPLE'
+					
+	return sampleSheetID, libraryID
 
-# read from damages, medians, haplogroups
-# these are all files with the index barcode keys and additional keyed fields
-filenames = sys.argv[3:len(sys.argv)]
-for filename in filenames:
-	with open(filename, "r") as f:
+if __name__ == '__main__':
+	# read from stats
+	statsFilename = sys.argv[1]
+	with open(statsFilename, "r") as f:
+		line = f.readline()
+		total_reads = int(line)
+		print('Total reads: ', total_reads)
 		addToSamples(f)
 		
-# populate additional sample fields
-for sampleID in samples:
-	# add sample/extract/library ID, if available
-	samples[sampleID]['library_id'] = keyMapping.get(sampleID, "")
-	# add % endogenous
-	singleSample = samples[sampleID]
-	if ('autosome_pre' in singleSample
-	 or 'X_pre' in singleSample
-	 or 'Y_pre' in singleSample
-	 or 'MT_pre' in singleSample):
-		samples[sampleID]['endogenous_pre'] = float(
-			int(samples[sampleID].get('autosome_pre', '0'))
-			+ int(samples[sampleID].get('X_pre', '0'))
-			+ int(samples[sampleID].get('Y_pre', '0'))
-			+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
+	# mapping from index and barcodes to sample/extract/library ID
+	keyMapping = dict()
+	keyMappingFilename = sys.argv[2]
+	with open(keyMappingFilename, "r") as f:
+		for line in f:
+			index_barcode_key, sample_extract_library_id = line.split('\t')
+			keyMapping[index_barcode_key] = sample_extract_library_id.strip()
 
-# print headers
-print ('Index-Barcode Key', end='\t')
-for header in headersToReport:
-	headerToPrint = header
-	# if a coverage label, shorten it
-	if isCoverageLabel(header):
-		headerToPrint, unusedValue = coverageNormalization(header, 0)
-	print(headerToPrint, end='\t')
-print ('') # includes newline
+	# read from damages, medians, haplogroups
+	# these are all files with the index barcode keys and additional keyed fields
+	filenames = sys.argv[3:len(sys.argv)]
+	for filename in filenames:
+		with open(filename, "r") as f:
+			addToSamples(f)
+			
+	# populate additional sample fields
+	for sampleID in samples:
+		# add sample/extract/library ID, if available
+		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'] = findSampleSheetEntry(sampleID, keyMapping)
+		# add % endogenous
+		singleSample = samples[sampleID]
+		if ('autosome_pre' in singleSample
+		or 'X_pre' in singleSample
+		or 'Y_pre' in singleSample
+		or 'MT_pre' in singleSample):
+			samples[sampleID]['endogenous_pre'] = float(
+				int(samples[sampleID].get('autosome_pre', '0'))
+				+ int(samples[sampleID].get('X_pre', '0'))
+				+ int(samples[sampleID].get('Y_pre', '0'))
+				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
 
-sorted_samples = sorted(samples, key=lambda x: int(samples[x]['raw']), reverse=True)
-# output each sample with data using preset header order
-for sampleID in sorted_samples:
-	thisSample = samples[sampleID]
-	try:
-		if int(samples[sampleID]['raw']) >= 500 or sampleID in keyMapping:
-			printSample(sampleID, thisSample)
-	except KeyError:
-		eprint('KeyError', sampleID)
-# samples that are expected, but do not have results
-for sampleID in keyMapping:
-	if sampleID not in samples:
-		print('%s\t%s' % (sampleID, keyMapping[sampleID]) )
+	# print headers
+	print ('Index-Barcode Key', end='\t')
+	for header in headersToReport:
+		headerToPrint = header
+		# if a coverage label, shorten it
+		if isCoverageLabel(header):
+			headerToPrint, unusedValue = coverageNormalization(header, 0)
+		print(headerToPrint, end='\t')
+	print ('') # includes newline
+
+	sorted_samples = sorted(samples, key=lambda x: int(samples[x]['raw']), reverse=True)
+	# output each sample with data using preset header order
+	for sampleID in sorted_samples:
+		thisSample = samples[sampleID]
+		try:
+			if int(samples[sampleID]['raw']) >= 500 or sampleID in keyMapping:
+				printSample(sampleID, thisSample)
+		except KeyError:
+			eprint('KeyError', sampleID)
+	# samples that are expected, but do not have results
+	for sampleID in keyMapping:
+		if sampleID not in samples:
+			print('%s\t%s' % (sampleID, keyMapping[sampleID]) )
