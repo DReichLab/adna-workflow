@@ -199,4 +199,4 @@ if __name__ == '__main__':
 	# samples that are expected, but do not have results
 	for sampleID in keyMapping:
 		if sampleID not in samples:
-			print('%s\t%s' % (sampleID, keyMapping[sampleID]) )
+			print('{}\t\t{}'.format(sampleID, keyMapping[sampleID]) )
