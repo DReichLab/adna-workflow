@@ -50,7 +50,8 @@ headersToReport = ['sample_sheet_key',
 				   'contamination_contammix_lower',
 				   'contamination_contammix_upper',
 				   'contamination_contammix_gelman',
-				   'contamination_contammix_inferred_error'
+				   'contamination_contammix_inferred_error',
+				   'recommendation'
 				   ]
 
 samples = dict()
