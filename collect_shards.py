@@ -1,4 +1,4 @@
-from subprocess import call
+from __future__ import print_function
 import sys
 
 # Retrieve and cat the requested filename from each of the shard directories of a cromwell run
@@ -10,4 +10,12 @@ numShards = int(sys.argv[2])
 
 for i in range(0,numShards):
 	path = "shard-" + str(i) + "/execution/" + filename
-	call(["cat", path])
+	print("{:d}".format(i), end='\t')
+	try:
+		with open(path) as f:
+			for line in f:
+				print(line.strip(), end='\t')
+	except IOError:
+		print('NO FILE', end='\t')
+	finally:
+		print('')
