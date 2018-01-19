@@ -268,4 +268,5 @@ if __name__ == '__main__':
 	# samples that are expected, but do not have results
 	for sampleID in keyMapping:
 		if sampleID not in samples:
-			print('{}\t\t{}'.format(sampleID, keyMapping[sampleID]) )
+			libraryID, plateID = keyMapping[sampleID]
+			print('{}\t\t{}\t{}'.format(sampleID, libraryID, plateID) )
