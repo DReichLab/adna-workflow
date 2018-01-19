@@ -49,7 +49,9 @@ with open(counts_filename) as f:
 		
 with open(sample_sheet_filename) as f:
 	for line in f:
-		sampleID, libraryID = map(lambda x:x.strip(), line.split('\t'))
+		fields = map(lambda x:x.strip(), line.split('\t'))
+		sampleID = fields[0]
+		libraryID = fields[1]
 		sample_sheet[sampleID] = libraryID
 		
 number_top_barcode_pairs = 10

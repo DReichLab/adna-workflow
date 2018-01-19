@@ -5,6 +5,7 @@ import math
 
 headersToReport = ['sample_sheet_key',
 				   'library_id',
+				   'plate_id',
 				   'raw', 
 				   'merged', 
 				   'endogenous_pre',
@@ -117,7 +118,7 @@ def printSample(sampleID, thisSample):
 # 	1: index-barcode 4 tuple
 #	2: sample/extract/library id if any, or empty string
 def findSampleSheetEntry(sampleID, keyMapping):
-	libraryID = keyMapping.get(sampleID, '')
+	libraryID, plateID = keyMapping.get(sampleID, ['',''])
 	sampleSheetID = ''
 	if libraryID != '':
 		sampleSheetID = sampleID
@@ -126,18 +127,19 @@ def findSampleSheetEntry(sampleID, keyMapping):
 		for p5 in p5_set.split(':'):
 			for p7 in p7_set.split(':'):
 				trialSampleID = '{}_{}_{}_{}'.format(i5, i7, p5, p7)
-				trialLibraryID = keyMapping.get(trialSampleID, '')
+				trialLibraryID, trialPlateID = keyMapping.get(trialSampleID, ['',''])
 				
 				if libraryID == '':
 					if trialLibraryID != '':
 						libraryID = trialLibraryID
 						sampleSheetID = trialSampleID
+						plateID = trialPlateID
 				# if there is more than one libraryID that matches, we have a nonprogramming problem
 				elif trialLibraryID != '':
 					libraryID = 'MULTIPLE'
 					sampleSheetID = 'MULTIPLE'
 					
-	return sampleSheetID, libraryID
+	return sampleSheetID, libraryID, plateID
 
 # Make an initial recommendation for whether this sample should continue in processing, assuming it is UDG-half treated
 def recommendation(sample):
@@ -208,13 +210,16 @@ if __name__ == '__main__':
 		print('Total reads: ', total_reads)
 		addToSamples(f)
 		
-	# mapping from index and barcodes to sample/extract/library ID
+	# mapping from index and barcodes to sample/extract/library ID and plate ID
 	keyMapping = dict()
 	keyMappingFilename = sys.argv[2]
 	with open(keyMappingFilename, "r") as f:
 		for line in f:
-			index_barcode_key, sample_extract_library_id = line.split('\t')
-			keyMapping[index_barcode_key] = sample_extract_library_id.strip()
+			fields = map(lambda x: x.strip(), line.split('\t')
+			index_barcode_key, = fields[0]
+			sample_extract_library_id = fields[1]
+			plate_id = fields[2]
+			keyMapping[index_barcode_key] = [sample_extract_library_id, plate_id]
 
 	# read from damages, medians, haplogroups
 	# these are all files with the index barcode keys and additional keyed fields
@@ -226,7 +231,7 @@ if __name__ == '__main__':
 	# populate additional sample fields
 	for sampleID in samples:
 		# add sample/extract/library ID, if available
-		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'] = findSampleSheetEntry(sampleID, keyMapping)
+		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'], samples[sampleID]['plate_id'] = findSampleSheetEntry(sampleID, keyMapping)
 		# add % endogenous
 		singleSample = samples[sampleID]
 		if ('autosome_pre' in singleSample
