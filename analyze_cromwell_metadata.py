@@ -31,5 +31,21 @@ for task_name in calls:
 			endTime = datetime.strptime(task_attributes['end'], datetimeFormat_alternate)
 			
 		elapsedSeconds = (endTime - startTime).total_seconds()
+			
+		executionEvents = task_attributes['executionEvents'][0]
+		for event in executionEvents:
+			elapsedRuntime = 0
+			if executionEvents['description'] == 'RunningJob':
+				try:
+					runStartTime = datetime.strptime(executionEvents['startTime'], datetimeFormat)
+				except ValueError:
+					runStartTime = datetime.strptime(executionEvents['startTime'], datetimeFormat_alternate)
+				try:	
+					runEndTime = datetime.strptime(executionEvents['endTime'], datetimeFormat)
+				except ValueError:
+					runEndTime = datetime.strptime(executionEvents['endTime'], datetimeFormat_alternate)
+				elapsedRuntime = (endTime - runStartTime).total_seconds()
+				break
+		
 		# print task name and leave out the workflow name
-		print ("{}\t{}".format(task_name.split('.')[1], elapsedSeconds))
+		print ("{}\t{}\t{}".format(task_name.split('.')[1], elapsedSeconds, elapsedRuntime))
