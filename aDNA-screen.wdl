@@ -910,6 +910,69 @@ task snp_target_bed{
 	}
 }
 
+# measure the number of reads at each 1240k site
+task target_depth_bed{
+	File coordinates_autosome
+	File coordinates_x
+	File coordinates_y
+	Array[File] bams
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
+	File picard_jar
+	File adna_screen_jar
+	
+	File python_depth_histogram
+	File python_depth_histogram_combine
+	
+	# depth requires qualities greater than arguments, so we adjust them to preserve external minimum quality usage
+	Int base_quality = minimum_base_quality-1
+	Int mapping_quality = minimum_mapping_quality-1
+	
+	Int processes = 4
+	
+	# samtools depth -b ${targets_bed} -q ${base_quality} -Q ${mapping_quality} $bam > depths
+	command{
+		set -e
+		
+		python <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+		
+		def calculate_SNP_depths(bam):
+			sample_id_filename = basename(bam)
+			sample_id_filename_no_extension, extension = splitext(sample_id_filename)
+			
+			clipped_bam = sample_id_filename_no_extension + ".clipped.bam"
+			clipped_sorted_bam = sample_id_filename_no_extension + ".clipped.sorted.bam"
+			
+			subprocess.check_output("java -Xmx2500m -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
+			subprocess.check_output("java -Xmx2500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
+			subprocess.check_output("samtools index %s" % (clipped_sorted_bam,), shell=True)
+			subprocess.check_output("samtools depth -b ${coordinates_autosome} -q ${base_quality} -Q ${mapping_quality} %s | python ${python_depth_histogram} > %s.autosome" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("samtools depth -b ${coordinates_x}        -q ${base_quality} -Q ${mapping_quality} %s | python ${python_depth_histogram} > %s.x" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("samtools depth -b ${coordinates_y}        -q ${base_quality} -Q ${mapping_quality} %s | python ${python_depth_histogram} > %s.y" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("python ${python_depth_histogram_combine} autosome %s.autosome X %s.x Y %s.y > %s.depth_histogram" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
+			
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply_async(calculate_SNP_depths, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
+		CODE
+	}
+	output{
+		Array[File] depth_histograms = glob("*.depth_histogram")
+	}
+	runtime{
+		cpus: processes
+		requested_memory_mb_per_core: 3000
+	}
+}
+
 task spike3k_complexity{
 	File python_spike3k_complexity_prep
 	File python_spike3k_complexity_results
