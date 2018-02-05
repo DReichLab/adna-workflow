@@ -374,10 +374,10 @@ workflow ancientDNA_screen{
 		statistics_by_group = cumulative_statistics
 	}
 	
-	call copy_output as copy_hs37d5_aligned_unfiltered{ input:
-		files = demultiplex_hs37d5.demultiplexed_bam,
-		output_path = output_path_hs37d5_aligned_unfiltered
-	}
+#	call copy_output as copy_hs37d5_aligned_unfiltered{ input:
+#		files = demultiplex_hs37d5.demultiplexed_bam,
+#		output_path = output_path_hs37d5_aligned_unfiltered
+#	}
 	call copy_output as copy_hs37d5_aligned_filtered{ input:
 		files = duplicates_hs37d5.aligned_deduplicated,
 		output_path = output_path_hs37d5_aligned_filtered
