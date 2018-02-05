@@ -631,6 +631,7 @@ task align{
 	}
 	runtime{
 		cpus: "${threads}"
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 8192
 	}
 }
@@ -707,6 +708,7 @@ task filter_aligned_only{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -848,6 +850,7 @@ task chromosome_coverage{
 		File coverages = "coverages"
 	}
 	runtime{
+		runtime_minutes: 120
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -1101,7 +1104,8 @@ task summarize_haplogroups{
 		File haplogroups = "haplogroups"
 	}
 	runtime{
-		requested_memory_mb_per_core: 4096
+		runtime_minutes: 60
+		requested_memory_mb_per_core: 2000
 	}
 }
 
@@ -1118,7 +1122,8 @@ task central_measures{
 		File central_measures_output = "central_measures"
 	}
 	runtime{
-		requested_memory_mb_per_core: 4096
+		runtime_minutes: 60
+		requested_memory_mb_per_core: 2000
 	}
 }
 
@@ -1322,6 +1327,7 @@ task contammix{
 	}
 	runtime{
 		cpus: threads
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 7000
 	}
 }
@@ -1366,6 +1372,7 @@ task prepare_report{
 		File report = "${date}_${dataset_label}.report"
 	}
 	runtime{
+		runtime_minutes: 60
 		requested_memory_mb_per_core: 2000
 	}
 }
