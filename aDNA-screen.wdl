@@ -423,6 +423,20 @@ workflow ancientDNA_screen{
 		spike3k_post_data =concatenate_spike3k_post.concatenated
 	}
 	
+	# same as final statistics, but missing the expensive contammix calculation
+	Array[File] preliminary_keyed_statistics = [
+		damage_loop_hs37d5.damage_all_samples_two_bases,
+		damage_loop_rsrs.damage_all_samples_two_bases,
+		central_measures_hs37d5.central_measures_output,
+		central_measures_rsrs.central_measures_output,
+		summarize_haplogroups.haplogroups,
+		concatenate_spike3k_pre.concatenated,
+		concatenate_spike3k_post.concatenated,
+		spike3k_complexity.estimates,
+#		concatenate_schmutzi.concatenated,
+#		concatenate_contamination_rare_variant.concatenated,
+#		concatenate_contammix.concatenated
+	]
 	Array[File] final_keyed_statistics = [
 		damage_loop_hs37d5.damage_all_samples_two_bases,
 		damage_loop_rsrs.damage_all_samples_two_bases,
@@ -436,6 +450,13 @@ workflow ancientDNA_screen{
 #		concatenate_contamination_rare_variant.concatenated,
 		concatenate_contammix.concatenated
 	]
+	call prepare_report as preliminary_report{ input:
+		aggregated_statistics = aggregate_statistics_final.statistics,
+		keyed_statistics = preliminary_keyed_statistics,
+		index_barcode_keys = index_barcode_keys,
+		dataset_label = dataset_label,
+		date = date
+	}
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = final_keyed_statistics,
