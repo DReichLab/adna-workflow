@@ -259,13 +259,13 @@ task barcode_count_check{
 	Array[File] read_files_by_lane
 	
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
+		java -Xmx3500m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
 	}
 	output{
 		File barcode_count_statistics = "barcodeCount.stats"
 	}
 	runtime{
-		requested_memory_mb_per_core: 16384
+		requested_memory_mb_per_core: 4000
 	}
 }
 
@@ -279,7 +279,7 @@ task merge_and_trim_lane{
 	File barcode_count_statistics
 	
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx7500m -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
@@ -287,7 +287,7 @@ task merge_and_trim_lane{
 		File statistics = "${label}.stats"
 	}
 	runtime{
-		requested_memory_mb_per_core: 16384
+		requested_memory_mb_per_core: 8000
 	}
 }
 
@@ -296,14 +296,14 @@ task aggregate_statistics{
 	Array [File] statistics_by_group
 	
 	command{
-		java -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
+		java -Xmx500m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
 		runtime_minutes: 60
-		requested_memory_mb_per_core: 4096
+		requested_memory_mb_per_core: 1000
 	}
 }
 
@@ -381,7 +381,7 @@ task demultiplex{
 # filter out unaligned reads
 task filter_aligned_only{
 	Array[File] bams
-	Int processes = 10
+	Int processes = 5
 	
 	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
 	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
