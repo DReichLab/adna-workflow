@@ -6,7 +6,7 @@ import argparse
 
 # raw_reads 
 # number of distinct targets hit
-def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, minimum_raw_reads, expected_targets_per_raw_read_threshold):
+def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, minimum_raw_reads, expected_targets_per_raw_read_threshold, empiricalTargetEstimator):
 	length = len(reads_hitting_any_target)
 	if length != len(unique_reads):
 		raise ValueError('length mismatch between entries in reads_hitting_any_target and unique_reads')
@@ -27,7 +27,7 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	for i in range(1,length):
 		#slope_uncorrected_targets = float(unique_reads[i] - unique_reads[i-1]) / (reads_hitting_any_target[i] - reads_hitting_any_target[i-1])
 			
-		slope_corrected_targets = (target_hits_estimated_to_empirical(unique_reads[i]) - target_hits_estimated_to_empirical(unique_reads[i-1])) / ((reads_hitting_any_target[i] - reads_hitting_any_target[i-1]) * read_ratio)
+		slope_corrected_targets = (empiricalTargetEstimator.unique_reads_to_empirical_targets(unique_reads[i]) - empiricalTargetEstimator.unique_reads_to_empirical_targets(unique_reads[i-1])) / ((reads_hitting_any_target[i] - reads_hitting_any_target[i-1]) * read_ratio)
 		#print("{:f}\t{:f}\t{:f}\t{:f}".format(reads_hitting_any_target[i], reads_hitting_any_target[i] * read_ratio, unique_reads[i], slope_corrected_targets))
 		if slope_corrected_targets <= inverse_e:
 			reads_inverse_e = min(reads_inverse_e, reads_hitting_any_target[i])
@@ -36,7 +36,7 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		
 		if slope_corrected_targets > expected_targets_per_raw_read_threshold:
 			total_reads_required = max(total_reads_required, reads_hitting_any_target[i] * read_ratio)
-			expected_unique_targets_at_threshold = target_hits_estimated_to_empirical(unique_reads[i])
+			expected_unique_targets_at_threshold = empiricalTargetEstimator.unique_reads_to_empirical_targets(unique_reads[i])
 		
 			
 	raw_reads_inverse_e = reads_inverse_e * read_ratio
@@ -67,13 +67,23 @@ def total_and_unique_target_hits(target_histogram_filename):
 			unique_targets += occurrences
 		return total_hits, unique_targets
 	
-# historical empirical relationship between computed number of target hits and actual target hits
-def target_hits_estimated_to_empirical(estimated_hits):
+class EmpiricalTargetEstimator:
 	total_autosome_targets = 1150639 # autosome targets in the 1240k target set
-	estimated_hit_fraction = max(float(estimated_hits) / total_autosome_targets, 1e-9)
-	corrected_hit_faction = 1 / (1 + 1 / estimated_hit_fraction)
-	corrected_hit_estimate = corrected_hit_faction * total_autosome_targets
-	return corrected_hit_estimate
+	a = 1
+	b = 1
+	power = -1;
+	
+	def __init__(self, a, b, power):
+		self.a = a
+		self.b = b
+		self.power = power
+	
+	# historical empirical relationship between unique reads hitting targets and total targets covered
+	def unique_reads_to_empirical_targets(self, unique_reads):
+		estimated_hit_fraction = max(float(unique_reads) / self.total_autosome_targets, 1e-9)
+		corrected_hit_faction = 1 / (self.a + self.b * (estimated_hit_fraction ** self.power))
+		corrected_hit_estimate = corrected_hit_faction * self.total_autosome_targets
+		return corrected_hit_estimate
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -83,9 +93,16 @@ if __name__ == '__main__':
 	parser.add_argument("-m", "--minimum_raw_reads", help="minimum required number of raw reads demultiplexing", type=int, default=3e6)
 	parser.add_argument("-t", "--expected_targets_per_raw_read_threshold", help="threshold for ratio of expected unique targets hit to raw demultiplexing reads", type=float, default=0.01)
 	
+	# empirical model parameters
+	parser.add_argument("-a", "--modelParameterA", help="parameter for empirical model of unique reads to total targets covered", type=float, default=1)
+	parser.add_argument("-b", "--modelParameterB", help="parameter for empirical model of unique reads to total targets covered", type=float, default=1)
+	parser.add_argument("-p", "--modelParameterPower", help="exponent parameter for empirical model of unique reads to total targets covered", type=float, default=-1)
+
 	parser.add_argument("target_histogram_filename", help="Target histogram to count number of actual target hits. This is not the input to preseq.")
 	parser.add_argument("preseq_filename", help="preseq file containing mapping of reads hitting targets to unique reads hitting targets")
 	args = parser.parse_args()
+	
+	empiricalTargetEstimator = EmpiricalTargetEstimator(args.modelParameterA, args.modelParameterB, args.modelParameterPower)
 	
 	# empirically measured parameters to extrapolate from
 	total_reads_hitting_any_target_actual, unique_targets_hit = total_and_unique_target_hits(args.target_histogram_filename)
@@ -102,7 +119,7 @@ if __name__ == '__main__':
 			reads_hitting_any_target.append(float(reads))
 			unique_reads.append(float(expected_distinct_reads))
 			
-	values = preseq_analysis(reads_hitting_any_target, unique_reads, args.number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, args.minimum_raw_reads, args.expected_targets_per_raw_read_threshold)
+	values = preseq_analysis(reads_hitting_any_target, unique_reads, args.number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, args.minimum_raw_reads, args.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
 	for key in values:
 		print('{}\t{:.1f}'.format(key, values[key]))
 
