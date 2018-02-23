@@ -1,7 +1,7 @@
 # Process the output of preseq to estimate the number of (additional) reads required for a library
 # 
 
-import sys
+from __future__ import print_function
 import argparse
 
 # raw_reads 
@@ -99,7 +99,8 @@ if __name__ == '__main__':
 	parser.add_argument("-p", "--modelParameterPower", help="exponent parameter for empirical model of unique reads to total targets covered", type=float, default=-1)
 
 	parser.add_argument("target_histogram_filename", help="Target histogram to count number of actual target hits. This is not the input to preseq.")
-	parser.add_argument("preseq_filename", help="preseq file containing mapping of reads hitting targets to unique reads hitting targets")
+	parser.add_argument("preseq_filename", help="preseq file containing mapping of reads hitting targets to unique reads hitting targets. Name this using the index-barcode key.")
+	parser.add_argument("-k", "--key", help="Key for aggregating statistics. Normally this should be index-barcode key.", required=True)
 	args = parser.parse_args()
 	
 	empiricalTargetEstimator = EmpiricalTargetEstimator(args.modelParameterA, args.modelParameterB, args.modelParameterPower)
@@ -120,6 +121,9 @@ if __name__ == '__main__':
 			unique_reads.append(float(expected_distinct_reads))
 			
 	values = preseq_analysis(reads_hitting_any_target, unique_reads, args.number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, args.minimum_raw_reads, args.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
+	
+	# output
+	print(args.key, end='\t')
 	for key in values:
-		print('{}\t{:.1f}'.format(key, values[key]))
+		print('{}\t{:.1f}'.format(key, values[key]), end='\t')
 
