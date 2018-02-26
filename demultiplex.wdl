@@ -69,6 +69,9 @@ workflow demultiplex_align_bams{
 			barcode_count_statistics = aggregate_barcode_count_statistics.statistics
 		}
 	}
+	call collect_read_group_info{ input:
+		read_groups_by_lane = merge_and_trim_lane.read_group
+	}
 	call aggregate_statistics as aggregate_lane_statistics{ input :
 		adna_screen_jar=adna_screen_jar,
 		statistics_by_group=merge_and_trim_lane.statistics
@@ -139,9 +142,14 @@ workflow demultiplex_align_bams{
 		files = filter_aligned_only_rsrs.filtered,
 		output_path = output_path_rsrs_aligned_filtered
 	}
-	Array[File] kmer_array = [kmer_analysis.analysis]
-	call copy_output as copy_kmer{input :
-		files = kmer_array,
+	Array[File] demultiplex_statistics = [demultiplex_nuclear.statistics, demultiplex_rsrs.statistics]
+	call aggregate_statistics as aggregate_demultiplex_statistics{ input :
+		adna_screen_jar=adna_screen_jar,
+		statistics_by_group=demultiplex_statistics
+	}
+	Array[File] misc_output_files = [collect_read_group_info.read_groups, aggregate_demultiplex_statistics.statistics, kmer_analysis.analysis]
+	call copy_output as copy_misc_output_files{input :
+		files = misc_output_files,
 		output_path = output_path
 	}
 	
@@ -287,10 +295,28 @@ task merge_and_trim_lane{
 	output{
 		Array[File] fastq_to_align = glob("${label}*.fastq.gz")
 		File statistics = "${label}.stats"
+		File read_group = "read_group"
 	}
 	runtime{
 		runtime_minutes: 300
 		requested_memory_mb_per_core: 8000
+	}
+}
+
+task collect_read_group_info{
+	Array[File] read_groups_by_lane
+	
+	command{
+		for file in ${sep=' ' read_groups_by_lane}  ; do 
+			cat $file >> read_groups
+		done
+	}
+	output{
+		File read_groups = "read_groups"
+	}
+	runtime{
+		runtime_minutes: 5
+		requested_memory_mb_per_core: 100
 	}
 }
 
