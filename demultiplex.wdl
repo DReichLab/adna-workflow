@@ -134,6 +134,7 @@ workflow demultiplex_align_bams{
 		index_barcode_keys = index_barcode_keys
 	}
 	call filter_aligned_only as filter_aligned_only_rsrs{ input:
+		picard_jar = picard_jar,
 		bams = demultiplex_rsrs.demultiplexed_bam
 	}
 	
