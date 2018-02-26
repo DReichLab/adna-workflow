@@ -230,6 +230,7 @@ task bcl2fastq{
 	}
 	runtime{
 		cpus: 4
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 8192
 	}
 }
@@ -246,7 +247,7 @@ task discover_lane_name_from_filename{
 	}
 	runtime{
 		runtime_minutes: 10
-		requested_memory_mb_per_core: 1024
+		requested_memory_mb_per_core: 500
 	}
 }
 
@@ -265,6 +266,7 @@ task barcode_count_check{
 		File barcode_count_statistics = "barcodeCount.stats"
 	}
 	runtime{
+		runtime_minutes: 300
 		requested_memory_mb_per_core: 4000
 	}
 }
@@ -287,6 +289,7 @@ task merge_and_trim_lane{
 		File statistics = "${label}.stats"
 	}
 	runtime{
+		runtime_minutes: 300
 		requested_memory_mb_per_core: 8000
 	}
 }
@@ -302,7 +305,7 @@ task aggregate_statistics{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
-		runtime_minutes: 60
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -335,7 +338,7 @@ task align{
 	runtime{
 		cpus: "${threads}"
 		runtime_minutes: 480
-		requested_memory_mb_per_core: 8192
+		requested_memory_mb_per_core: 6000
 	}
 }
 
@@ -352,8 +355,8 @@ task collect_filenames{
 		Array[String] filenames = read_lines("./file_of_filenames")
 	}
 	runtime{
-		runtime_minutes: 60
-		requested_memory_mb_per_core: 2048
+		runtime_minutes: 10
+		requested_memory_mb_per_core: 1000
 	}
 }
 
@@ -374,6 +377,7 @@ task demultiplex{
 	}
 	runtime{
 		cpus: 2
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 8000
 	}
 }
