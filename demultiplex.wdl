@@ -134,6 +134,8 @@ workflow demultiplex_align_bams{
 	call filter_aligned_only as filter_aligned_only_rsrs{ input:
 		bams = demultiplex_rsrs.demultiplexed_bam
 	}
+	
+	# output
 	call copy_output as copy_nuclear_aligned_filtered{ input:
 		files = filter_aligned_only_nuclear.filtered,
 		output_path = output_path_nuclear_aligned_filtered
@@ -151,6 +153,11 @@ workflow demultiplex_align_bams{
 	call copy_output as copy_misc_output_files{input :
 		files = misc_output_files,
 		output_path = output_path
+	}
+	call copy_and_rename as copy_and_rename_lane_statistics{ input:
+		source_file = aggregate_lane_statistics.statistics,
+		output_path = output_path,
+		output_filename_no_path = "lane_statistics"
 	}
 	
 	output{
@@ -461,6 +468,21 @@ task copy_output{
 	}
 	runtime{
 		requested_memory_mb_per_core: 2048
+	}
+}
+
+task copy_and_rename{
+	File source_file
+	String output_path
+	String output_filename_no_path
+	
+	command{
+		mkdir -p ${output_path};
+		cp -l $file "${output_path}/${output_filename_no_path}" || cp $file "${output_path}/${output_filename_no_path}"
+	}
+	runtime{
+		runtime_minutes: 240
+		requested_memory_mb_per_core: 1000
 	}
 }
 
