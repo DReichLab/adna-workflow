@@ -10,6 +10,7 @@ workflow demultiplex_align_bams{
 	File barcodes_q_only
 	
 	File adna_screen_jar
+	File picard_jar
 	
 	Float missing_alignments_fraction
 	Int max_open_gaps
@@ -122,7 +123,8 @@ workflow demultiplex_align_bams{
 		index_barcode_keys = index_barcode_keys
 	}
 	call filter_aligned_only as filter_aligned_only_nuclear { input:
-		bams = demultiplex_nuclear.demultiplexed_bam
+		picard_jar = picard_jar,
+		bams = demultiplex_nuclear.demultiplexed_bam,
 	}
 	call demultiplex as demultiplex_rsrs {input:
 		adna_screen_jar = adna_screen_jar,
@@ -417,8 +419,8 @@ task demultiplex{
 
 # filter out unaligned reads, then sort
 task filter_aligned_only{
-	Array[File] bams
 	File picard_jar
+	Array[File] bams
 	Int processes = 5
 	
 	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
