@@ -481,7 +481,7 @@ task copy_and_rename{
 	
 	command{
 		mkdir -p ${output_path};
-		cp -l $file "${output_path}/${output_filename_no_path}" || cp $file "${output_path}/${output_filename_no_path}"
+		cp -l ${source_file} "${output_path}/${output_filename_no_path}" || cp ${source_file} "${output_path}/${output_filename_no_path}"
 	}
 	runtime{
 		runtime_minutes: 240
