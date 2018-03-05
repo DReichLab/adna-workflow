@@ -147,12 +147,18 @@ workflow demultiplex_align_bams{
 		files = filter_aligned_only_rsrs.filtered,
 		output_path = output_path_rsrs_aligned_filtered
 	}
-	Array[File] demultiplex_statistics = [demultiplex_nuclear.statistics, demultiplex_rsrs.statistics]
-	call aggregate_statistics as aggregate_demultiplex_statistics{ input :
-		adna_screen_jar=adna_screen_jar,
-		statistics_by_group=demultiplex_statistics
+	call copy_and_rename as copy_and_rename_demultiplex_nuclear_statistics{ input:
+		source_file = demultiplex_nuclear.statistics,
+		output_path = output_path,
+		output_filename_no_path = "nuclear_statistics"
 	}
-	Array[File] misc_output_files = [collect_read_group_info.read_groups, aggregate_demultiplex_statistics.statistics, kmer_analysis.analysis]
+	call copy_and_rename as copy_and_rename_demultiplex_mt_statistics{ input:
+		source_file = demultiplex_rsrs.statistics,
+		output_path = output_path,
+		output_filename_no_path = "mt_statistics"
+	}
+	
+	Array[File] misc_output_files = [collect_read_group_info.read_groups, kmer_analysis.analysis]
 	call copy_output as copy_misc_output_files{input :
 		files = misc_output_files,
 		output_path = output_path
@@ -161,6 +167,12 @@ workflow demultiplex_align_bams{
 		source_file = aggregate_lane_statistics.statistics,
 		output_path = output_path,
 		output_filename_no_path = "lane_statistics"
+	}
+	
+	call update_database_with_demultiplexed{ input:
+		date_string = date,
+		name = dataset_label,
+		unused = (copy_nuclear_aligned_filtered.copied + copy_rsrs_aligned_filtered.copied + copy_and_rename_demultiplex_nuclear_statistics.copied + copy_and_rename_demultiplex_mt_statistics.copied + copy_misc_output_files.copied + copy_and_rename_lane_statistics.copied)
 	}
 	
 	output{
@@ -469,6 +481,9 @@ task copy_output{
 			cp -l $file "${output_path}" || cp $file "${output_path}"
 		done
 	}
+	output{
+		Int copied = length(files)
+	}
 	runtime{
 		requested_memory_mb_per_core: 2048
 	}
@@ -483,8 +498,11 @@ task copy_and_rename{
 		mkdir -p ${output_path};
 		cp -l ${source_file} "${output_path}/${output_filename_no_path}" || cp ${source_file} "${output_path}/${output_filename_no_path}"
 	}
+	output{
+		Int copied = 1
+	}
 	runtime{
-		runtime_minutes: 240
+		runtime_minutes: 60
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -506,6 +524,22 @@ task kmer_analysis{
 	}
 	runtime{
 		runtime_minutes: 60
+		requested_memory_mb_per_core: 1000
+	}
+}
+
+task update_database_with_demultiplexed{
+	String django_manage_for_command
+	String date_string
+	String name
+	
+	Int unused
+
+	command{
+		python3 ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name}
+	}
+	runtime{
+		runtime_minutes: 30
 		requested_memory_mb_per_core: 1000
 	}
 }
