@@ -102,18 +102,18 @@ workflow demultiplex_align_bams{
 			reference_pac = prepare_reference_nuclear.reference_pac,
 			reference_sa = prepare_reference_nuclear.reference_sa
 		}
-		call align as align_rsrs{ input:
-			missing_alignments_fraction = missing_alignments_fraction,
-			max_open_gaps = max_open_gaps,
-			seed_length = seed_length,
-			fastq_to_align = fastq_to_align,
-			reference = prepare_reference_rsrs.reference_fa,
-			reference_amb = prepare_reference_rsrs.reference_amb,
-			reference_ann = prepare_reference_rsrs.reference_ann,
-			reference_bwt = prepare_reference_rsrs.reference_bwt,
-			reference_pac = prepare_reference_rsrs.reference_pac,
-			reference_sa = prepare_reference_rsrs.reference_sa
-		}
+	}
+	call align_pool as align_rsrs{ input:
+		missing_alignments_fraction = missing_alignments_fraction,
+		max_open_gaps = max_open_gaps,
+		seed_length = seed_length,
+		fastq_to_align = fastq_to_align,
+		reference = prepare_reference_rsrs.reference_fa,
+		reference_amb = prepare_reference_rsrs.reference_amb,
+		reference_ann = prepare_reference_rsrs.reference_ann,
+		reference_bwt = prepare_reference_rsrs.reference_bwt,
+		reference_pac = prepare_reference_rsrs.reference_pac,
+		reference_sa = prepare_reference_rsrs.reference_sa
 	}
 	call demultiplex as demultiplex_nuclear {input:
 		adna_screen_jar = adna_screen_jar,
@@ -270,7 +270,7 @@ task discover_lane_name_from_filename{
 	File python_lane_name
 	
 	command{
-		python ${python_lane_name} ${filename} > lane_name
+		python3 ${python_lane_name} ${filename} > lane_name
 	}
 	output{
 		String lane = read_string("./lane_name")
@@ -386,6 +386,56 @@ task align{
 	runtime{
 		cpus: "${threads}"
 		runtime_minutes: 480
+		requested_memory_mb_per_core: 2000
+	}
+}
+
+task align_pool{
+	Array[File] fastq_to_align
+	Float missing_alignments_fraction
+	Int max_open_gaps
+	Int seed_length
+	Int processes = 5
+	
+	File reference
+	File reference_amb
+	File reference_ann
+	File reference_bwt
+	File reference_pac
+	File reference_sa
+	
+	# the bwa -r option for specifying the read group leads to problems
+	# bwa uses tab delimiters, but these are illegal in the program group section of a sam file
+	# so we leave out the read group here and plan to insert these at the end of processing
+	command {
+		set -e
+		python3<<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+		
+		def align_fastq(fastq_file):
+			filename_no_extension, extension = splitext(basename(fastq_file))
+			
+			filename_sai = filename_no_extension + ".sai"
+			subprocess.check_output("bwa aln -t 1 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} %s > %s" % (fastq_file, filename_sai), shell=True)
+			subprocess.check_output("bwa samse ${reference} %s %s | samtools view -bS - > %s" % (filename_sai, fastq_file, filename_no_extension + ".bam"), shell=True)
+		
+		fastq_files_string = "${sep=',' fastq_to_align}"
+		fastq_files = fastq_files_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply_async(align_fastq, args=(fastq_file,)) for fastq_file in fastq_files]
+		pool.close()
+		pool.join()
+		CODE
+	}
+	output{
+		Array[File] bam = glob("*.bam")
+	}
+	runtime{
+		cpus: "${processes}"
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 6000
 	}
 }
@@ -397,7 +447,7 @@ task collect_filenames{
 	
 	command{
 		echo "${sep='\n' filename_arrays}" > raw_array
-		python ${python_flatten} < raw_array > file_of_filenames
+		python3 ${python_flatten} < raw_array > file_of_filenames
 	}
 	output{
 		Array[String] filenames = read_lines("./file_of_filenames")
@@ -442,7 +492,7 @@ task filter_aligned_only{
 	command{
 		set -e
 		mkdir filtered_sorted
-		python <<CODE
+		python3<<CODE
 		from multiprocessing import Pool
 		from os.path import basename
 		import subprocess
@@ -517,7 +567,7 @@ task kmer_analysis{
 	String date
 
 	command{
-		python ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} ${index_barcode_keys} > ${date}_${dataset_label}.kmer
+		python3 ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} ${index_barcode_keys} > ${date}_${dataset_label}.kmer
 	}
 	output{
 		File analysis = "${date}_${dataset_label}.kmer"
