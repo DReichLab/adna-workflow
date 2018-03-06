@@ -52,7 +52,7 @@ headersToReport = ['sample_sheet_key',
 				   'contamination_contammix_upper',
 				   'contamination_contammix_gelman',
 				   'contamination_contammix_inferred_error',
-				   'recommendation'
+				   'recommendation_spike3k'
 				   ]
 
 samples = dict()
@@ -141,8 +141,8 @@ def findSampleSheetEntry(sampleID, keyMapping):
 					
 	return sampleSheetID, libraryID, plateID
 
-# Make an initial recommendation for whether this sample should continue in processing, assuming it is UDG-half treated
-def recommendation(sample):
+# Make an initial recommendation for whether this sample should continue in processing based on spike3k metrics, assuming it is UDG-half treated
+def recommendation_spike3k(sample):
 	# There are four possible outcomes
 	LOW_DATA = -1
 	FAIL = 0
@@ -244,7 +244,7 @@ if __name__ == '__main__':
 				+ int(samples[sampleID].get('Y_pre', '0'))
 				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
 		# add recommendation concerning future processing
-		singleSample['recommendation'] = recommendation(singleSample)
+		singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
 
 	# print headers
 	print ('Index-Barcode Key', end='\t')
