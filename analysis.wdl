@@ -26,10 +26,15 @@ workflow adna_analysis{
 	File python_snp_target
 	File python_snp_target_bed
 	File python_coverage
+	File python_depth_histogram
 	
 	File spike3k_coordinates_autosome
 	File spike3k_coordinates_x
 	File spike3k_coordinates_y
+	
+	File coordinates_1240k_autosome
+	File coordinates_1240k_x
+	File coordinates_1240k_y
 	
 	# the references need to appear in the same directory as the derived files
 	# in the prepare_reference, we put all of these into the same directory
@@ -49,6 +54,17 @@ workflow adna_analysis{
 		reference = mt_reference_human_95_consensus
 	}
 	
+	call preseq{ input:
+		bams = nuclear_bams,
+		targets_bed = coordinates_1240k_autosome,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip,
+		statistics = aggregate_lane_statistics,	
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar,
+		python_depth_histogram = python_depth_histogram
+	}
 	call chromosome_target as nuclear_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
@@ -296,6 +312,7 @@ workflow adna_analysis{
 		concatenate_spike3k_pre.concatenated,
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
+		preseq.preseq_results,
 #		concatenate_schmutzi.concatenated,
 #		concatenate_contamination_rare_variant.concatenated,
 #		concatenate_contammix.concatenated
@@ -309,6 +326,7 @@ workflow adna_analysis{
 		concatenate_spike3k_pre.concatenated,
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
+		preseq.preseq_results,
 #		concatenate_schmutzi.concatenated,
 #		concatenate_contamination_rare_variant.concatenated,
 		concatenate_contammix.concatenated
@@ -347,7 +365,7 @@ task duplicates{
 		set -e
 		mkdir deduplicated
 		
-		python <<CODE
+		python3 <<CODE
 		from multiprocessing import Pool
 		from os.path import basename, splitext
 		import subprocess
@@ -393,7 +411,7 @@ task damage_loop{
 	
 	command{
 		set -e
-		python <<CODE
+		python3 <<CODE
 		from multiprocessing import Pool
 		from os.path import basename, splitext
 		import subprocess
@@ -404,8 +422,8 @@ task damage_loop{
 			
 			damage_filename = sample_id_filename_no_extension + ".damage"
 			
-			subprocess.check_output("samtools view %s | python ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > %s" %(bam, damage_filename), shell=True)
-			damage_result = subprocess.check_output("python ${python_damage_two_bases} ${damage_label} %s" % (damage_filename,), shell=True)
+			subprocess.check_output("samtools view %s | python3 ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > %s" %(bam, damage_filename), shell=True)
+			damage_result = subprocess.check_output("python3 ${python_damage_two_bases} ${damage_label} %s" % (damage_filename,), shell=True)
 			return damage_result.strip()
 			
 		bams_string = "${sep=',' bams}"
@@ -441,7 +459,7 @@ task chromosome_target{
 	#String sample_id_filename = basename(bam, ".bam")
 
 	command{
-		python ${python_target} ${adna_screen_jar} ${targets} ${minimum_mapping_quality} ${sep=' ' bams}
+		python3 ${python_target} ${adna_screen_jar} ${targets} ${minimum_mapping_quality} ${sep=' ' bams}
 	}
 	output{
 		Array[File] target_stats = glob("*.stats")
@@ -464,7 +482,7 @@ task chromosome_coverage{
 		for bam_stat in ${sep=' ' bam_stats}
 		do
 			sample_id=$(basename $bam_stat .bam.stats)
-			python ${python_coverage} $bam_stat ${reference_length} $sample_id ${coverage_field} >> coverages
+			python3 ${python_coverage} $bam_stat ${reference_length} $sample_id ${coverage_field} >> coverages
 		done
 	}
 	output{
@@ -496,7 +514,7 @@ task snp_target_bed{
 	command{
 		set -e
 		
-		python <<CODE
+		python3 <<CODE
 		from multiprocessing import Pool
 		from os.path import basename, splitext
 		import subprocess
@@ -514,7 +532,7 @@ task snp_target_bed{
 			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} %s > %s.autosome" % (clipped_sorted_bam, sample_id_filename), shell=True)
 			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        %s > %s.x" % (clipped_sorted_bam, sample_id_filename), shell=True)
 			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_y}        %s > %s.y" % (clipped_sorted_bam, sample_id_filename), shell=True)
-			subprocess.check_output("python ${python_snp_target_bed} ${label} %s.autosome %s.x %s.y > %s.snp_target_stats" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("python3 ${python_snp_target_bed} ${label} %s.autosome %s.x %s.y > %s.snp_target_stats" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
 			
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
@@ -559,7 +577,7 @@ task target_depth_bed{
 	command{
 		set -e
 		
-		python <<CODE
+		python3 <<CODE
 		from multiprocessing import Pool
 		from os.path import basename, splitext
 		import subprocess
@@ -574,10 +592,10 @@ task target_depth_bed{
 			subprocess.check_output("java -Xmx2500m -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
 			subprocess.check_output("java -Xmx2500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
 			subprocess.check_output("samtools index %s" % (clipped_sorted_bam,), shell=True)
-			subprocess.check_output("samtools depth -b ${coordinates_autosome} -q ${base_quality} -Q ${mapping_quality} %s | python ${python_depth_histogram} > %s.autosome" % (clipped_sorted_bam, sample_id_filename), shell=True)
-			subprocess.check_output("samtools depth -b ${coordinates_x}        -q ${base_quality} -Q ${mapping_quality} %s | python ${python_depth_histogram} > %s.x" % (clipped_sorted_bam, sample_id_filename), shell=True)
-			subprocess.check_output("samtools depth -b ${coordinates_y}        -q ${base_quality} -Q ${mapping_quality} %s | python ${python_depth_histogram} > %s.y" % (clipped_sorted_bam, sample_id_filename), shell=True)
-			subprocess.check_output("python ${python_depth_histogram_combine} autosome %s.autosome X %s.x Y %s.y > %s.depth_histogram" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("samtools depth -b ${coordinates_autosome} -q ${base_quality} -Q ${mapping_quality} %s | python3 ${python_depth_histogram} > %s.autosome" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("samtools depth -b ${coordinates_x}        -q ${base_quality} -Q ${mapping_quality} %s | python3 ${python_depth_histogram} > %s.x" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("samtools depth -b ${coordinates_y}        -q ${base_quality} -Q ${mapping_quality} %s | python3 ${python_depth_histogram} > %s.y" % (clipped_sorted_bam, sample_id_filename), shell=True)
+			subprocess.check_output("python3 ${python_depth_histogram_combine} autosome %s.autosome X %s.x Y %s.y > %s.depth_histogram" % (sample_id_filename, sample_id_filename, sample_id_filename, sample_id_filename), shell=True)
 			
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
@@ -606,9 +624,9 @@ task spike3k_complexity{
 	
 	command{
 		set -e
-		python ${python_spike3k_complexity_prep} ${spike3k_pre_data} ${spike3k_post_data} > spike3k_for_complexity
+		python3 ${python_spike3k_complexity_prep} ${spike3k_pre_data} ${spike3k_post_data} > spike3k_for_complexity
 		${spike3k_complexity_binary} -i spike3k_for_complexity -o nick_table
-		python ${python_spike3k_complexity_results} nick_table > spike3k_complexity_estimates
+		python3 ${python_spike3k_complexity_results} nick_table > spike3k_complexity_estimates
 	}
 	output{
 		File estimates = "spike3k_complexity_estimates"
@@ -663,7 +681,7 @@ task haplogrep{
 	command{
 		set -e
 		
-		python <<CODE
+		python3 <<CODE
 		from multiprocessing import Pool
 		from os.path import basename, splitext
 		import subprocess
@@ -704,7 +722,7 @@ task summarize_haplogroups{
 	Array[File] haplogrep_output
 	
 	command{
-		python ${python_haplogroup} ${sep=' ' haplogrep_output} > haplogroups
+		python3 ${python_haplogroup} ${sep=' ' haplogrep_output} > haplogroups
 	}
 	output{
 		File haplogroups = "haplogroups"
@@ -722,7 +740,7 @@ task central_measures{
 	Array[File] histograms
 	
 	command{
-		python ${python_central_measures} ${median_label} ${mean_label} ${sep=' ' histograms} > central_measures
+		python3 ${python_central_measures} ${median_label} ${mean_label} ${sep=' ' histograms} > central_measures
 	}
 	output{
 		File central_measures_output = "central_measures"
@@ -801,7 +819,7 @@ task schmutzi{
 		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
 		${schmutzi_pl} --iterations ${iterations} -t ${threads} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
 		${schmutzi_pl} --iterations ${iterations} -t ${threads}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		python ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
+		python3 ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
@@ -845,8 +863,8 @@ task contamination_rare_variant{
 		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted.bam
 		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
 		samtools index sorted.bam
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -f ${reference} sorted.bam | python ${python_calico} --maxdepth 100000 --indels > contamination_rare_variant_results
-		python ${python_contamination_rare_variant_results} ${sample_id} contamination_rare_variant_results > contamination_estimate
+		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -f ${reference} sorted.bam | python3 ${python_calico} --maxdepth 100000 --indels > contamination_rare_variant_results
+		python3 ${python_contamination_rare_variant_results} ${sample_id} contamination_rare_variant_results > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
@@ -906,7 +924,7 @@ task contammix{
 		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${sample_id}.consensus.fa for_alignment_to_consensus.fastq > realigned.sai
 		bwa samse ${sample_id}.consensus.fa realigned.sai for_alignment_to_consensus.fastq | samtools view -bS - > realigned.bam
 		
-		python <<CODE
+		python3 <<CODE
 		import subprocess
 		
 		# read in coverages from file
@@ -925,7 +943,7 @@ task contammix{
 		
 		cat ${sample_id}.consensus.fa ${potential_contaminants_fa} > all_fasta
 		mafft all_fasta > multiple_alignment.fa
-		python ${python_contammix_multiprocess} ${copies} ${sample_id} ${contammix_estimate} ${sample_id}.downsampled.bam multiple_alignment.fa ${chains} ${minimum_base_quality} ${deamination_bases_to_clip} ${seed} > contamination_estimate
+		python3 ${python_contammix_multiprocess} ${copies} ${sample_id} ${contammix_estimate} ${sample_id}.downsampled.bam multiple_alignment.fa ${chains} ${minimum_base_quality} ${deamination_bases_to_clip} ${seed} > contamination_estimate
 	}
 	output{
 		File contamination_estimate = "contamination_estimate"
@@ -939,26 +957,83 @@ task contammix{
 }
 
 task preseq{
-	File bam
+	Array[File] bams
 	File targets_bed
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
+	File statistics
 	
 	File adna_screen_jar
+	File picard_jar
+	File python_depth_histogram
+	
+	Int processes = 5
+	Float model_a = 1.1
+	Float model_b = 0.9
 	
 	command{
-		# bed locations only
-		java -jar ${adna_screen_jar} FilterSAM -b -i ${bam} -o filtered.bam -c ${deamination_bases_to_clip} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -p ${targets_bed}
-		# sort
-		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted.bam SORT_ORDER=coordinate
-		# build histogram
-		java -jar ${adna_screen_jar} DuplicatesHistogram -i sorted.bam > unique_reads_histogram
+		python3 <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
 		
-		samtools depth -b /n/groups/reich/matt/pipeline/static/1240kSNP.autosome.bed -q 20 -Q 30 sorted.bam | python depth_histogram.py > targets_histogram
+		def count_unique_reads(filename): 
+			total_count = 0
+			with open(filename) as f:
+				for line in f:
+					depth, count = line.split()
+					total_count += int(count)
+			return total_count
 		
-		preseq lc_extrap -H unique_reads_histogram -s ${step} -e ${extrapolation_max} > preseq_results
-		python preseq_process.py target_histogram preseq_unique_reads -n 5170000 -a 1.1 -b 0.9 -k test > final_results
+		def preseq_run(bam):
+			sample_id_filename = basename(bam)
+			sample_id, extension = splitext(sample_id_filename)
+			sample_id_key_not_filename = sample_id.replace('-', ':')
+			
+			# bed locations only
+			filtered_filename = sample_id + ".filtered.bam"
+			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} FilterSAM -b -i %s -o %s -c ${deamination_bases_to_clip} -m ${minimum_mapping_quality} -q ${minimum_base_quality} -p ${targets_bed}" % (bam, filtered_filename), shell=True)
+			# sort
+			sorted_filename = sample_id + ".sorted.bam"
+			subprocess.check_output("java -Xmx4500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (filtered_filename, sorted_filename), shell=True)
+			# build histogram
+			unique_reads_histogram_filename = sample_id + ".unique_reads_histogram"
+			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} DuplicatesHistogram -i %s > %s" % (sorted_filename, unique_reads_histogram_filename), shell=True)
+			unique_read_count = count_unique_reads(unique_reads_histogram_filename)
+			
+			step = int(unique_read_count / 4)
+			extrapolation_max = int(unique_read_count * 5)
+			preseq_table_filename = sample_id + ".preseq_table"
+			subprocess.check_output("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
+			
+			raw_count_str = subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} AggregateStatistics -k %s -l raw ${statistics}" % (sample_id_key_not_filename), shell=True)
+			int raw_count = int(raw_count_str)
+			targets_histogram_filename = sample_id + ".targets_histogram"
+			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
+			# keyed statistics are written to stdout 
+			result = subprocess.check_output("python3 preseq_process.py %s %s -n %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, unique_reads_histogram_filename, raw_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
+			return result.strip()
+		
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		results = [pool.apply_async(preseq_run, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
+		with open('preseq_results', 'w') as f:
+			for result in results:
+				f.write(result.get())
+				f.write('\n')
+		CODE		
+	}
+	output{
+		File results = "preseq_results"
+	}
+	runtime{
+		runtime_minutes: 360
+		requested_memory_mb_per_core: 5000
 	}
 }
 
@@ -974,7 +1049,7 @@ task prepare_report{
 	String date
 	
 	command{
-		python ${python_prepare_report} ${aggregated_statistics} ${index_barcode_keys} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
+		python3 ${python_prepare_report} ${aggregated_statistics} ${index_barcode_keys} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
 	}
 	output{
 		File report = "${date}_${dataset_label}.report"
