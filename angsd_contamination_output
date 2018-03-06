@@ -1,0 +1,16 @@
+-----------------
+hapmap:/home/mym11/external/angsd/RES/HapMapChrX.gz counts:testkey.icnts.gz minMaf:0.050000 startPos:5000000 stopPos:154900000 minDepth:2 maxDepth:200 skiptrans:0 nthreads:1 seed:100 skipML:0
+Method2 is subject to fluctuations due to random sampling
+Seed value of 0 (zero) will use time as seed
+-----------------
+[readhap] We now have: 58190 snpSites after filtering based on hapMapfile
+[readicnts] fname:testkey.icnts.gz minDepth:2 maxDepth:200
+[readicnts] Has read:2760874 sites,  397907 sites (after depfilter) from ANGSD icnts file
+  After removing SNP sites with no data in 5bp surrounding region`
+  We have nSNP sites: 2092, with flanking: 18828
+Mismatch_rate_for_flanking:0.000938 MisMatch_rate_for_snpsite:0.003508 
+
+Method1: old_llh Version: MoM:0.006955 SE(MoM):2.135560e-03 ML:0.006730 SE(ML):1.142273e-14
+Method1: new_llh Version: MoM:0.006946 SE(MoM):2.138220e-03 ML:0.006724 SE(ML):7.099542e-15
+Method2: old_llh Version: MoM:0.006679 SE(MoM):3.496990e-03 ML:0.007588 SE(ML):4.164536e-15
+Method2: new_llh Version: MoM:0.006670 SE(MoM):3.501529e-03 ML:0.007576 SE(ML):7.059879e-15
