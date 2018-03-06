@@ -1,6 +1,10 @@
 import "demultiplex.wdl" as demultiplex_align_bams
 
 workflow adna_analysis{
+	Array[File] nuclear_bams
+	Array[File] mt_bams
+	File aggregate_lane_statistics
+
 	File adna_screen_jar
 	File picard_jar
 	File pmdtools
@@ -22,7 +26,6 @@ workflow adna_analysis{
 	File python_snp_target
 	File python_snp_target_bed
 	File python_coverage
-	File python_floor
 	
 	File spike3k_coordinates_autosome
 	File spike3k_coordinates_x
@@ -46,10 +49,10 @@ workflow adna_analysis{
 		reference = mt_reference_human_95_consensus
 	}
 	
-	call chromosome_target as hs37d5_chromosome_target{ input:
+	call chromosome_target as nuclear_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = demultiplex_hs37d5.demultiplexed_bam,
+		bams = nuclear_bams,
 		targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y','human_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -57,7 +60,7 @@ workflow adna_analysis{
 		coordinates_autosome = spike3k_coordinates_autosome,
 		coordinates_x = spike3k_coordinates_x,
 		coordinates_y = spike3k_coordinates_y,
-		bams = filter_aligned_only_hs37d5.filtered,
+		bams = nuclear_bams,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
@@ -66,18 +69,18 @@ workflow adna_analysis{
 		adna_screen_jar = adna_screen_jar,
 		python_snp_target_bed = python_snp_target_bed
 	}
-	call duplicates as duplicates_hs37d5 { input: 
+	call duplicates as duplicates_nuclear { input: 
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 		pmdtools = pmdtools,
-		unsorted = filter_aligned_only_hs37d5.filtered,
-		duplicates_label = "duplicates_hs37d5"
+		unsorted = nuclear_bams,
+		duplicates_label = "duplicates_nuclear"
 	}
 	call snp_target_bed as spike3k_post{ input:
 		coordinates_autosome = spike3k_coordinates_autosome,
 		coordinates_x = spike3k_coordinates_x,
 		coordinates_y = spike3k_coordinates_y,
-		bams = duplicates_hs37d5.aligned_deduplicated,
+		bams = duplicates_nuclear.aligned_deduplicated,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
@@ -86,25 +89,25 @@ workflow adna_analysis{
 		adna_screen_jar = adna_screen_jar,
 		python_snp_target_bed = python_snp_target_bed
 	}
-	call damage_loop as damage_loop_hs37d5{ input:
+	call damage_loop as damage_loop_nuclear{ input:
 		pmdtools = pmdtools,
 		python_damage_two_bases = python_damage_two_bases,
-		bams = duplicates_hs37d5.aligned_deduplicated,
-		damage_label = "damage_hs37d5",
+		bams = duplicates_nuclear.aligned_deduplicated,
+		damage_label = "damage_nuclear",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality
 	}
-	call chromosome_target as hs37d5_chromosome_target_post{ input:
+	call chromosome_target as nuclear_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = duplicates_hs37d5.aligned_deduplicated,
+		bams = duplicates_nuclear.aligned_deduplicated,
 		targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y','human_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
 	call chromosome_target as rsrs_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = demultiplex_rsrs.demultiplexed_bam,
+		bams = mt_bams,
 		targets="\"{'MT_pre':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -113,7 +116,7 @@ workflow adna_analysis{
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 		pmdtools = pmdtools,
-		unsorted = filter_aligned_only_rsrs.filtered,
+		unsorted = mt_bams,
 		duplicates_label = "duplicates_rsrs"
 	}
 	call haplogrep as haplogrep_rcrs{ input:
@@ -207,11 +210,11 @@ workflow adna_analysis{
 		}
 	}
 	
-	call central_measures as central_measures_hs37d5{ input:
+	call central_measures as central_measures_nuclear{ input:
 		python_central_measures = python_central_measures,
-		mean_label = "mean_hs37d5",
-		median_label = "median_hs37d5",
-		histograms = hs37d5_chromosome_target_post.length_histogram
+		mean_label = "mean_nuclear",
+		median_label = "median_nuclear",
+		histograms = nuclear_chromosome_target_post.length_histogram
 	}
 	call central_measures as central_measures_rsrs{ input:
 		python_central_measures = python_central_measures,
@@ -223,22 +226,22 @@ workflow adna_analysis{
 		haplogrep_output = haplogrep_rcrs.haplogroup_report
 	}
 
-	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_duplicates_hs37d5{ input:
+	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_duplicates_nuclear{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = duplicates_hs37d5.duplicates_statistics
+		statistics_by_group = duplicates_nuclear.duplicates_statistics
 	}
 	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_duplicates_rsrs{ input:
 		adna_screen_jar = adna_screen_jar,
 		statistics_by_group = duplicates_rsrs.duplicates_statistics
 	}
 	
-	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_pre_hs37d5{ input:
+	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_pre_nuclear{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = hs37d5_chromosome_target.target_stats
+		statistics_by_group = nuclear_chromosome_target.target_stats
 	}
-	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_post_hs37d5{ input:
+	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_post_nuclear{ input:
 		adna_screen_jar = adna_screen_jar,
-		statistics_by_group = hs37d5_chromosome_target_post.target_stats
+		statistics_by_group = nuclear_chromosome_target_post.target_stats
 	}
 	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_pre_rsrs{ input:
 		adna_screen_jar = adna_screen_jar,
@@ -250,11 +253,11 @@ workflow adna_analysis{
 	}
 	
 	Array[File] cumulative_statistics = [
-		aggregate_lane_statistics.statistics,
-		aggregate_statistics_duplicates_hs37d5.statistics,
+		aggregate_lane_statistics,
+		aggregate_statistics_duplicates_nuclear.statistics,
 		aggregate_statistics_duplicates_rsrs.statistics,
-		aggregate_statistics_pre_hs37d5.statistics,
-		aggregate_statistics_post_hs37d5.statistics,
+		aggregate_statistics_pre_nuclear.statistics,
+		aggregate_statistics_post_nuclear.statistics,
 		aggregate_statistics_pre_rsrs.statistics,
 		aggregate_statistics_post_rsrs.statistics
 	]
@@ -285,9 +288,9 @@ workflow adna_analysis{
 	
 	# same as final statistics, but missing the expensive contammix calculation
 	Array[File] preliminary_keyed_statistics = [
-		damage_loop_hs37d5.damage_all_samples_two_bases,
+		damage_loop_nuclear.damage_all_samples_two_bases,
 		damage_loop_rsrs.damage_all_samples_two_bases,
-		central_measures_hs37d5.central_measures_output,
+		central_measures_nuclear.central_measures_output,
 		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups,
 		concatenate_spike3k_pre.concatenated,
@@ -298,9 +301,9 @@ workflow adna_analysis{
 #		concatenate_contammix.concatenated
 	]
 	Array[File] final_keyed_statistics = [
-		damage_loop_hs37d5.damage_all_samples_two_bases,
+		damage_loop_nuclear.damage_all_samples_two_bases,
 		damage_loop_rsrs.damage_all_samples_two_bases,
-		central_measures_hs37d5.central_measures_output,
+		central_measures_nuclear.central_measures_output,
 		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups,
 		concatenate_spike3k_pre.concatenated,
@@ -355,9 +358,9 @@ task duplicates{
 			
 			sorted_bam = sample_id_filename_no_extension + ".sorted_coordinate.bam"
 			
-			subprocess.check_output("java -Xmx9g -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (bam, sorted_bam), shell=True)
-			subprocess.check_output("java -Xmx9g -jar ${picard_jar} MarkDuplicates I=%s O=deduplicated/%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
-			subprocess.check_output("java -Xmx9g -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} %s.dedup_stats > %s.stats" % (sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("java -Xmx4500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (bam, sorted_bam), shell=True)
+			subprocess.check_output("java -Xmx4500m -jar ${picard_jar} MarkDuplicates I=%s O=deduplicated/%s M=%s.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000" % (sorted_bam, sample_id_filename, sample_id_filename), shell=True)
+			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} ReadMarkDuplicatesStatistics -l ${duplicates_label} %s.dedup_stats > %s.stats" % (sample_id_filename, sample_id_filename), shell=True)
 		
 		bams_string = "${sep=',' unsorted}"
 		bams = bams_string.split(',')
@@ -374,7 +377,7 @@ task duplicates{
 	}
 	runtime{
 		cpus: processes
-		requested_memory_mb_per_core: 10000
+		requested_memory_mb_per_core: 5000
 	}
 }
 
