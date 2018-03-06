@@ -938,6 +938,30 @@ task contammix{
 	}
 }
 
+task preseq{
+	File bam
+	File targets_bed
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
+	
+	File adna_screen_jar
+	
+	command{
+		# bed locations only
+		java -jar ${adna_screen_jar} FilterSAM -b -i ${bam} -o filtered.bam -c ${deamination_bases_to_clip} -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -p ${targets_bed}
+		# sort
+		java -jar ${picard_jar} SortSam I=filtered.bam O=sorted.bam SORT_ORDER=coordinate
+		# build histogram
+		java -jar ${adna_screen_jar} DuplicatesHistogram -i sorted.bam > unique_reads_histogram
+		
+		samtools depth -b /n/groups/reich/matt/pipeline/static/1240kSNP.autosome.bed -q 20 -Q 30 sorted.bam | python depth_histogram.py > targets_histogram
+		
+		preseq lc_extrap -H unique_reads_histogram -s ${step} -e ${extrapolation_max} > preseq_results
+		python preseq_process.py target_histogram preseq_unique_reads -n 5170000 -a 1.1 -b 0.9 -k test > final_results
+	}
+}
+
 task prepare_report{
 	File python_prepare_report
 	File aggregated_statistics
