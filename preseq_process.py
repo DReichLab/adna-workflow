@@ -45,12 +45,12 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	
 	values = {
 		'number_raw_reads': number_raw_reads,
-		'unique_targets_hit': unique_targets_hit,
-		'raw_reads_inverse_e': raw_reads_inverse_e,
-		'raw_reads_tenth': raw_reads_tenth,
-		'total_reads_required': total_reads_required,
-		'additional_reads_required': additional_reads_required,
-		'expected_unique_targets_at_threshold': expected_unique_targets_at_threshold
+		'preseq_unique_targets_hit': unique_targets_hit,
+		'preseq_raw_reads_inverse_e': raw_reads_inverse_e,
+		'preseq_raw_reads_tenth': raw_reads_tenth,
+		'preseq_total_reads_required': total_reads_required,
+		'preseq_additional_reads_required': additional_reads_required,
+		'preseq_expected_unique_targets_at_threshold': expected_unique_targets_at_threshold
 		}
 	return values
 
@@ -125,5 +125,5 @@ if __name__ == '__main__':
 	# output
 	print(args.key, end='\t')
 	for key in values:
-		print('{}\t{:.1f}'.format(key, values[key]), end='\t')
+		print('{}\t{:.0f}'.format(key, values[key]), end='\t')
 

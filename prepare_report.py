@@ -52,6 +52,12 @@ headersToReport = ['sample_sheet_key',
 				   'contamination_contammix_upper',
 				   'contamination_contammix_gelman',
 				   'contamination_contammix_inferred_error',
+				   'preseq_unique_targets_hit',
+				   'preseq_raw_reads_inverse_e',
+				   'preseq_raw_reads_tenth',
+				   'preseq_total_reads_required',
+				   'preseq_additional_reads_required',
+				   'preseq_expected_unique_targets_at_threshold',
 				   'recommendation_spike3k'
 				   ]
 
