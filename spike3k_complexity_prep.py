@@ -44,5 +44,5 @@ with open(postduplication_filename, "r") as postduplication:
 				autosome_postdeduplication[key] = int(values[n])
 
 for key in autosome_prededpuplication.keys():
-	if autosome_postdeduplication.has_key(key):
+	if key in autosome_postdeduplication:
 		print("%s\t%d\t%d" % (key, autosome_prededpuplication[key], autosome_postdeduplication[key]) )

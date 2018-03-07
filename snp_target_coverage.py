@@ -40,7 +40,7 @@ with open(filename) as f:
 		target_key = chromosome + '-' + position
 		#print(target_key, depth)
 		# keep track of distinct targets
-		if targets.has_key(target_key):
+		if target_key in targets:
 			targets[target_key] += depth
 		else:
 			targets[target_key] = depth

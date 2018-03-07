@@ -9,7 +9,7 @@ def read_histogram(filename):
 	depth_counts = {}
 	with open(filename) as f:
 		for line in f:
-			depth, count = map(lambda x: int(x), line.split())
+			depth, count = [int(x) for x in line.split()]
 			if count > 0:
 				max_depth = max(max_depth, depth)
 			depth_counts[depth] = count

@@ -221,7 +221,7 @@ if __name__ == '__main__':
 	keyMappingFilename = sys.argv[2]
 	with open(keyMappingFilename, "r") as f:
 		for line in f:
-			fields = map(lambda x: x.strip(), line.split('\t'))
+			fields = [x.strip() for x in line.split('\t')]
 			index_barcode_key = fields[0]
 			sample_extract_library_id = fields[1]
 			plate_id = fields[2]
