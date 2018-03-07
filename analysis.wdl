@@ -1026,14 +1026,82 @@ task preseq{
 			for result in results:
 				f.write(result.get())
 				f.write('\n')
-		CODE		
+		CODE
 	}
 	output{
 		File results = "preseq_results"
 	}
 	runtime{
+		cpus: processes
 		runtime_minutes: 360
 		requested_memory_mb_per_core: 5000
+	}
+}
+
+# compute contamination using X chromosome for 1240k data
+task angsd_contamination{
+	File bam
+	
+	File adna_screen_jar
+	File picard_jar
+	File angsd
+	File angsd_contamination_bin
+	File python_angsd_results
+	
+	File HapMap
+	
+	Int minimum_mapping_quality
+	Int minimum_base_quality
+	Int deamination_bases_to_clip
+	
+	Int processes = 8
+	
+	Int angsd_threads
+	Int seed
+	
+	command{
+		python3 <<CODE
+		from multiprocessing import Pool
+		from os.path import basename, splitext
+		import subprocess
+		
+		def angsd_run(bam):
+			sample_id_filename = basename(bam)
+			sample_id, extension = splitext(sample_id_filename)
+			sample_id_key_not_filename = sample_id.replace('-', ':')
+			
+			clipped_bam_filename = sample_id + ".clipped.bam"
+			subprocess.run("java -Xmx3500m -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam_filename), shell=True, check=True)
+			sorted_bam_filename = sample_id + ".sorted.bam"
+			subprocess.run("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam_filename, sorted_bam_filename), shell=True, check=True)
+			subprocess.run("samtools index %s" % (sorted_bam_filename,), shell=True, check=True)
+			subprocess.run("angsd -i %s -r X:5000000-154900000 -doCounts 1 -iCounts 1 -minMapQ ${minimum_mapping_quality} -minQ ${minimum_base_quality} -out %s" % (sorted_bam_filename, sample_id), shell=True, check=True)
+			
+			angsd_output_filename = sample_id + ".angsd"
+			subprocess.run("${angsd_contamination_bin} -a %s -h ${HapMap} -p ${angsd_threads} -s ${seed} > %s 2>&1" % (sample_id + ".icnts.gz", angsd_output_filename), shell=True, check=False)
+			result = subprocess.run("python3 ${python_angsd_results} %s | tee %s" % (angsd_output_filename, sample_id  + ".keyed_angsd"), check=True, stdout=PIPE)
+			return sample_id_key_not_filename + '\t' + result.stdout.strip()
+		
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		results = [pool.apply_async(preseq_run, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
+		with open('angsd_contamination_results', 'w') as f:
+			for result in results:
+				f.write(result.get())
+				f.write('\n')
+		CODE
+	}
+	output{
+		File contamination = "angsd_contamination_results"
+	}
+	runtime{
+		cpus: processes
+		runtime_minutes: 360
+		requested_memory_mb_per_core: 4000
 	}
 }
 
