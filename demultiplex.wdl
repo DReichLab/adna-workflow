@@ -107,7 +107,7 @@ workflow demultiplex_align_bams{
 		missing_alignments_fraction = missing_alignments_fraction,
 		max_open_gaps = max_open_gaps,
 		seed_length = seed_length,
-		fastq_to_align = fastq_to_align,
+		fastq_to_align = collect_filenames.filenames,
 		reference = prepare_reference_rsrs.reference_fa,
 		reference_amb = prepare_reference_rsrs.reference_amb,
 		reference_ann = prepare_reference_rsrs.reference_ann,
