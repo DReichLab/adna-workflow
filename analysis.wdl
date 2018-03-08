@@ -4,6 +4,13 @@ workflow adna_analysis{
 	File nuclear_bam_lists_to_merge
 	File mt_bam_lists_to_merge
 	File aggregate_lane_statistics
+	File index_barcode_keys
+	
+	String dataset_label
+	String date
+	
+	String output_path_parent
+	String output_path = output_path_parent + "/" + date + "_" + dataset_label
 
 	File adna_screen_jar
 	File picard_jar
@@ -28,6 +35,7 @@ workflow adna_analysis{
 	File python_coverage
 	File python_depth_histogram
 	File python_angsd_results
+	File python_prepare_report
 	
 	File spike3k_coordinates_autosome
 	File spike3k_coordinates_x
@@ -351,6 +359,7 @@ workflow adna_analysis{
 		concatenate_contammix.concatenated
 	]
 	call prepare_report as preliminary_report{ input:
+		python_prepare_report = python_prepare_report,
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = preliminary_keyed_statistics,
 		index_barcode_keys = index_barcode_keys,
@@ -363,6 +372,7 @@ workflow adna_analysis{
 		output_filename_no_path = "report_no_contammix"
 	}
 	call prepare_report{ input:
+		python_prepare_report = python_prepare_report,
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = final_keyed_statistics,
 		index_barcode_keys = index_barcode_keys,
