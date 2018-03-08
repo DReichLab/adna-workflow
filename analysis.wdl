@@ -50,6 +50,13 @@ workflow adna_analysis{
 		reference = mt_reference_rcrs_in
 	}
 	
+	call versions{ input:
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar,
+		htsbox = htsbox,
+		haplogrep_jar = haplogrep_jar
+	}
+	
 	call combine_bams_into_libraries as combine_nuclear_libraries{ input:
 		bam_lists = nuclear_bam_lists_to_merge,
 		picard_jar = picard_jar
@@ -350,6 +357,11 @@ workflow adna_analysis{
 		dataset_label = dataset_label,
 		date = date
 	}
+	call demultiplex_align_bams.copy_and_rename{ input:
+		source_file = preliminary_report.report,
+		output_path = output_path,
+		output_filename_no_path = "report_no_contammix"
+	}
 	call prepare_report{ input:
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = final_keyed_statistics,
@@ -357,10 +369,42 @@ workflow adna_analysis{
 		dataset_label = dataset_label,
 		date = date
 	}
-	Array[File] report_array = [prepare_report.report]
+	Array[File] report_array = [prepare_report.report, versions.versions]
 	call demultiplex_align_bams.copy_output as copy_report{ input:
 		files = report_array,
 		output_path = output_path
+	}
+}
+
+task versions{
+	File adna_screen_jar
+	File picard_jar
+	File htsbox
+	File haplogrep_jar
+
+	command{
+		set -e
+		java -version >> versions 2>&1
+		python --version >> versions 2>&1
+		bwa >> versions 2>&1
+		samtools --version >> versions 2>&1
+		
+		echo "reichlab adna_jar " >> versions
+		java -jar ${adna_screen_jar} version >> versions
+		
+		${htsbox} >> versions 2>&1
+		echo "mafft" >> versions
+		mafft --version >> versions 2>&1
+		java -jar ${haplogrep_jar} >> versions 2>&1
+		preseq >> versions 2>&1
+		angsd >> versions 2>&1
+	}
+	output{
+		File versions = "versions"
+	}
+	runtime{
+		runtime_minutes: 10
+		requested_memory_mb_per_core: 1000
 	}
 }
 

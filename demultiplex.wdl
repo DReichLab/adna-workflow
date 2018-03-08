@@ -40,6 +40,10 @@ workflow demultiplex_align_bams{
 	call prepare_reference as prepare_reference_rsrs{ input:
 		reference = mt_reference_rsrs_in
 	}
+	call versions{ input:
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar
+	}
 	
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
 	scatter(lane in bcl2fastq.read_files_by_lane){
@@ -158,7 +162,7 @@ workflow demultiplex_align_bams{
 		output_filename_no_path = "mt_statistics"
 	}
 	
-	Array[File] misc_output_files = [collect_read_group_info.read_groups, kmer_analysis.analysis]
+	Array[File] misc_output_files = [collect_read_group_info.read_groups, kmer_analysis.analysis, versions.versions]
 	call copy_output as copy_misc_output_files{input :
 		files = misc_output_files,
 		output_path = output_path
@@ -180,6 +184,30 @@ workflow demultiplex_align_bams{
 		Array[File] rsrs_bams = filter_aligned_only_rsrs.filtered
 		File kmer_analysis_report = kmer_analysis.analysis
 		File aggregated_statistics = aggregate_lane_statistics.statistics
+	}
+}
+
+task versions{
+	File adna_screen_jar
+	File picard_jar
+
+	command{
+		set -e
+		java -version >> versions 2>&1
+		python --version >> versions 2>&1
+		bcl2fastq --version >> versions 2>&1
+		bwa >> versions 2>&1
+		samtools --version >> versions 2>&1
+		
+		echo "reichlab adna_jar " >> versions
+		java -jar ${adna_screen_jar} version >> versions
+	}
+	output{
+		File versions = "versions"
+	}
+	runtime{
+		runtime_minutes: 10
+		requested_memory_mb_per_core: 1000
 	}
 }
 
