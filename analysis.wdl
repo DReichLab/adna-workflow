@@ -27,6 +27,7 @@ workflow adna_analysis{
 	File python_snp_target_bed
 	File python_coverage
 	File python_depth_histogram
+	File python_angsd_results
 	
 	File spike3k_coordinates_autosome
 	File spike3k_coordinates_x
@@ -39,10 +40,8 @@ workflow adna_analysis{
 	# the references need to appear in the same directory as the derived files
 	# in the prepare_reference, we put all of these into the same directory
 	# all subsequent uses of the reference need to use that copy
-	File reference_in
 	File mt_reference_rsrs_in
 	File mt_reference_rcrs_in
-	File mt_reference_human_95_consensus
 	
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rsrs{ input:
 		reference = mt_reference_rsrs_in
@@ -91,6 +90,19 @@ workflow adna_analysis{
 		adna_screen_jar = adna_screen_jar,
 		python_snp_target_bed = python_snp_target_bed
 	}
+	call snp_target_bed as count_1240k_pre{ input:
+		coordinates_autosome = coordinates_1240k_autosome,
+		coordinates_x = coordinates_1240k_x,
+		coordinates_y = coordinates_1240k_y,
+		bams = combine_nuclear_libraries.library_bams,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip,
+		label = "1240k_pre",
+		picard_jar = picard_jar,
+		adna_screen_jar = adna_screen_jar,
+		python_snp_target_bed = python_snp_target_bed
+	}
 	call duplicates as duplicates_nuclear { input: 
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
@@ -107,6 +119,19 @@ workflow adna_analysis{
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
 		label = "spike3k_post",
+		picard_jar = picard_jar,
+		adna_screen_jar = adna_screen_jar,
+		python_snp_target_bed = python_snp_target_bed
+	}
+	call snp_target_bed as count_1240k_post{ input:
+		coordinates_autosome = coordinates_1240k_autosome,
+		coordinates_x = coordinates_1240k_x,
+		coordinates_y = coordinates_1240k_y,
+		bams = duplicates_nuclear.aligned_deduplicated,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip,
+		label = "1240k_post",
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 		python_snp_target_bed = python_snp_target_bed
@@ -180,7 +205,6 @@ workflow adna_analysis{
 		coverage_field = "MT_post-coverageLength"
 	}
 	scatter(bam in duplicates_rsrs.aligned_deduplicated){
-
 		call contammix{ input:
 			bam = bam,
 			picard_jar = picard_jar,
@@ -198,8 +222,19 @@ workflow adna_analysis{
 			reference_pac = prepare_reference_rsrs.reference_pac,
 			reference_sa = prepare_reference_rsrs.reference_sa,
 			reference_fai = prepare_reference_rsrs.reference_fai,
-			coverages = rsrs_coverage.coverages
+			coverages = rsrs_coverage.coverages,
+			unused = preliminary_report.report
 		}
+	}
+	
+	call angsd_contamination{ input:
+		bams = duplicates_rsrs.aligned_deduplicated,
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar,
+		python_angsd_results = python_angsd_results,
+		minimum_mapping_quality = minimum_mapping_quality,
+		minimum_base_quality = minimum_base_quality,
+		deamination_bases_to_clip = deamination_bases_to_clip
 	}
 	
 	call central_measures as central_measures_nuclear{ input:
@@ -264,12 +299,12 @@ workflow adna_analysis{
 	call concatenate as concatenate_spike3k_post{ input:
 		to_concatenate = spike3k_post.snp_target_stats
 	}
-#	call concatenate as concatenate_schmutzi{ input:
-#		to_concatenate = schmutzi.contamination_estimate
-#	}
-#	call concatenate as concatenate_contamination_rare_variant{ input:
-#		to_concatenate = contamination_rare_variant.contamination_estimate
-#	}
+	call concatenate as concatenate_count_1240k_pre{ input:
+		to_concatenate = count_1240k_pre.snp_target_stats
+	}
+	call concatenate as concatenate_count_1240k_post{ input:
+		to_concatenate = count_1240k_post.snp_target_stats
+	}
 	call concatenate as concatenate_contammix{ input:
 		to_concatenate = contammix.contamination_estimate
 	}
@@ -288,10 +323,10 @@ workflow adna_analysis{
 		concatenate_spike3k_pre.concatenated,
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
+		concatenate_count_1240k_pre.concatenated, 
+		concatenate_count_1240k_post.concatenated,
 		preseq.preseq_results,
-#		concatenate_schmutzi.concatenated,
-#		concatenate_contamination_rare_variant.concatenated,
-#		concatenate_contammix.concatenated
+		angsd_contamination
 	]
 	Array[File] final_keyed_statistics = [
 		damage_loop_nuclear.damage_all_samples_two_bases,
@@ -302,9 +337,10 @@ workflow adna_analysis{
 		concatenate_spike3k_pre.concatenated,
 		concatenate_spike3k_post.concatenated,
 		spike3k_complexity.estimates,
+		concatenate_count_1240k_pre.concatenated, 
+		concatenate_count_1240k_post.concatenated,
 		preseq.preseq_results,
-#		concatenate_schmutzi.concatenated,
-#		concatenate_contamination_rare_variant.concatenated,
+		angsd_contamination,
 		concatenate_contammix.concatenated
 	]
 	call prepare_report as preliminary_report{ input:
@@ -333,7 +369,7 @@ task combine_bams_into_libraries{
 	File bam_lists
 	File picard_jar
 	
-	Int processes = 4
+	Int processes = 6
 	
 	command{
 		python3 <<CODE
@@ -521,7 +557,7 @@ task snp_target_bed{
 	
 	File python_snp_target_bed
 	
-	Int processes = 10
+	Int processes = 6
 
 	command{
 		set -e
@@ -538,8 +574,8 @@ task snp_target_bed{
 			clipped_bam = sample_id_filename_no_extension + ".clipped.bam"
 			clipped_sorted_bam = sample_id_filename_no_extension + ".clipped.sorted.bam"
 			
-			subprocess.check_output("java -Xmx2500m -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
-			subprocess.check_output("java -Xmx2500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
+			subprocess.check_output("java -Xmx3500m -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i %s -o %s" % (bam, clipped_bam), shell=True)
+			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
 			subprocess.check_output("samtools index %s" % (clipped_sorted_bam,), shell=True)
 			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_autosome} %s > %s.autosome" % (clipped_sorted_bam, sample_id_filename), shell=True)
 			subprocess.check_output("samtools view -c -q ${minimum_mapping_quality} -L ${coordinates_x}        %s > %s.x" % (clipped_sorted_bam, sample_id_filename), shell=True)
@@ -560,7 +596,7 @@ task snp_target_bed{
 	}
 	runtime{
 		cpus: processes
-		requested_memory_mb_per_core: 3000
+		requested_memory_mb_per_core: 4000
 	}
 }
 
@@ -653,6 +689,7 @@ task concatenate{
 	Array[File] to_concatenate
 	
 	command{
+		set -e
 		for file in ${sep=' ' to_concatenate}  ; do 
 			cat $file >> concatenated
 		done
@@ -800,6 +837,9 @@ task contammix{
 	
 	String sample_id = basename(bam, ".bam")
 	
+	# used to delay contammix until after other tasks
+	String? unused
+	
 	#samtools mpileup -u -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -f ${reference} ${bam} | bcftools call -c -O z --ploidy 1 -o calls.vcf.gz
 	#tabix calls.vcf.gz
 	#cat ${reference} | bcftools consensus calls.vcf.gz > consensus.fa
@@ -856,8 +896,8 @@ task preseq{
 	File python_depth_histogram
 	
 	Int processes = 5
-	Float model_a = 1.1
-	Float model_b = 0.9
+	Float model_a
+	Float model_b
 	
 	command{
 		python3 <<CODE
@@ -941,7 +981,7 @@ task angsd_contamination{
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
 	
-	Int processes = 8
+	Int processes = 5
 	
 	Int angsd_threads
 	Int seed

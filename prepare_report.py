@@ -52,13 +52,24 @@ headersToReport = ['sample_sheet_key',
 				   'contamination_contammix_upper',
 				   'contamination_contammix_gelman',
 				   'contamination_contammix_inferred_error',
+				   'recommendation_spike3k'
+				   'count_1240k_pre_autosome',
+				   'count_1240k_pre_x',
+				   'count_1240k_pre_y',
+				   'count_1240k_post_autosome',
+				   'count_1240k_post_x',
+				   'count_1240k_post_y',
+				   'angsd_nsites',
+				   'angsd_MoM',
+				   'angsd_SE(MoM)',
+				   'angsd_ML',
+				   'angsd_SE(ML)',
 				   'preseq_unique_targets_hit',
 				   'preseq_raw_reads_inverse_e',
 				   'preseq_raw_reads_tenth',
 				   'preseq_total_reads_required',
 				   'preseq_additional_reads_required',
 				   'preseq_expected_unique_targets_at_threshold',
-				   'recommendation_spike3k'
 				   ]
 
 samples = dict()
@@ -149,7 +160,8 @@ def findSampleSheetEntry(sampleID, keyMapping):
 
 # Make an initial recommendation for whether this sample should continue in processing based on spike3k metrics, assuming it is UDG-half treated
 def recommendation_spike3k(sample):
-	# There are four possible outcomes
+	# There are five possible outcomes
+	PENDING = -2 # contamination estimate is not complete
 	LOW_DATA = -1
 	FAIL = 0
 	WARNING = 1
@@ -165,7 +177,9 @@ def recommendation_spike3k(sample):
 	DAMAGE_FAIL = 0.01
 	DAMAGE_WARN = 0.03
 	damage_first_base = (float(sample.get('damage_rsrs_ct1', -1.0)) + float(sample.get('damage_rsrs_ga1', -1.0)))/2
-	if damage_first_base < DAMAGE_FAIL:
+	if damage_first_base < 0:
+		recommendation_value = PENDING
+	elif damage_first_base < DAMAGE_FAIL:
 		recommendation_value = min(recommendation_value, FAIL)
 	elif damage_first_base < DAMAGE_WARN:
 		recommendation_value = min(recommendation_value, WARNING)
@@ -206,6 +220,8 @@ def recommendation_spike3k(sample):
 		return 'warning'
 	elif recommendation_value == PASS:
 		return 'pass'
+	elif recommendation_value == PENDING:
+		return 'pending'
 
 if __name__ == '__main__':
 	# read from stats
