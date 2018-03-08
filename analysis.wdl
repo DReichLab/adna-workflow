@@ -1,8 +1,8 @@
 import "demultiplex.wdl" as demultiplex_align_bams
 
 workflow adna_analysis{
-	Array[File] nuclear_bams
-	Array[File] mt_bams
+	File nuclear_bam_lists_to_merge
+	File mt_bam_lists_to_merge
 	File aggregate_lane_statistics
 
 	File adna_screen_jar
@@ -50,12 +50,18 @@ workflow adna_analysis{
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rcrs{ input:
 		reference = mt_reference_rcrs_in
 	}
-	call demultiplex_align_bams.prepare_reference as prepare_reference_human_95_consensus{ input:
-		reference = mt_reference_human_95_consensus
+	
+	call combine_bams_into_libraries as combine_nuclear_libraries{ input:
+		bam_lists = nuclear_bam_lists_to_merge,
+		picard_jar = picard_jar
+	}
+	call combine_bams_into_libraries as combine_mt_libraries{ input:
+		bam_lists = mt_bam_lists_to_merge,
+		picard_jar = picard_jar
 	}
 	
 	call preseq{ input:
-		bams = nuclear_bams,
+		bams = combine_nuclear_libraries.library_bams,
 		targets_bed = coordinates_1240k_autosome,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
@@ -68,7 +74,7 @@ workflow adna_analysis{
 	call chromosome_target as nuclear_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = nuclear_bams,
+		bams = combine_nuclear_libraries.library_bams,
 		targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y','human_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -76,7 +82,7 @@ workflow adna_analysis{
 		coordinates_autosome = spike3k_coordinates_autosome,
 		coordinates_x = spike3k_coordinates_x,
 		coordinates_y = spike3k_coordinates_y,
-		bams = nuclear_bams,
+		bams = combine_nuclear_libraries.library_bams,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
@@ -89,7 +95,7 @@ workflow adna_analysis{
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 		pmdtools = pmdtools,
-		unsorted = nuclear_bams,
+		unsorted = combine_nuclear_libraries.library_bams,
 		duplicates_label = "duplicates_nuclear"
 	}
 	call snp_target_bed as spike3k_post{ input:
@@ -123,7 +129,7 @@ workflow adna_analysis{
 	call chromosome_target as rsrs_chromosome_target{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = mt_bams,
+		bams = combine_mt_libraries.library_bams,
 		targets="\"{'MT_pre':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -132,7 +138,7 @@ workflow adna_analysis{
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 		pmdtools = pmdtools,
-		unsorted = mt_bams,
+		unsorted = combine_mt_libraries.library_bams,
 		duplicates_label = "duplicates_rsrs"
 	}
 	call haplogrep as haplogrep_rcrs{ input:
@@ -174,37 +180,7 @@ workflow adna_analysis{
 		coverage_field = "MT_post-coverageLength"
 	}
 	scatter(bam in duplicates_rsrs.aligned_deduplicated){
-#		call schmutzi{ input:
-#			bam = duplicates_rsrs.aligned_deduplicated,
-#			picard_jar = picard_jar,
-#			reference = prepare_reference_rsrs.reference_fa,
-#			reference_amb = prepare_reference_rsrs.reference_amb,
-#			reference_ann = prepare_reference_rsrs.reference_ann,
-#			reference_bwt = prepare_reference_rsrs.reference_bwt,
-#			reference_pac = prepare_reference_rsrs.reference_pac,
-#			reference_sa = prepare_reference_rsrs.reference_sa,
-#			reference_fai = prepare_reference_rsrs.reference_fai,
-# TODO when using schmutzi, need to read coverage in from file as in contammix
-#			coverage = chromosome_target_single_rsrs.coverage
-#		}
-#		call contamination_rare_variant{ input:
-#			bam = duplicates_rsrs.aligned_deduplicated,
-#			picard_jar = picard_jar,
-#			adna_screen_jar = adna_screen_jar,
-#			missing_alignments_fraction = missing_alignments_fraction,
-#			max_open_gaps = max_open_gaps,
-#			seed_length = seed_length,
-#			minimum_mapping_quality = minimum_mapping_quality,
-#			minimum_base_quality = minimum_base_quality,
-#			deamination_bases_to_clip = deamination_bases_to_clip,
-#			reference = prepare_reference_human_95_consensus.reference_fa,
-#			reference_amb = prepare_reference_human_95_consensus.reference_amb,
-#			reference_ann = prepare_reference_human_95_consensus.reference_ann,
-#			reference_bwt = prepare_reference_human_95_consensus.reference_bwt,
-#			reference_pac = prepare_reference_human_95_consensus.reference_pac,
-#			reference_sa = prepare_reference_human_95_consensus.reference_sa,
-#			reference_fai = prepare_reference_human_95_consensus.reference_fai
-#		}
+
 		call contammix{ input:
 			bam = bam,
 			picard_jar = picard_jar,
@@ -352,6 +328,42 @@ workflow adna_analysis{
 	}
 }
 
+# bams entering this task are filtered to aligned reads only and sorted by coordinate
+task combine_bams_into_libraries{
+	File bam_lists
+	File picard_jar
+	
+	Int processes = 4
+	
+	command{
+		python3 <<CODE
+		from multiprocessing import Pool
+		from os.path import basename
+		import subprocess
+		
+		def merge_bam(bam_filenames):
+			sample_id_filename = basename(bam_filenames)
+			
+			merge_file_list = 'I=' + ' I='.join(bam_filenames)
+			subprocess.check_output("java -Xmx5500 -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, sample_id_filename), shell=True)
+		
+		with open(filename) as f:
+			bam_filenames_for_library = [line.split() for line in f]
+			pool = Pool(processes=${processes})
+			[pool.apply_async(merge_bam, args=(bam_filenames,)) for bam_filenames in bam_filenames_for_library]
+			pool.close()
+			pool.join()
+		CODE
+	}
+	output{
+		Array[File] library_bams = glob("*.bam")
+	}
+	runtime{
+		cpus: processes
+		requested_memory_mb_per_core: 6000
+	}
+}
+
 task duplicates{
 	File picard_jar
 	File adna_screen_jar
@@ -407,7 +419,7 @@ task damage_loop{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	
-	Int processes = 10
+	Int processes = 8
 	
 	command{
 		set -e
@@ -676,7 +688,7 @@ task haplogrep{
 	File reference_pac
 	File reference_sa
 	
-	Int processes = 10
+	Int processes = 8
 	
 	command{
 		set -e
@@ -748,131 +760,6 @@ task central_measures{
 	runtime{
 		runtime_minutes: 60
 		requested_memory_mb_per_core: 2000
-	}
-}
-
-task schmutzi{
-	File bam
-	String sample_id_filename = basename(bam)
-	String key = sub(sample_id_filename, ".bam$", "") # remove file extension
-	Int deamination_length
-	Float coverage
-	
-	File reference
-	File reference_amb
-	File reference_ann
-	File reference_bwt
-	File reference_pac
-	File reference_sa
-	File reference_fai
-	
-	File python_schumtzi_output
-	File picard_jar
-	
-	# The schmutzi scripts require many other programs and files, which we need to include
-	File schmutzi_contDeam
-	File schmutzi_pl
-	String path_to_eurasion_freqs
-	File schmutzi_approxDist
-	File schmutzi_bam2prof
-	File schmutzi_contDeam_pl
-	File schmutzi_countRecords
-	File schmutzi_endoCaller
-	File schmutzi_filterlog
-	File schmutzi_insertSize
-	File schmutzi_jointFreqDeaminated
-	File schmutzi_jointFreqDeaminatedDouble
-	File schmutzi_log2ConsensusLog
-	File schmutzi_log2fasta
-	File schmutzi_log2freq
-	File schmutzi_logdiff
-	File schmutzi_logmask
-	File schmutzi_logs2pos
-	File schmutzi_msa2freq
-	File schmutzi_msa2log
-	File schmutzi_msa2singlefreq
-	File schmutzi_mtCont
-	File schmutzi_parseSchmutzi
-	File schmutzi_posteriorDeam
-	File schmutzi_wrapper_pl
-	File schmutzi_wrapperRMDUP_pl
-	
-	File schmutzi_illuminaProf_error
-	File schmutzi_illuminaProf_null
-	
-	File schmutzi_splitEndoVsCont_denisovaHuman
-	File schmutzi_splitEndoVsCont_neandertalHuman
-	File schmutzi_splitEndoVsCont_poshap2splitbam
-	
-	# We downsample to 300x MT coverage
-	Float threshold = 300.0
-	Float retain_probability = if (coverage > threshold) then (threshold / coverage) else 1.0
-	Int threads = if (coverage >= 50) then 8 else 4
-	Int iterations
-
-	# some of these commands may fail
-	# the python command will report nan in this case
-	command{
-		java -jar ${picard_jar} DownsampleSam I=${bam} O=downsampled.bam PROBABILITY=${retain_probability}
-		samtools calmd -b downsampled.bam ${reference} > schmutzi.bam
-		samtools index schmutzi.bam
-		${schmutzi_contDeam_pl} --lengthDeam ${deamination_length} --library single --out ${key} ${reference} schmutzi.bam
-		${schmutzi_pl} --iterations ${iterations} -t ${threads} --notusepredC --uselength --ref ${reference} --out ${key}_npred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		${schmutzi_pl} --iterations ${iterations} -t ${threads}               --uselength --ref ${reference} --out ${key}_wpred ${key} ${path_to_eurasion_freqs} schmutzi.bam
-		python3 ${python_schumtzi_output} ${key} ${key}_wpred_final.cont.est > contamination_estimate
-	}
-	output{
-		File contamination_estimate = "contamination_estimate"
-	}
-	runtime{
-		cpus: threads
-		requested_memory_mb_per_core: if (threads <= 4) then 8000 else 4000
-	}
-}
-
-task contamination_rare_variant{
-	File bam
-	Int minimum_mapping_quality
-	Int minimum_base_quality
-	Int deamination_bases_to_clip
-	
-	Float missing_alignments_fraction
-	Int max_open_gaps
-	Int seed_length
-	Int threads = 1
-
-	File reference
-	File reference_amb
-	File reference_ann
-	File reference_bwt
-	File reference_pac
-	File reference_sa
-	File reference_fai
-	
-	File picard_jar
-	File adna_screen_jar
-	File python_calico
-	File python_contamination_rare_variant_results
-	
-	String sample_id = basename(bam, ".bam")
-	
-	command{
-		java -jar ${picard_jar} SamToFastq I=${bam} FASTQ=sample.fastq
-		bwa aln -t ${threads} -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} sample.fastq > realigned.sai
-		bwa samse ${reference} realigned.sai sample.fastq | samtools view -bS - > realigned.bam
-		java -jar ${adna_screen_jar} softclip -b -n ${deamination_bases_to_clip} -i realigned.bam -o clipped_unsorted.bam
-		java -jar ${picard_jar} SortSam I=clipped_unsorted.bam O=sorted.bam SORT_ORDER=coordinate
-		samtools index sorted.bam
-		samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -f ${reference} sorted.bam | python3 ${python_calico} --maxdepth 100000 --indels > contamination_rare_variant_results
-		python3 ${python_contamination_rare_variant_results} ${sample_id} contamination_rare_variant_results > contamination_estimate
-	}
-	output{
-		File contamination_estimate = "contamination_estimate"
-	}
-	runtime{
-		cpus: threads
-		runtime_minutes: 60
-		requested_memory_mb_per_core: 4096
 	}
 }
 
@@ -1040,7 +927,7 @@ task preseq{
 
 # compute contamination using X chromosome for 1240k data
 task angsd_contamination{
-	File bam
+	Array[File] bams
 	
 	File adna_screen_jar
 	File picard_jar
