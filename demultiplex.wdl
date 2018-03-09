@@ -610,11 +610,12 @@ task update_database_with_demultiplexed{
 	String django_manage_for_command
 	String date_string
 	String name
+	Int django_analysis_run_id
 	
 	Int unused
 
 	command{
-		ssh -t mym11@orchestra.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name}
+		ssh -t mym11@orchestra.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name} --analysis_run ${django_analysis_run_id}
 	}
 	runtime{
 		runtime_minutes: 30
