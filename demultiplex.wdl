@@ -208,6 +208,7 @@ task versions{
 	runtime{
 		runtime_minutes: 10
 		requested_memory_mb_per_core: 1000
+		continueOnReturnCode: true
 	}
 }
 
