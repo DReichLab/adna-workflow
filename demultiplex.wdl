@@ -338,8 +338,10 @@ task merge_and_trim_lane{
 	String label
 	File barcode_count_statistics
 	
+	Int? number_output_files
+	
 	command{
-		java -Xmx7500m -jar ${adna_screen_jar} IndexAndBarcodeScreener --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx7500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
