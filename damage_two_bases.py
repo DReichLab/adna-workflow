@@ -18,7 +18,7 @@ with open(filename) as f:
 	sample_key = os.path.splitext(os.path.basename(filename))[0] # filename without extension
 	# first line is header, check it for expected columns
 	line = f.readline()
-	fields = line.split('\t')
+	fields = [field.strip() for field in line.split('\t')]
 	if fields[1] != 'CT':
 		raise ValueError('Unexpected header field. Found %s, expected CT' % (fields[1]))
 	if fields[5] != 'GA':
