@@ -995,7 +995,7 @@ task preseq{
 			subprocess.check_output("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
 			
 			raw_count_str = subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} AggregateStatistics -k %s -l raw ${statistics}" % (sample_id_key_not_filename), shell=True)
-			int raw_count = int(raw_count_str)
+			raw_count = int(raw_count_str)
 			targets_histogram_filename = sample_id + ".targets_histogram"
 			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
 			# keyed statistics are written to stdout 
