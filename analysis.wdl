@@ -16,6 +16,7 @@ workflow adna_analysis{
 	File picard_jar
 	File pmdtools
 	File htsbox
+	File haplogrep_jar
 	
 	Float missing_alignments_fraction
 	Int max_open_gaps
