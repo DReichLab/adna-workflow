@@ -543,7 +543,7 @@ task damage_loop{
 		pool.join()
 		with open('damage_all_samples_two_bases', 'w') as f:
 			for result in results:
-				f.write(result.get())
+				f.write(result.get().decode('utf-8').strip())
 				f.write('\n')
 		CODE
 	}
@@ -1011,7 +1011,7 @@ task preseq{
 		pool.join()
 		with open('preseq_results', 'w') as f:
 			for result in results:
-				f.write(result.get())
+				f.write(result.get().decode('utf-8').strip())
 				f.write('\n')
 		CODE
 	}
@@ -1078,7 +1078,7 @@ task angsd_contamination{
 		pool.join()
 		with open('angsd_contamination_results', 'w') as f:
 			for result in results:
-				f.write(result.get())
+				f.write(result.get().decode('utf-8').strip())
 				f.write('\n')
 		CODE
 	}
