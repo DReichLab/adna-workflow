@@ -245,7 +245,7 @@ workflow adna_analysis{
 	}
 	
 	call angsd_contamination{ input:
-		bams = duplicates_rsrs.aligned_deduplicated,
+		bams = duplicates_nuclear.aligned_deduplicated,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		python_angsd_results = python_angsd_results,
@@ -435,10 +435,13 @@ task combine_bams_into_libraries{
 		import subprocess
 		
 		def merge_bam(bam_filenames):
-			sample_id_filename = basename(bam_filenames)
+			sample_id_filename = basename(bam_filenames[0])
+			#print('combine bams ' + sample_id_filename)
 			
 			merge_file_list = 'I=' + ' I='.join(bam_filenames)
-			subprocess.check_output("java -Xmx5500 -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, sample_id_filename), shell=True)
+			command = "java -Xmx5500m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, sample_id_filename)
+			#print('combine bam lists ' + command)
+			subprocess.check_output(command, shell=True)
 		
 		with open("${bam_lists}") as f:
 			bam_filenames_for_library = [line.split() for line in f]
@@ -1070,7 +1073,7 @@ task angsd_contamination{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		results = [pool.apply_async(preseq_run, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(angsd_run, args=(bam,)) for bam in bams]
 		pool.close()
 		pool.join()
 		with open('angsd_contamination_results', 'w') as f:
