@@ -440,7 +440,7 @@ task combine_bams_into_libraries{
 			merge_file_list = 'I=' + ' I='.join(bam_filenames)
 			subprocess.check_output("java -Xmx5500 -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, sample_id_filename), shell=True)
 		
-		with open(filename) as f:
+		with open("${bam_lists}") as f:
 			bam_filenames_for_library = [line.split() for line in f]
 			pool = Pool(processes=${processes})
 			[pool.apply_async(merge_bam, args=(bam_filenames,)) for bam_filenames in bam_filenames_for_library]
