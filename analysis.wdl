@@ -954,8 +954,9 @@ task preseq{
 	File adna_screen_jar
 	File picard_jar
 	File python_depth_histogram
+	File python_preseq_process
 	
-	Int processes = 5
+	Int processes = 8
 	Float model_a
 	Float model_b
 	
@@ -999,7 +1000,7 @@ task preseq{
 			targets_histogram_filename = sample_id + ".targets_histogram"
 			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
 			# keyed statistics are written to stdout 
-			result = subprocess.check_output("python3 preseq_process.py %s %s -n %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, unique_reads_histogram_filename, raw_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
+			result = subprocess.check_output("python3 ${python_preseq_process} %s %s -n %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, unique_reads_histogram_filename, raw_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
 			return result.strip()
 		
 		bams_string = "${sep=',' bams}"
