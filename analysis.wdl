@@ -197,7 +197,8 @@ workflow adna_analysis{
 		reference_pac = prepare_reference_rcrs.reference_pac,
 		reference_sa = prepare_reference_rcrs.reference_sa,
 		adna_screen_jar = adna_screen_jar,
-		picard_jar = picard_jar
+		picard_jar = picard_jar,
+		haplogrep_jar = haplogrep_jar
 	}
 	call damage_loop as damage_loop_rsrs{ input:
 		pmdtools = pmdtools,
