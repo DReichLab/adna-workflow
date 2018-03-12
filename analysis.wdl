@@ -1042,7 +1042,7 @@ task angsd_contamination{
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
 	
-	Int processes = 5
+	Int processes = 8
 	
 	Int angsd_threads
 	Int seed
@@ -1067,8 +1067,8 @@ task angsd_contamination{
 			
 			angsd_output_filename = sample_id + ".angsd"
 			subprocess.run("${angsd_contamination_bin} -a %s -h ${HapMap} -p ${angsd_threads} -s ${seed} > %s 2>&1" % (sample_id + ".icnts.gz", angsd_output_filename), shell=True, check=False)
-			result = subprocess.run("python3 ${python_angsd_results} %s | tee %s" % (angsd_output_filename, sample_id  + ".keyed_angsd"), check=True, stdout=PIPE)
-			return sample_id_key_not_filename + '\t' + result.stdout.strip()
+			result = subprocess.run("python3 ${python_angsd_results} %s | tee %s" % (angsd_output_filename, sample_id  + ".keyed_angsd"), check=True, stdout=subprocess.PIPE)
+			return sample_id_key_not_filename + '\t' + result.stdout.decode('utf-8').strip()
 		
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
