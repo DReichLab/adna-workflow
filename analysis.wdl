@@ -515,7 +515,7 @@ task damage_loop{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	
-	Int processes = 8
+	Int processes = 10
 	
 	command{
 		set -e
@@ -1042,7 +1042,7 @@ task angsd_contamination{
 	Int minimum_base_quality
 	Int deamination_bases_to_clip
 	
-	Int processes = 8
+	Int processes = 10
 	
 	Int angsd_threads
 	Int seed
@@ -1067,8 +1067,8 @@ task angsd_contamination{
 			
 			angsd_output_filename = sample_id + ".angsd"
 			subprocess.run("${angsd_contamination_bin} -a %s -h ${HapMap} -p ${angsd_threads} -s ${seed} > %s 2>&1" % (sample_id + ".icnts.gz", angsd_output_filename), shell=True, check=False)
-			result = subprocess.run("python3 ${python_angsd_results} %s | tee %s" % (angsd_output_filename, sample_id  + ".keyed_angsd"), check=True, stdout=subprocess.PIPE)
-			return sample_id_key_not_filename + '\t' + result.stdout.decode('utf-8').strip()
+			result = subprocess.run("python3 ${python_angsd_results} %s | tee %s" % (angsd_output_filename, sample_id  + ".keyed_angsd"), shell=True, check=True, stdout=subprocess.PIPE, encoding='utf-8')
+			return sample_id_key_not_filename + '\t' + result.stdout.strip()
 		
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
@@ -1079,7 +1079,7 @@ task angsd_contamination{
 		pool.join()
 		with open('angsd_contamination_results', 'w') as f:
 			for result in results:
-				f.write(result.get().decode('utf-8').strip())
+				f.write(result.get())
 				f.write('\n')
 		CODE
 	}
@@ -1088,7 +1088,6 @@ task angsd_contamination{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 360
 		requested_memory_mb_per_core: 4000
 	}
 }
