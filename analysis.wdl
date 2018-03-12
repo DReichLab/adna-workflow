@@ -1063,7 +1063,7 @@ task angsd_contamination{
 			sorted_bam_filename = sample_id + ".sorted.bam"
 			subprocess.run("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam_filename, sorted_bam_filename), shell=True, check=True)
 			subprocess.run("samtools index %s" % (sorted_bam_filename,), shell=True, check=True)
-			subprocess.run("angsd -i %s -r X:5000000-154900000 -doCounts 1 -iCounts 1 -minMapQ ${minimum_mapping_quality} -minQ ${minimum_base_quality} -out %s" % (sorted_bam_filename, sample_id), shell=True, check=True)
+			subprocess.run("${angsd} -i %s -r X:5000000-154900000 -doCounts 1 -iCounts 1 -minMapQ ${minimum_mapping_quality} -minQ ${minimum_base_quality} -out %s" % (sorted_bam_filename, sample_id), shell=True, check=True)
 			
 			angsd_output_filename = sample_id + ".angsd"
 			subprocess.run("${angsd_contamination_bin} -a %s -h ${HapMap} -p ${angsd_threads} -s ${seed} > %s 2>&1" % (sample_id + ".icnts.gz", angsd_output_filename), shell=True, check=False)
