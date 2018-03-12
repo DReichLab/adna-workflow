@@ -21,7 +21,9 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	
 	# not all demultiplexing reads merge, align, or map to targets
 	# use a simple ratio to translate between reads for preseq and demultiplexing reads
-	read_ratio = float(number_raw_reads) / total_reads_hitting_any_target_actual
+	read_ratio = 0
+	if total_reads_hitting_any_target_actual > 0:
+		read_ratio = float(number_raw_reads) / total_reads_hitting_any_target_actual
 	#print(read_ratio)
 	
 	for i in range(1,length):
