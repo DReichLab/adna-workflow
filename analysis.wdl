@@ -368,10 +368,10 @@ workflow adna_analysis{
 		dataset_label = dataset_label,
 		date = date
 	}
-	call demultiplex_align_bams.copy_and_rename{ input:
-		source_file = preliminary_report.report,
-		output_path = output_path,
-		output_filename_no_path = "report_no_contammix"
+	Array[File] preliminary_report_array = [prepare_report.report, versions.versions]
+	call demultiplex_align_bams.copy_output as preliminary_copy_report{ input:
+		files = preliminary_report_array,
+		output_path = output_path
 	}
 	call prepare_report{ input:
 		python_prepare_report = python_prepare_report,
