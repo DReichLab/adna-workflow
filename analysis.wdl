@@ -343,7 +343,7 @@ workflow adna_analysis{
 		concatenate_count_1240k_pre.concatenated, 
 		concatenate_count_1240k_post.concatenated,
 		preseq.results,
-		angsd_contamination
+		angsd_contamination.contamination
 	]
 	Array[File] final_keyed_statistics = [
 		damage_loop_nuclear.damage_all_samples_two_bases,
@@ -357,7 +357,7 @@ workflow adna_analysis{
 		concatenate_count_1240k_pre.concatenated, 
 		concatenate_count_1240k_post.concatenated,
 		preseq.results,
-		angsd_contamination,
+		angsd_contamination.contamination,
 		concatenate_contammix.concatenated
 	]
 	call prepare_report as preliminary_report{ input:
