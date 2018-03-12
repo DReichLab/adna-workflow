@@ -342,7 +342,7 @@ workflow adna_analysis{
 		spike3k_complexity.estimates,
 		concatenate_count_1240k_pre.concatenated, 
 		concatenate_count_1240k_post.concatenated,
-		preseq.preseq_results,
+		preseq.results,
 		angsd_contamination
 	]
 	Array[File] final_keyed_statistics = [
@@ -356,7 +356,7 @@ workflow adna_analysis{
 		spike3k_complexity.estimates,
 		concatenate_count_1240k_pre.concatenated, 
 		concatenate_count_1240k_post.concatenated,
-		preseq.preseq_results,
+		preseq.results,
 		angsd_contamination,
 		concatenate_contammix.concatenated
 	]
