@@ -993,14 +993,14 @@ task preseq{
 			step = int(unique_read_count / 4)
 			extrapolation_max = int(unique_read_count * 5)
 			preseq_table_filename = sample_id + ".preseq_table"
-			subprocess.check_output("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
+			subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
 			
 			raw_count_str = subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} AggregateStatistics -k %s -l raw ${statistics}" % (sample_id_key_not_filename), shell=True)
 			raw_count = int(raw_count_str)
 			targets_histogram_filename = sample_id + ".targets_histogram"
 			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
 			# keyed statistics are written to stdout 
-			result = subprocess.check_output("python3 ${python_preseq_process} %s %s -n %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, unique_reads_histogram_filename, raw_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
+			result = subprocess.check_output("python3 ${python_preseq_process} %s %s -n %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, preseq_table_filename, raw_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
 			return result.strip()
 		
 		bams_string = "${sep=',' bams}"
