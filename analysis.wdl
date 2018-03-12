@@ -368,7 +368,7 @@ workflow adna_analysis{
 		dataset_label = dataset_label,
 		date = date
 	}
-	Array[File] preliminary_report_array = [prepare_report.report, versions.versions]
+	Array[File] preliminary_report_array = [preliminary_report_array.report, versions.versions]
 	call demultiplex_align_bams.copy_output as preliminary_copy_report{ input:
 		files = preliminary_report_array,
 		output_path = output_path
