@@ -240,7 +240,7 @@ workflow adna_analysis{
 			reference_sa = prepare_reference_rsrs.reference_sa,
 			reference_fai = prepare_reference_rsrs.reference_fai,
 			coverages = rsrs_coverage.coverages,
-			unused = preliminary_report.report
+			unused = preliminary_copy_report.copied
 		}
 	}
 	
@@ -368,7 +368,7 @@ workflow adna_analysis{
 		dataset_label = dataset_label,
 		date = date
 	}
-	Array[File] preliminary_report_array = [preliminary_report_array.report, versions.versions]
+	Array[File] preliminary_report_array = [preliminary_report.report, versions.versions]
 	call demultiplex_align_bams.copy_output as preliminary_copy_report{ input:
 		files = preliminary_report_array,
 		output_path = output_path
@@ -898,7 +898,7 @@ task contammix{
 	String sample_id = basename(bam, ".bam")
 	
 	# used to delay contammix until after other tasks
-	String? unused
+	Int? unused
 	
 	#samtools mpileup -u -Q ${minimum_base_quality} -q ${minimum_mapping_quality} -f ${reference} ${bam} | bcftools call -c -O z --ploidy 1 -o calls.vcf.gz
 	#tabix calls.vcf.gz
