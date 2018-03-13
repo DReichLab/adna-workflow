@@ -170,7 +170,7 @@ workflow demultiplex_align_bams{
 	call copy_and_rename as copy_and_rename_lane_statistics{ input:
 		source_file = aggregate_lane_statistics.statistics,
 		output_path = output_path,
-		output_filename_no_path = "lane_statistics"
+		output_filename_no_path = date + "_" + dataset_label + ".lane_statistics"
 	}
 	
 	call update_database_with_demultiplexed{ input:
