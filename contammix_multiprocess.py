@@ -29,9 +29,9 @@ def contammix(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, nu
 	if result == None:
 		sys.stderr.write('None')
 	else:
-		sys.stderr.write(result)
+		sys.stderr.write(result.decode('utf-8').strip())
 	sys.stderr.write('\n')
-	resultsQueue.put(result)
+	resultsQueue.put(result.decode('utf-8').strip())
 	
 def parseContammixOutput(result):
 	fields = result.split('\t')
