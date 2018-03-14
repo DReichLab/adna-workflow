@@ -3,7 +3,8 @@ import "demultiplex.wdl" as demultiplex_align_bams
 workflow adna_analysis{
 	File nuclear_bam_lists_to_merge
 	File mt_bam_lists_to_merge
-	File aggregate_lane_statistics
+	File demultiplex_statistics_file_list
+	Array[File] demultiplex_statistics_files = read_lines(demultiplex_statistics_file_list)
 	File index_barcode_keys
 	
 	String dataset_label
@@ -65,6 +66,10 @@ workflow adna_analysis{
 		htsbox = htsbox,
 		haplogrep_jar = haplogrep_jar
 	}
+	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_across_sequencing_runs{ input:
+		adna_screen_jar = adna_screen_jar,
+		statistics_by_group = demultiplex_statistics_files
+	}
 	
 	call combine_bams_into_libraries as combine_nuclear_libraries{ input:
 		bam_lists = nuclear_bam_lists_to_merge,
@@ -81,7 +86,7 @@ workflow adna_analysis{
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
-		statistics = aggregate_lane_statistics,	
+		statistics = aggregate_statistics_across_sequencing_runs.statistics,	
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		python_depth_histogram = python_depth_histogram
@@ -297,7 +302,7 @@ workflow adna_analysis{
 	}
 	
 	Array[File] cumulative_statistics = [
-		aggregate_lane_statistics,
+		aggregate_statistics_across_sequencing_runs.statistics,
 		aggregate_statistics_duplicates_nuclear.statistics,
 		aggregate_statistics_duplicates_rsrs.statistics,
 		aggregate_statistics_pre_nuclear.statistics,
