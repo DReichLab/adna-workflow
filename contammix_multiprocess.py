@@ -1,6 +1,7 @@
 from multiprocessing import Process, Queue
 from subprocess import check_output
 import sys
+from threading import Lock
 
 # We run multiple copies of contammix to retrieve one set of results. 
 # We do this because contammix sometimes does not complete and exceeds cluster runtime limits. 
@@ -32,6 +33,7 @@ def contammix(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, nu
 		sys.stderr.write(result.decode('utf-8').strip())
 		resultsQueue.put(result.decode('utf-8').strip())
 	sys.stderr.write('\n')
+	resultsQueue.put('\n')
 	
 def parseContammixOutput(result):
 	fields = result.split('\t')
@@ -49,9 +51,11 @@ def parseContammixOutput(result):
 processes = [Process(target=contammix,args=(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, numChains, minimum_base_quality, deamination_bases_to_clip, str(seed + i), resultsQueue) ) for i in range(numCopies)]
 
 copyCount = 0
+copyCountLock = Lock()
 for p in processes:
 	p.start()
-	copyCount += 1
+	with copyCountLock:
+		copyCount += 1
 
 inferred_error_rate = float('nan')
 map_authentic = float('nan')
@@ -64,14 +68,19 @@ seed = int(-1)
 while copyCount > 0:
 	# Queue.get() blocks until next value is available
 	firstResult = resultsQueue.get()
-	copyCount -= 1
+	with copyCountLock:
+		copyCount -= 1
+	
+	sys.stderr.write('copyCount: {:d}\n'.format(copyCount))
+	sys.stderr.flush()
 	try:
 		inferred_error_rate, map_authentic, lower, upper, gelman_diagnostic, gelman_diagnostic_upper, seed = parseContammixOutput(firstResult)
 		# if this value parses, retrieve values and cancel all other processes
 		for p in processes:
 			if p.is_alive():
 				p.terminate()
-		copyCount = 0
+		with copyCountLock:
+			copyCount = 0
 	except:
 		pass
 
