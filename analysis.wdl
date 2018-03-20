@@ -378,6 +378,11 @@ workflow adna_analysis{
 		files = preliminary_report_array,
 		output_path = output_path
 	}
+	call preliminary_report_ready{ input:
+		date_string = date,
+		name = dateset_label,
+		unused = preliminary_copy_report.copied
+	}
 	call prepare_report{ input:
 		python_prepare_report = python_prepare_report,
 		aggregated_statistics = aggregate_statistics_final.statistics,
@@ -1094,6 +1099,22 @@ task angsd_contamination{
 	runtime{
 		cpus: processes
 		requested_memory_mb_per_core: 4000
+	}
+}
+
+task preliminary_report_ready{
+	String django_manage_for_command
+	String date_string
+	String name
+	
+	Int unused
+	
+	command{
+		ssh -t mym11@orchestra.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} preliminary_report_ready --date_string ${date_string} --name ${name}
+	}
+	runtime{
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 2000
 	}
 }
 
