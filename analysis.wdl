@@ -378,7 +378,7 @@ workflow adna_analysis{
 		files = preliminary_report_array,
 		output_path = output_path
 	}
-	call preliminary_report_ready{ input:
+	call signal_preliminary_report_ready{ input:
 		date_string = date,
 		name = dateset_label,
 		unused = preliminary_copy_report.copied
@@ -1102,7 +1102,7 @@ task angsd_contamination{
 	}
 }
 
-task preliminary_report_ready{
+task signal_preliminary_report_ready{
 	String django_manage_for_command
 	String date_string
 	String name
