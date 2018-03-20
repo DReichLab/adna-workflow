@@ -380,7 +380,7 @@ workflow adna_analysis{
 	}
 	call signal_preliminary_report_ready{ input:
 		date_string = date,
-		name = dateset_label,
+		name = dataset_label,
 		unused = preliminary_copy_report.copied
 	}
 	call prepare_report{ input:
