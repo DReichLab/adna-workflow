@@ -22,6 +22,7 @@ workflow demultiplex_align_bams{
 	
 	File python_lane_name
 	File python_kmer_analysis
+	File python_prepare_report
 	
 	# the references need to appear in the same directory as the derived files
 	# in the prepare_reference, we put all of these into the same directory
@@ -85,6 +86,13 @@ workflow demultiplex_align_bams{
 		python_kmer_analysis = python_kmer_analysis,
 		barcodes_q_only = barcodes_q_only,
 		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
+		index_barcode_keys = index_barcode_keys,
+		dataset_label = dataset_label,
+		date = date
+	}
+	call prepare_demultiplex_report{ input:
+		python_prepare_report = python_prepare_report,
+		demultiplex_statistics = aggregate_lane_statistics.statistics,
 		index_barcode_keys = index_barcode_keys,
 		dataset_label = dataset_label,
 		date = date
@@ -162,7 +170,7 @@ workflow demultiplex_align_bams{
 		output_filename_no_path = "mt_statistics"
 	}
 	
-	Array[File] misc_output_files = [collect_read_group_info.read_groups, kmer_analysis.analysis, versions.versions]
+	Array[File] misc_output_files = [collect_read_group_info.read_groups, kmer_analysis.analysis, versions.versions, prepare_demultiplex_report.report]
 	call copy_output as copy_misc_output_files{input :
 		files = misc_output_files,
 		output_path = output_path
@@ -184,6 +192,7 @@ workflow demultiplex_align_bams{
 		Array[File] rsrs_bams = filter_aligned_only_rsrs.filtered
 		File kmer_analysis_report = kmer_analysis.analysis
 		File aggregated_statistics = aggregate_lane_statistics.statistics
+		File demultiplex_report = prepare_demultiplex_report.report
 	}
 }
 
@@ -604,7 +613,27 @@ task kmer_analysis{
 		File analysis = "${date}_${dataset_label}.kmer"
 	}
 	runtime{
-		runtime_minutes: 60
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 1000
+	}
+}
+
+task prepare_demultiplex_report{
+	File python_prepare_report
+	File demultiplex_statistics
+	File index_barcode_keys
+	
+	String dataset_label
+	String date
+	
+	command{
+		python3 ${python_prepare_report} ${demultiplex_statistics} ${index_barcode_keys} > ${date}_${dataset_label}.demultiplex_report
+	}
+	output{
+		File report = "${date}_${dataset_label}.demultiplex_report"
+	}
+	runtime{
+		runtime_minutes: 30
 		requested_memory_mb_per_core: 1000
 	}
 }
