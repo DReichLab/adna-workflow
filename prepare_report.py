@@ -6,6 +6,7 @@ import math
 headersToReport = ['sample_sheet_key',
 				   'library_id',
 				   'plate_id',
+				   'experiment',
 				   'raw', 
 				   'merged', 
 				   'endogenous_pre',
@@ -135,7 +136,7 @@ def printSample(sampleID, thisSample):
 # 	1: index-barcode 4 tuple
 #	2: sample/extract/library id if any, or empty string
 def findSampleSheetEntry(sampleID, keyMapping):
-	libraryID, plateID = keyMapping.get(sampleID, ['',''])
+	libraryID, plateID, experiment = keyMapping.get(sampleID, ['','',''])
 	sampleSheetID = ''
 	if libraryID != '':
 		sampleSheetID = sampleID
@@ -144,19 +145,20 @@ def findSampleSheetEntry(sampleID, keyMapping):
 		for p5 in p5_set.split(':'):
 			for p7 in p7_set.split(':'):
 				trialSampleID = '{}_{}_{}_{}'.format(i5, i7, p5, p7)
-				trialLibraryID, trialPlateID = keyMapping.get(trialSampleID, ['',''])
+				trialLibraryID, trialPlateID, trialExperiment = keyMapping.get(trialSampleID, ['','',''])
 				
 				if libraryID == '':
 					if trialLibraryID != '':
 						libraryID = trialLibraryID
 						sampleSheetID = trialSampleID
 						plateID = trialPlateID
+						experiment = trialExperiment
 				# if there is more than one libraryID that matches, we have a nonprogramming problem
 				elif trialLibraryID != '':
 					libraryID = 'MULTIPLE'
 					sampleSheetID = 'MULTIPLE'
 					
-	return sampleSheetID, libraryID, plateID
+	return sampleSheetID, libraryID, plateID, experiment
 
 # Make an initial recommendation for whether this sample should continue in processing based on spike3k metrics, assuming it is UDG-half treated
 def recommendation_spike3k(sample):
@@ -241,7 +243,8 @@ if __name__ == '__main__':
 			index_barcode_key = fields[0]
 			sample_extract_library_id = fields[1]
 			plate_id = fields[2]
-			keyMapping[index_barcode_key] = [sample_extract_library_id, plate_id]
+			experiment = fields[3]
+			keyMapping[index_barcode_key] = [sample_extract_library_id, plate_id, experiment]
 
 	# read from damages, medians, haplogroups
 	# these are all files with the index barcode keys and additional keyed fields
@@ -253,7 +256,7 @@ if __name__ == '__main__':
 	# populate additional sample fields
 	for sampleID in samples:
 		# add sample/extract/library ID, if available
-		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'], samples[sampleID]['plate_id'] = findSampleSheetEntry(sampleID, keyMapping)
+		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'], samples[sampleID]['plate_id'], samples[sampleID]['experiment'] = findSampleSheetEntry(sampleID, keyMapping)
 		# add % endogenous
 		singleSample = samples[sampleID]
 		if ('autosome_pre' in singleSample
@@ -290,5 +293,5 @@ if __name__ == '__main__':
 	# samples that are expected, but do not have results
 	for sampleID in keyMapping:
 		if sampleID not in samples:
-			libraryID, plateID = keyMapping[sampleID]
-			print('{}\t\t{}\t{}'.format(sampleID, libraryID, plateID) )
+			libraryID, plateID, experiment = keyMapping[sampleID]
+			print('{0}\t{0}\t{1}\t{2}\t{3}'.format(sampleID, libraryID, plateID, experiment) )
