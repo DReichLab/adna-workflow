@@ -245,7 +245,7 @@ workflow adna_analysis{
 			reference_sa = prepare_reference_rsrs.reference_sa,
 			reference_fai = prepare_reference_rsrs.reference_fai,
 			coverages = rsrs_coverage.coverages,
-			unused = preliminary_copy_report.copied
+			unused = signal_preliminary_report_ready.finished
 		}
 	}
 	
@@ -1115,6 +1115,9 @@ task signal_preliminary_report_ready{
 	runtime{
 		runtime_minutes: 30
 		requested_memory_mb_per_core: 2000
+	}
+	output{
+		Int finished = unused
 	}
 }
 
