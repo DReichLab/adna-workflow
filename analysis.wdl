@@ -977,12 +977,14 @@ task preseq{
 		import subprocess
 		
 		def count_unique_reads(filename): 
+			unique_count = 0
 			total_count = 0
 			with open(filename) as f:
 				for line in f:
 					depth, count = line.split()
-					total_count += int(count)
-			return total_count
+					unique_count += int(count)
+					total_count += int(depth) * int(count)
+			return unique_count, total_count
 		
 		def preseq_run(bam):
 			sample_id_filename = basename(bam)
@@ -998,12 +1000,15 @@ task preseq{
 			# build histogram
 			unique_reads_histogram_filename = sample_id + ".unique_reads_histogram"
 			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} DuplicatesHistogram -i %s > %s" % (sorted_filename, unique_reads_histogram_filename), shell=True)
-			unique_read_count = count_unique_reads(unique_reads_histogram_filename)
+			unique_read_count, total_count = count_unique_reads(unique_reads_histogram_filename)
 			
 			step = int(unique_read_count / 4)
 			extrapolation_max = int(unique_read_count * 5)
 			preseq_table_filename = sample_id + ".preseq_table"
-			subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
+			if (total_count  / unique_read_count) < 100:
+				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
+			else: # avoid running preseq for low complexity samples
+				subprocess.run("touch %s" % (preseq_table_filename), shell=True)
 			
 			raw_count_str = subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} AggregateStatistics -k %s -l raw ${statistics}" % (sample_id_key_not_filename), shell=True)
 			raw_count = int(raw_count_str)
