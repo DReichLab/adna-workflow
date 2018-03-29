@@ -966,7 +966,7 @@ task preseq{
 	File python_depth_histogram
 	File python_preseq_process
 	
-	Int processes = 10
+	Int processes = 8
 	Float model_a
 	Float model_b
 	
@@ -1005,7 +1005,7 @@ task preseq{
 			step = int(unique_read_count / 4)
 			extrapolation_max = int(unique_read_count * 5)
 			preseq_table_filename = sample_id + ".preseq_table"
-			if (total_count  / unique_read_count) < 100:
+			if (unique_read_count > 0) and ((total_count  / unique_read_count) < 100):
 				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
 			else: # avoid running preseq for low complexity samples
 				subprocess.run("touch %s" % (preseq_table_filename), shell=True)
@@ -1036,6 +1036,7 @@ task preseq{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 360
 		requested_memory_mb_per_core: 5000
 	}
 }
