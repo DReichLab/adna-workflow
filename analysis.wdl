@@ -966,7 +966,7 @@ task preseq{
 	File python_depth_histogram
 	File python_preseq_process
 	
-	Int processes = 8
+	Int processes = 10
 	Float model_a
 	Float model_b
 	
@@ -1031,7 +1031,6 @@ task preseq{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 360
 		requested_memory_mb_per_core: 5000
 	}
 }
