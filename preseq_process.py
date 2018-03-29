@@ -43,7 +43,7 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 			
 	raw_reads_inverse_e = reads_inverse_e * read_ratio
 	raw_reads_tenth = reads_tenth * read_ratio
-	additional_reads_required = total_reads_required - number_raw_reads
+	additional_reads_required = max(total_reads_required - number_raw_reads, 0)
 	
 	values = {
 		'number_raw_reads': number_raw_reads,
