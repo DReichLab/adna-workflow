@@ -34,14 +34,16 @@ headersToReport = ['sample_sheet_key',
 				   'damage_rsrs_ga2',
 				   'Haplogroup',
 				   'Haplogroup_rank',
-				   'spike3k_pre_autosome',
-				   'spike3k_pre_x',
-				   'spike3k_pre_y',
-				   'spike3k_post_autosome',
-				   'spike3k_post_x',
-				   'spike3k_post_y',
-				   'spike3k_post_sex',
-				   'spike3k_complexity',
+				   #spike3k is obsolete
+				   #'spike3k_pre_autosome',
+				   #'spike3k_pre_x',
+				   #'spike3k_pre_y',
+				   #'spike3k_post_autosome',
+				   #'spike3k_post_x',
+				   #'spike3k_post_y',
+				   #'spike3k_post_sex',
+				   #'spike3k_complexity',
+				   #'recommendation_spike3k',
 #				   'contamination_schmutzi',
 #				   'contamination_schmutzi_lower',
 #				   'contamination_schmutzi_upper',
@@ -53,7 +55,6 @@ headersToReport = ['sample_sheet_key',
 				   'contamination_contammix_upper',
 				   'contamination_contammix_gelman',
 				   'contamination_contammix_inferred_error',
-				   'recommendation_spike3k',
 				   '1240k_pre_autosome',
 				   '1240k_pre_x',
 				   '1240k_pre_y',
@@ -269,7 +270,7 @@ if __name__ == '__main__':
 				+ int(samples[sampleID].get('Y_pre', '0'))
 				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
 		# add recommendation concerning future processing
-		singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
+		#singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
 
 	# print headers
 	print ('Index-Barcode Key', end='\t')
