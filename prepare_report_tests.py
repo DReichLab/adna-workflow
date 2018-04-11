@@ -9,32 +9,44 @@ class TestPrepareReport(unittest.TestCase):
 #	TACGTTC:ACGTAAG:CGTACCT:GTACGGA Q3      25      26      27      28
 	def test_simpleLookup(self):
 		full = 'CCTGCGA_TCGCAGG_GGTATCG:TTACAGT:AACGCTA:CCGTGAC_TACGTTC:ACGTAAG:CGTACCT:GTACGGA'
-		expectedLibraryID = 'test'
-		keyMapping = {full: expectedLibraryID}
+		expectedLibraryID = 'testLibrary'
+		expectedPlateID = 'testPlate'
+		expectedExperiment = 'test1240kPlus'
+		keyMapping = {full: [expectedLibraryID, expectedPlateID, expectedExperiment]}
 		
-		sampleSheetID, libraryID = findSampleSheetEntry(full, keyMapping)
+		sampleSheetID, libraryID, plateID, experiment = findSampleSheetEntry(full, keyMapping)
 		self.assertEqual(full, sampleSheetID)
 		self.assertEqual(expectedLibraryID, libraryID)
+		self.assertEqual(expectedPlateID, plateID)
+		self.assertEqual(expectedExperiment, experiment)
 		
 	def test_subsetLookup(self):
 		full = 'CCTGCGA_TCGCAGG_GGTATCG:TTACAGT:AACGCTA:CCGTGAC_TACGTTC:ACGTAAG:CGTACCT:GTACGGA'
 		singleBarcodes = 'CCTGCGA_TCGCAGG_CCGTGAC_ACGTAAG'
-		expectedLibraryID = 'test'
+		expectedLibraryID = 'testLibrary'
+		expectedPlateID = 'testPlate'
+		expectedExperiment = 'test1240kPlus'
 		keyMapping = dict()
-		keyMapping[singleBarcodes] = expectedLibraryID
+		keyMapping = {singleBarcodes: [expectedLibraryID, expectedPlateID, expectedExperiment]}
 		
-		sampleSheetID, libraryID = findSampleSheetEntry(full, keyMapping)
+		sampleSheetID, libraryID, plateID, experiment = findSampleSheetEntry(full, keyMapping)
 		self.assertEqual(singleBarcodes, sampleSheetID)
 		self.assertEqual(expectedLibraryID, libraryID)
+		self.assertEqual(expectedPlateID, plateID)
+		self.assertEqual(expectedExperiment, experiment)
 		
 	def test_noMatch(self):
 		full = 'CCTGCGA_TCGCAGG_GGTATCG:TTACAGT:AACGCTA:CCGTGAC_TACGTTC:ACGTAAG:CGTACCT:GTACGGA'
-		expectedLibraryID = 'test'
+		expectedLibraryID = 'testLibrary'
+		expectedPlateID = 'testPlate'
+		expectedExperiment = 'test1240kPlus'
 		keyMapping = dict()
 		
-		sampleSheetID, libraryID = findSampleSheetEntry(full, keyMapping)
+		sampleSheetID, libraryID, plateID, experiment = findSampleSheetEntry(full, keyMapping)
 		self.assertEqual('', sampleSheetID)
 		self.assertEqual('', libraryID)
+		self.assertEqual('', plateID)
+		self.assertEqual('', experiment)
 	
 	def test_multiple_matches(self):
 		full = 'CCTGCGA_TCGCAGG_GGTATCG:TTACAGT:AACGCTA:CCGTGAC_TACGTTC:ACGTAAG:CGTACCT:GTACGGA'
@@ -42,15 +54,20 @@ class TestPrepareReport(unittest.TestCase):
 		singleBarcodes2 = 'CCTGCGA_TCGCAGG_CCGTGAC_GTACGGA'
 		
 		keyMapping = dict()
-		keyMapping[singleBarcodes1] = 'test1'
-		keyMapping[singleBarcodes2] = 'test2'
+		keyMapping[singleBarcodes1] = ['test1a', 'test1b', 'test1c']
+		keyMapping[singleBarcodes2] = ['test2a', 'test2b', 'test2c']
 		
-		expectedLibraryID = 'MULTIPLE'
-		expectedSampleSheetID = 'MULTIPLE'
+		MULTIPLE = 'MULTIPLE'
+		expectedLibraryID = MULTIPLE
+		expectedSampleSheetID = MULTIPLE
+		expectedPlateID = MULTIPLE
+		expectedExperiment = MULTIPLE
 		
-		sampleSheetID, libraryID = findSampleSheetEntry(full, keyMapping)
+		sampleSheetID, libraryID,plateID, experiment = findSampleSheetEntry(full, keyMapping)
 		self.assertEqual(expectedLibraryID, libraryID)
 		self.assertEqual(expectedSampleSheetID, sampleSheetID)
+		self.assertEqual(expectedPlateID, plateID)
+		self.assertEqual(expectedExperiment, experiment)
 	
 if __name__ == '__main__':
 	unittest.main()

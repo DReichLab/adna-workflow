@@ -158,8 +158,11 @@ def findSampleSheetEntry(sampleID, keyMapping):
 						experiment = trialExperiment
 				# if there is more than one libraryID that matches, we have a nonprogramming problem
 				elif trialLibraryID != '':
-					libraryID = 'MULTIPLE'
-					sampleSheetID = 'MULTIPLE'
+					MULTIPLE = 'MULTIPLE'
+					libraryID = MULTIPLE
+					sampleSheetID = MULTIPLE
+					plateID = MULTIPLE
+					experiment = MULTIPLE
 					
 	return sampleSheetID, libraryID, plateID, experiment
 
