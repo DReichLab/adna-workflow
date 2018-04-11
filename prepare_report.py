@@ -3,6 +3,8 @@ from __future__ import print_function
 import sys
 import math
 
+READS_THRESHOLD_TO_REPORT_KEY = 25000
+
 headersToReport = ['sample_sheet_key',
 				   'library_id',
 				   'plate_id',
@@ -287,7 +289,7 @@ if __name__ == '__main__':
 	for sampleID in sorted_samples:
 		thisSample = samples[sampleID]
 		try:
-			if int(samples[sampleID]['raw']) >= 500 or sampleID in keyMapping:
+			if int(samples[sampleID]['raw']) >= READS_THRESHOLD_TO_REPORT_KEY or sampleID in keyMapping:
 				printSample(sampleID, thisSample)
 		except KeyError:
 			eprint('KeyError', sampleID)
