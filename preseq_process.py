@@ -60,14 +60,17 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 # This histogram is not the input to preseq. It counts the number of reads
 # for each target, which allows counting the actual number of targets hit
 def total_and_unique_target_hits(target_histogram_filename):
-	with open(target_histogram_filename) as histogram:
-		total_hits = 0
-		unique_targets = 0
-		for line in histogram:
-			target_count, occurrences = map(lambda x: int(x), line.split())
-			total_hits += target_count * occurrences
-			unique_targets += occurrences
-		return total_hits, unique_targets
+	total_hits = 0
+	unique_targets = 0
+	try:
+		with open(target_histogram_filename) as histogram:
+			for line in histogram:
+				target_count, occurrences = map(lambda x: int(x), line.split())
+				total_hits += target_count * occurrences
+				unique_targets += occurrences
+	except:
+		pass
+	return total_hits, unique_targets
 	
 # defines the empirical relationship between the unique reads output from preseq and the number of unique 1240k targets hit
 # empirical targets = 1 / (a + b * (unique reads) ^ power)

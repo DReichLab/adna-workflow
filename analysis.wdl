@@ -1037,7 +1037,7 @@ task preseq{
 	runtime{
 		cpus: processes
 		runtime_minutes: 360
-		requested_memory_mb_per_core: 5000
+		requested_memory_mb_per_core: 6000
 	}
 }
 

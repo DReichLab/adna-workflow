@@ -69,6 +69,22 @@ class TestPreseq(unittest.TestCase):
 			self.assertEqual(0, len(reads_hitting_any_target))
 			self.assertIsNotNone(unique_reads)
 			self.assertEqual(0, len(unique_reads))
-
+			
+	def test_fail_to_open_target_histogram_file(self):
+		total_hits, unique_targets = total_and_unique_target_hits('does_not_exist')
+		self.assertEqual(0, total_hits)
+		self.assertEqual(0, unique_targets)
+			
+	def test_empty_target_histogram_file(self):
+		with tempfile.TemporaryDirectory() as temp_directory:
+			empty_filename = os.path.join(temp_directory, 'empty_file_example')
+			with open(empty_filename, 'w') as empty:
+				 pass
+			self.assertTrue(os.path.isfile(empty_filename))
+			
+			total_hits, unique_targets = total_and_unique_target_hits(empty_filename)
+			self.assertEqual(0, total_hits)
+			self.assertEqual(0, unique_targets)
+			
 if __name__ == '__main__':
 	unittest.main()
