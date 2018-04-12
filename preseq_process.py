@@ -27,13 +27,11 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	raw_reads = [x * read_ratio for x in reads_hitting_any_target]
 	estimated_targets = [empiricalTargetEstimator.unique_reads_to_empirical_targets(x) for x in unique_reads]
 	
-	raw_reads_inverse_e = find_x_for_slope(raw_reads, estimated_targets, inverse_e)
-	raw_reads_tenth = find_x_for_slope(raw_reads, estimated_targets, tenth)
-	raw_reads_threshold = find_x_for_slope(raw_reads, estimated_targets, expected_targets_per_raw_read_threshold)
+	raw_reads_inverse_e, ignored = find_xy_for_slope(raw_reads, estimated_targets, inverse_e)
+	raw_reads_tenth, ignored = find_xy_for_slope(raw_reads, estimated_targets, tenth)
+	raw_reads_threshold, expected_unique_targets_at_threshold = find_xy_for_slope(raw_reads, estimated_targets, expected_targets_per_raw_read_threshold)
 	
 	total_reads_required = max(raw_reads_threshold, minimum_raw_reads)
-	
-	expected_unique_targets_at_threshold = empiricalTargetEstimator.unique_reads_to_empirical_targets(raw_reads_threshold)
 		
 	additional_reads_required = max(total_reads_required - number_raw_reads, 0)
 	
@@ -48,8 +46,8 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		}
 	return values
 
-# assuming decreasing slope, find x such that the slope is the slope_threshold
-def find_x_for_slope(x, y, slope_threshold):
+# assuming decreasing slope, find x, y such that the slope is the slope_threshold
+def find_xy_for_slope(x, y, slope_threshold):
 	if len(x) != len(y):
 		raise ValueError('length mismatch')
 	length = len(y)
@@ -57,16 +55,24 @@ def find_x_for_slope(x, y, slope_threshold):
 	for i in range(1,length):
 		slope = (y[i] - y[i-1]) / (x[i] - x[i-1])
 		slopes.append(slope)
-		if slope < slope_threshold:
-			break
 	
-	if slope_threshold > slopes[1]:
-		return 0
+	i = len(slopes)-1
+	while (i > 0) and (slope_threshold > slopes[i]):
+		i -= 1
+	# edge cases
+	if i == 0:
+		return 0, 0
+	elif i == len(slopes)-1:
+		return x[i], y[i]
 	
-	slope_change = slopes[i] - slopes[i-1]
-	x_change = x[i] - x[i-1]
-	corrected_x_at_threshold = x[i-1] + (slope_threshold - slopes[i-1]) / slope_change * x_change
-	return int(corrected_x_at_threshold)
+	slope_change = slopes[i+1] - slopes[i]
+	x_change = x[i+1] - x[i]
+	x_at_threshold = x[i] + (slope_threshold - slopes[i]) / slope_change * x_change
+	# this is not exact: we are mixing a piecewise linear model with acceleration
+	# just use the threshold value
+	y_at_threshold = y[i] + slope_threshold * (x_at_threshold - x[i])
+	
+	return x_at_threshold, y_at_threshold
 
 # count number of reads overlapping any target and number of unique targets hit
 # This histogram is not the input to preseq. It counts the number of reads
