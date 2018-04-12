@@ -69,6 +69,8 @@ def total_and_unique_target_hits(target_histogram_filename):
 			unique_targets += occurrences
 		return total_hits, unique_targets
 	
+# defines the empirical relationship between the unique reads output from preseq and the number of unique 1240k targets hit
+# empirical targets = 1 / (a + b * (unique reads) ^ power)
 class EmpiricalTargetEstimator:
 	total_autosome_targets = 1150639 # autosome targets in the 1240k target set
 	a = 1
@@ -86,6 +88,20 @@ class EmpiricalTargetEstimator:
 		corrected_hit_faction = 1 / (self.a + self.b * (estimated_hit_fraction ** self.power))
 		corrected_hit_estimate = corrected_hit_faction * self.total_autosome_targets
 		return corrected_hit_estimate
+	
+def read_preseq_file(filename):
+	reads_hitting_any_target = []
+	unique_reads = []
+	with open(filename) as preseq_file:
+		# skip preseq header
+		preseq_file.readline()
+		
+		# read in table of reads
+		for line in preseq_file:
+			reads, expected_distinct_reads, lower, upper = line.split()
+			reads_hitting_any_target.append(float(reads))
+			unique_reads.append(float(expected_distinct_reads))
+	return reads_hitting_any_target, unique_reads
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -110,18 +126,9 @@ if __name__ == '__main__':
 	# empirically measured parameters to extrapolate from
 	total_reads_hitting_any_target_actual, unique_targets_hit = total_and_unique_target_hits(args.target_histogram_filename)
 
-	reads_hitting_any_target = []
-	unique_reads = []
-	with open(args.preseq_filename) as preseq_file:
-		# skip preseq header
-		preseq_file.readline()
-		
-		# read in table of reads
-		for line in preseq_file:
-			reads, expected_distinct_reads, lower, upper = line.split()
-			reads_hitting_any_target.append(float(reads))
-			unique_reads.append(float(expected_distinct_reads))
-			
+	# read preseq table from file
+	reads_hitting_any_target, unique_reads = read_preseq_file(args.preseq_filename)
+	
 	values = preseq_analysis(reads_hitting_any_target, unique_reads, args.number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, args.minimum_raw_reads, args.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
 	
 	# output
