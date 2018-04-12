@@ -1,7 +1,7 @@
 import unittest
 import tempfile
 import os.path
-from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis
+from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis, find_x_for_slope
 
 class TestPreseq(unittest.TestCase):
 	# This is from Ellora 20180312, processed with step size = reads / 4
@@ -47,10 +47,15 @@ class TestPreseq(unittest.TestCase):
 		
 		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, minimum_raw_reads, expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
 		
-		expected_raw_reads = 17561290.5429225
+		self.assertAlmostEqual(0, values['preseq_raw_reads_inverse_e'], places=0)
+		
+		expected_raw_reads_tenth = 3991851
+		self.assertAlmostEqual(expected_raw_reads_tenth, values['preseq_raw_reads_tenth'], places=0)
+		
+		expected_raw_reads_threshold = 18514435
 		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
-		self.assertAlmostEqual(expected_raw_reads, values['preseq_total_reads_required'], places=0)
-		self.assertAlmostEqual(expected_raw_reads - number_raw_reads, values['preseq_additional_reads_required'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required'], places=0)
 		
 	def test_fail_to_open_preseq_file(self):
 		reads_hitting_any_target, unique_reads = read_preseq_file('does_not_exist')
@@ -86,5 +91,23 @@ class TestPreseq(unittest.TestCase):
 			self.assertEqual(0, total_hits)
 			self.assertEqual(0, unique_targets)
 			
+	def test_find_x_for_slope(self):
+		x = [0, 100, 200, 300, 400]
+		y = [0, 40, 60, 70, 75]
+		
+		# exact
+		self.assertEqual(0, find_x_for_slope(x, y, 1.0))
+		self.assertEqual(100, find_x_for_slope(x, y, 0.4))
+		self.assertEqual(200, find_x_for_slope(x, y, 0.2))
+		self.assertEqual(300, find_x_for_slope(x, y, 0.1))
+		self.assertEqual(400, find_x_for_slope(x, y, 0.05))
+		
+		#interpolate
+		self.assertEqual(150, find_x_for_slope(x, y, 0.3))
+		self.assertEqual(250, find_x_for_slope(x, y, 0.15))
+		
+		self.assertEqual(125, find_x_for_slope(x, y, 0.35))
+		self.assertEqual(175, find_x_for_slope(x, y, 0.25))
+		
 if __name__ == '__main__':
 	unittest.main()

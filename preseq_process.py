@@ -16,8 +16,6 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	
 	reads_inverse_e = float('inf')
 	reads_tenth = float('inf')
-	total_reads_required = minimum_raw_reads
-	expected_unique_targets_at_threshold = -1
 	
 	# not all demultiplexing reads merge, align, or map to targets
 	# use a simple ratio to translate between reads for preseq and demultiplexing reads
@@ -26,23 +24,17 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		read_ratio = float(number_raw_reads) / total_reads_hitting_any_target_actual
 	#print(read_ratio)
 	
-	for i in range(1,length):
-		#slope_uncorrected_targets = float(unique_reads[i] - unique_reads[i-1]) / (reads_hitting_any_target[i] - reads_hitting_any_target[i-1])
-			
-		slope_corrected_targets = (empiricalTargetEstimator.unique_reads_to_empirical_targets(unique_reads[i]) - empiricalTargetEstimator.unique_reads_to_empirical_targets(unique_reads[i-1])) / ((reads_hitting_any_target[i] - reads_hitting_any_target[i-1]) * read_ratio)
-		#print("{:f}\t{:f}\t{:f}\t{:f}".format(reads_hitting_any_target[i], reads_hitting_any_target[i] * read_ratio, unique_reads[i], slope_corrected_targets))
-		if slope_corrected_targets <= inverse_e:
-			reads_inverse_e = min(reads_inverse_e, reads_hitting_any_target[i])
-		if slope_corrected_targets <= tenth:
-			reads_tenth = min(reads_tenth, reads_hitting_any_target[i])
+	raw_reads = [x * read_ratio for x in reads_hitting_any_target]
+	estimated_targets = [empiricalTargetEstimator.unique_reads_to_empirical_targets(x) for x in unique_reads]
+	
+	raw_reads_inverse_e = find_x_for_slope(raw_reads, estimated_targets, inverse_e)
+	raw_reads_tenth = find_x_for_slope(raw_reads, estimated_targets, tenth)
+	raw_reads_threshold = find_x_for_slope(raw_reads, estimated_targets, expected_targets_per_raw_read_threshold)
+	
+	total_reads_required = max(raw_reads_threshold, minimum_raw_reads)
+	
+	expected_unique_targets_at_threshold = empiricalTargetEstimator.unique_reads_to_empirical_targets(raw_reads_threshold)
 		
-		if slope_corrected_targets > expected_targets_per_raw_read_threshold:
-			total_reads_required = max(total_reads_required, reads_hitting_any_target[i] * read_ratio)
-			expected_unique_targets_at_threshold = empiricalTargetEstimator.unique_reads_to_empirical_targets(unique_reads[i])
-		
-			
-	raw_reads_inverse_e = reads_inverse_e * read_ratio
-	raw_reads_tenth = reads_tenth * read_ratio
 	additional_reads_required = max(total_reads_required - number_raw_reads, 0)
 	
 	values = {
@@ -55,6 +47,26 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		'preseq_expected_unique_targets_at_threshold': expected_unique_targets_at_threshold
 		}
 	return values
+
+# assuming decreasing slope, find x such that the slope is the slope_threshold
+def find_x_for_slope(x, y, slope_threshold):
+	if len(x) != len(y):
+		raise ValueError('length mismatch')
+	length = len(y)
+	slopes = [float('inf')]
+	for i in range(1,length):
+		slope = (y[i] - y[i-1]) / (x[i] - x[i-1])
+		slopes.append(slope)
+		if slope < slope_threshold:
+			break
+	
+	if slope_threshold > slopes[1]:
+		return 0
+	
+	slope_change = slopes[i] - slopes[i-1]
+	x_change = x[i] - x[i-1]
+	corrected_x_at_threshold = x[i-1] + (slope_threshold - slopes[i-1]) / slope_change * x_change
+	return int(corrected_x_at_threshold)
 
 # count number of reads overlapping any target and number of unique targets hit
 # This histogram is not the input to preseq. It counts the number of reads
