@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+import os.path
 from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis
 
 class TestPreseq(unittest.TestCase):
@@ -48,6 +50,24 @@ class TestPreseq(unittest.TestCase):
 		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
 		self.assertAlmostEqual(expected_raw_reads, values['preseq_total_reads_required'], places=0)
 		self.assertAlmostEqual(expected_raw_reads - number_raw_reads, values['preseq_additional_reads_required'], places=0)
+		
+	def test_fail_to_open_preseq_file(self):
+		reads_hitting_any_target, unique_reads = read_preseq_file('does_not_exist')
+		self.assertEqual(0, len(reads_hitting_any_target))
+		self.assertEqual(0, len(unique_reads))
+		
+	def test_empty_preseq_file(self):
+		with tempfile.TemporaryDirectory() as temp_directory:
+			empty_filename = os.path.join(temp_directory, 'empty_file_example')
+			with open(empty_filename, 'w') as empty:
+				 pass
+			self.assertTrue(os.path.isfile(empty_filename))
+			
+			reads_hitting_any_target, unique_reads = read_preseq_file(empty_filename)
+			self.assertIsNotNone(reads_hitting_any_target)
+			self.assertEqual(0, len(reads_hitting_any_target))
+			self.assertIsNotNone(unique_reads)
+			self.assertEqual(0, len(unique_reads))
 
 if __name__ == '__main__':
 	unittest.main()

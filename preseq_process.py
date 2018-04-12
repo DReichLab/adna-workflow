@@ -92,15 +92,18 @@ class EmpiricalTargetEstimator:
 def read_preseq_file(filename):
 	reads_hitting_any_target = []
 	unique_reads = []
-	with open(filename) as preseq_file:
-		# skip preseq header
-		preseq_file.readline()
-		
-		# read in table of reads
-		for line in preseq_file:
-			reads, expected_distinct_reads, lower, upper = line.split()
-			reads_hitting_any_target.append(float(reads))
-			unique_reads.append(float(expected_distinct_reads))
+	try:
+		with open(filename) as preseq_file:
+			# skip preseq header
+			preseq_file.readline()
+			
+			# read in table of reads
+			for line in preseq_file:
+				reads, expected_distinct_reads, lower, upper = line.split()
+				reads_hitting_any_target.append(float(reads))
+				unique_reads.append(float(expected_distinct_reads))
+	except:
+		pass
 	return reads_hitting_any_target, unique_reads
 
 if __name__ == '__main__':
