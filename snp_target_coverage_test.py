@@ -11,6 +11,12 @@ class TestSexDetermination(unittest.TestCase):
 		y = 100
 		sex = sex_determination(x, y)
 		self.assertEqual('M', sex)
+		
+	def test_male2(self):
+		x =  30085
+		y = 20444
+		sex = sex_determination(x, y)
+		self.assertEqual('M', sex)
 	
 	def test_male_threshold_met(self):
 		x = 70
@@ -53,6 +59,8 @@ class TestSexDetermination(unittest.TestCase):
 		y = 50
 		sex = sex_determination(x, y)
 		self.assertEqual('U', sex)
+		
+	
 		
 if __name__ == '__main__':
 	unittest.main()
