@@ -1,52 +1,56 @@
 import os
 import sys
 
-# The spike3k targets are now analyzed using not only the single SNP position, but also
-# the surrounding region. This region is passed to samtools as a bed file. This takes the 
-# counts for autosome, X, Y targets and estimates the sex and outputs this information
-# keyed using the autosome filename with labels built from the first passed argument. 
+# Input: label and files containing autosome, X, and Y target counts
+# Output: print to stdout keyed statistics for reporting with sex determination
 
-# first argument is label to use
-label = sys.argv[1]
-# second through fourth arguments are counts of reads that align with targets
-autosome_filename = sys.argv[2]
-x_filename = sys.argv[3]
-y_filename = sys.argv[4]
+# sex determination for 1240k is based on fraction of Y chromosome
+def sex_determination(x_read_count, y_read_count):
+	sex_chromosome_count = x_read_count + y_read_count
+	minimum_sex_chromosome_count_for_sex_determination = 100
+	female_threshold = 0.1
+	male_threshold = 0.3
+	sex = 'U'
+	if sex_chromosome_count >= minimum_sex_chromosome_count_for_sex_determination:
+		if float(y_read_count) / sex_chromosome_count <= female_threshold:
+			sex = 'F'
+		elif float(y_read_count) / sex_chromosome_count >= male_threshold:
+			sex = 'M'
+	return sex
 
-autosome_read_count = 0
-x_read_count = 0
-y_read_count = 0
+if __name__ == '__main__':
+	# first argument is label to use
+	label = sys.argv[1]
+	# second through fourth arguments are counts of reads that align with targets
+	autosome_filename = sys.argv[2]
+	x_filename = sys.argv[3]
+	y_filename = sys.argv[4]
 
-key = os.path.basename(autosome_filename)
-while key.count('.') > 0:
-	key = os.path.splitext(key)[0] # filename without extension
+	autosome_read_count = 0
+	x_read_count = 0
+	y_read_count = 0
 
-with open(autosome_filename) as f:
-	line = next(f)
-	autosome_read_count = int(line)
-	
-with open(x_filename) as f:
-	line = next(f)
-	x_read_count = int(line)
+	key = os.path.basename(autosome_filename)
+	while key.count('.') > 0:
+		key = os.path.splitext(key)[0] # filename without extension
 
-with open(y_filename) as f:
-	line = next(f)
-	y_read_count = int(line)
+	with open(autosome_filename) as f:
+		line = next(f)
+		autosome_read_count = int(line)
 		
-			
-minimum_autosomal_read_hits_for_sex_determination = 50
-female_threshold = 0.01
-male_threshold = 0.05
-sex = 'U'
-if autosome_read_count >= minimum_autosomal_read_hits_for_sex_determination:
-	if float(y_read_count) / autosome_read_count < female_threshold:
-		sex = 'F'
-	elif float(y_read_count) / autosome_read_count >= male_threshold:
-		sex = 'M'
+	with open(x_filename) as f:
+		line = next(f)
+		x_read_count = int(line)
 
-print("%s\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%s" % (key,
-													label + '_autosome', autosome_read_count,
-													label + '_x', x_read_count, 
-													label + '_y', y_read_count,
-													label + '_sex', sex) 
+	with open(y_filename) as f:
+		line = next(f)
+		y_read_count = int(line)
+		
+	sex = sex_determination(x_read_count, y_read_count)
+	
+	print("%s\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%s" % (key,
+														label + '_autosome', autosome_read_count,
+														label + '_x', x_read_count, 
+														label + '_y', y_read_count,
+														label + '_sex', sex) 
 )
