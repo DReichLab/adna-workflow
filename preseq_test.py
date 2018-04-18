@@ -7,6 +7,8 @@ class TestPreseq(unittest.TestCase):
 	# This is from Ellora 20180312, processed with step size = reads / 4
 	preseq_table_filename = 'test/AGTTGGT_CGACCTG_ACGGTCT-CGTTAGA-GTAACTC-TACCGAG_CTAGACA-GACTCGC-TCGAGTG-AGTCTAT.preseq_table'
 	histogram_filename = 'test/AGTTGGT_CGACCTG_ACGGTCT-CGTTAGA-GTAACTC-TACCGAG_CTAGACA-GACTCGC-TCGAGTG-AGTCTAT.targets_histogram'
+	minimum_raw_reads = 3e6
+	expected_targets_per_raw_read_threshold = 0.01
 	
 	def test_read_table(self):
 		
@@ -39,13 +41,12 @@ class TestPreseq(unittest.TestCase):
 		
 	def test_preseq_analysis(self):
 		number_raw_reads = 11036945
-		minimum_raw_reads = 3e6
-		expected_targets_per_raw_read_threshold = 0.01
+		
 		reads_hitting_any_target, unique_reads = read_preseq_file(self.preseq_table_filename)
 		empiricalTargetEstimator = EmpiricalTargetEstimator(1.1, 0.9, -1)
 		total_hits, unique_targets = total_and_unique_target_hits(self.histogram_filename)
 		
-		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, minimum_raw_reads, expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
+		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, self.minimum_raw_reads, self.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
 		
 		self.assertAlmostEqual(0, values['preseq_raw_reads_inverse_e'], places=0)
 		
@@ -59,6 +60,31 @@ class TestPreseq(unittest.TestCase):
 		
 		expected_targets_at_threshold = 823460.771239422
 		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold'], places=0)
+		
+	def test_preseq_analysis2(self):
+		# This is from Ellora 20180312, processed with step size = reads / 4
+		preseq_table_filename2 = 'test/AGTTGGT_TCGCAGG_ATCGATT-CAGTCAA-GCTAGCC-TGACTGG_TACGTTC-ACGTAAG-CGTACCT-GTACGGA.preseq_table'
+		histogram_filename2 = 'test/AGTTGGT_TCGCAGG_ATCGATT-CAGTCAA-GCTAGCC-TGACTGG_TACGTTC-ACGTAAG-CGTACCT-GTACGGA.targets_histogram'
+		number_raw_reads = 4940280
+		reads_hitting_any_target, unique_reads = read_preseq_file(preseq_table_filename2)
+		empiricalTargetEstimator = EmpiricalTargetEstimator(1.1, 0.9, -1)
+		total_hits, unique_targets = total_and_unique_target_hits(histogram_filename2)
+		
+		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, self.minimum_raw_reads, self.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
+		
+		self.assertAlmostEqual(0, values['preseq_raw_reads_inverse_e'], places=0)
+		
+		expected_raw_reads_tenth = 2905372.16261659
+		self.assertAlmostEqual(expected_raw_reads_tenth, values['preseq_raw_reads_tenth'], places=0)
+		
+		expected_raw_reads_threshold = 17238839.8773326
+		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required'], places=0)
+		
+		expected_targets_at_threshold = 801650.833168125
+		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold'], places=0)
+
 		
 	def test_fail_to_open_preseq_file(self):
 		reads_hitting_any_target, unique_reads = read_preseq_file('does_not_exist')
