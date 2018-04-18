@@ -1002,8 +1002,8 @@ task preseq{
 			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} DuplicatesHistogram -i %s > %s" % (sorted_filename, unique_reads_histogram_filename), shell=True)
 			unique_read_count, total_count = count_unique_reads(unique_reads_histogram_filename)
 			
-			step = int(unique_read_count / 4)
-			extrapolation_max = int(unique_read_count * 5)
+			step = int(total_count / 4)
+			extrapolation_max = int(total_count * 5)
 			preseq_table_filename = sample_id + ".preseq_table"
 			if (unique_read_count > 0) and ((total_count  / unique_read_count) < 100):
 				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
