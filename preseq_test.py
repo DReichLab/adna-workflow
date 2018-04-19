@@ -1,14 +1,14 @@
 import unittest
 import tempfile
 import os.path
-from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis, find_xy_for_slope
+from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis, find_xy_for_slope, interpolate
 
 class TestPreseq(unittest.TestCase):
 	# This is from Ellora 20180312, processed with step size = reads / 4
+	#S11173.Y1.E1.L1
 	preseq_table_filename = 'test/AGTTGGT_CGACCTG_ACGGTCT-CGTTAGA-GTAACTC-TACCGAG_CTAGACA-GACTCGC-TCGAGTG-AGTCTAT.preseq_table'
 	histogram_filename = 'test/AGTTGGT_CGACCTG_ACGGTCT-CGTTAGA-GTAACTC-TACCGAG_CTAGACA-GACTCGC-TCGAGTG-AGTCTAT.targets_histogram'
 	minimum_raw_reads = 3e6
-	expected_targets_per_raw_read_threshold = 0.01
 	
 	def test_read_table(self):
 		
@@ -46,7 +46,7 @@ class TestPreseq(unittest.TestCase):
 		empiricalTargetEstimator = EmpiricalTargetEstimator(1.1, 0.9, -1)
 		total_hits, unique_targets = total_and_unique_target_hits(self.histogram_filename)
 		
-		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, self.minimum_raw_reads, self.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
+		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, self.minimum_raw_reads, empiricalTargetEstimator)
 		
 		self.assertAlmostEqual(0, values['preseq_raw_reads_inverse_e'], places=0)
 		
@@ -55,11 +55,11 @@ class TestPreseq(unittest.TestCase):
 		
 		expected_raw_reads_threshold = 18514435
 		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
-		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required'], places=0)
-		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required_0.01'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required_0.01'], places=0)
 		
 		expected_targets_at_threshold = 823460.771239422
-		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold'], places=0)
+		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold_0.01'], places=0)
 		
 	def test_preseq_analysis2(self):
 		# This is from Ellora 20180312, processed with step size = reads / 4
@@ -70,7 +70,7 @@ class TestPreseq(unittest.TestCase):
 		empiricalTargetEstimator = EmpiricalTargetEstimator(1.1, 0.9, -1)
 		total_hits, unique_targets = total_and_unique_target_hits(histogram_filename2)
 		
-		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, self.minimum_raw_reads, self.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
+		values = preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_hits, unique_targets, self.minimum_raw_reads, empiricalTargetEstimator)
 		
 		self.assertAlmostEqual(0, values['preseq_raw_reads_inverse_e'], places=0)
 		
@@ -79,12 +79,17 @@ class TestPreseq(unittest.TestCase):
 		
 		expected_raw_reads_threshold = 17238839.8773326
 		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
-		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required'], places=0)
-		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required_0.01'], places=0)
+		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required_0.01'], places=0)
 		
 		expected_targets_at_threshold = 801650.833168125
-		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold'], places=0)
-
+		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold_0.01'], places=0)
+		
+	def test_preseq_analysis3(self):
+		# TODO
+		#S11170.Y1.E1.L1
+		#GGACGCA_CCAGCGG_GTTGACT-TAATCGA-ACCAGTC-CGGCTAG_CGATGTA-GTCATAC-TAGCACG-ACTGCGT
+		pass
 		
 	def test_fail_to_open_preseq_file(self):
 		reads_hitting_any_target, unique_reads = read_preseq_file('does_not_exist')
@@ -179,6 +184,23 @@ class TestPreseq(unittest.TestCase):
 		x, y = find_xy_for_slope(X, Y, 0.075)
 		self.assertAlmostEqual(350, x)
 		self.assertAlmostEqual(73.75, y)
+	
+	def test_interpolate(self):
+		X = [0, 100, 200, 300, 400]
+		Y = [0, 40, 60, 70, 75]
 		
+		self.assertEqual(0, interpolate(X, Y, 0))
+		self.assertEqual(40, interpolate(X, Y, 100))
+		self.assertEqual(60, interpolate(X, Y, 200))
+		self.assertEqual(70, interpolate(X, Y, 300))
+		self.assertEqual(75, interpolate(X, Y, 400))
+		
+		self.assertEqual(20, interpolate(X, Y, 50))
+		self.assertEqual(45, interpolate(X, Y, 125))
+		self.assertEqual(72.5, interpolate(X, Y, 350))
+		
+		out_of_range = interpolate(X, Y, 500)
+		self.assertTrue(out_of_range.startswith('>75'))
+	
 if __name__ == '__main__':
 	unittest.main()

@@ -6,7 +6,7 @@ import argparse
 
 # raw_reads 
 # number of distinct targets hit
-def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, minimum_raw_reads, expected_targets_per_raw_read_threshold, empiricalTargetEstimator):
+def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, minimum_raw_reads, empiricalTargetEstimator):
 	length = len(reads_hitting_any_target)
 	if length != len(unique_reads):
 		raise ValueError('length mismatch between entries in reads_hitting_any_target and unique_reads')
@@ -29,21 +29,28 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	
 	raw_reads_inverse_e, ignored = find_xy_for_slope(raw_reads, estimated_targets, inverse_e)
 	raw_reads_tenth, ignored = find_xy_for_slope(raw_reads, estimated_targets, tenth)
-	raw_reads_threshold, expected_unique_targets_at_threshold = find_xy_for_slope(raw_reads, estimated_targets, expected_targets_per_raw_read_threshold)
 	
-	total_reads_required = max(raw_reads_threshold, minimum_raw_reads)
-		
-	additional_reads_required = max(total_reads_required - number_raw_reads, 0)
+	# ratio of unique targets to raw reads
+	thresholds = ['0.01', '0.075', '0.005']
+	total_reads_required = {}
+	expected_unique_targets_at_threshold = {}
+	additional_reads_required = {}
+	
+	for threshold in thresholds:
+		raw_reads_threshold, expected_unique_targets_at_threshold[threshold] = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
+		total_reads_required[threshold] = max(raw_reads_threshold, minimum_raw_reads)
+		additional_reads_required[threshold] = max(total_reads_required[threshold] - number_raw_reads, 0)
 	
 	values = {
 		'number_raw_reads': number_raw_reads,
 		'preseq_unique_targets_hit': unique_targets_hit,
 		'preseq_raw_reads_inverse_e': raw_reads_inverse_e,
 		'preseq_raw_reads_tenth': raw_reads_tenth,
-		'preseq_total_reads_required': total_reads_required,
-		'preseq_additional_reads_required': additional_reads_required,
-		'preseq_expected_unique_targets_at_threshold': expected_unique_targets_at_threshold
-		}
+	}
+	for threshold in thresholds:
+		values['preseq_total_reads_required_' + threshold] = total_reads_required[threshold]
+		values['preseq_additional_reads_required_' + threshold] = additional_reads_required[threshold]
+		values['preseq_expected_unique_targets_at_threshold_' + threshold] = expected_unique_targets_at_threshold[threshold]
 	return values
 
 # assuming decreasing slope, find x, y such that the slope is the slope_threshold
@@ -73,6 +80,25 @@ def find_xy_for_slope(x, y, slope_threshold):
 	y_at_threshold = y[i] + slope_threshold * (x_at_threshold - x[i])
 	
 	return x_at_threshold, y_at_threshold
+
+def interpolate(X, Y, x):
+	if len(X) != len(Y):
+		raise ValueError('length mismatch')
+	# find position where x[i] <= x < x[i+1]
+	i = len(X)-1
+	while (i > 0) and (x < X[i]):
+		i -= 1
+	
+	if i == len(X)-1:
+		if x > X[i]:
+			return '>{:.1f}'.format(Y[i])
+		else:
+			return Y[i]
+	
+	slope = (Y[i+1] - Y[i]) / (X[i+1] - X[i])
+	x_change = x - X[i]
+	y = Y[i] + slope * x_change
+	return y
 
 # count number of reads overlapping any target and number of unique targets hit
 # This histogram is not the input to preseq. It counts the number of reads
@@ -133,7 +159,8 @@ if __name__ == '__main__':
 	parser.add_argument("-n", "--number_raw_reads", help="number of raw reads demultiplexing", type=int, required=True)
 	# minimum raw reads required for a library
 	parser.add_argument("-m", "--minimum_raw_reads", help="minimum required number of raw reads demultiplexing", type=int, default=3e6)
-	parser.add_argument("-t", "--expected_targets_per_raw_read_threshold", help="threshold for ratio of expected unique targets hit to raw demultiplexing reads", type=float, default=0.01)
+	parser.add_argument("-r", "--total_reads_hitting_any_target_actual", help="Reads hitting any autosome target, used for computing read ratio", type=int, required=True)
+	#parser.add_argument("-t", "--expected_targets_per_raw_read_threshold", help="threshold for ratio of expected unique targets hit to raw demultiplexing reads", type=float, default=0.01)
 	
 	# empirical model parameters
 	parser.add_argument("-a", "--modelParameterA", help="parameter for empirical model of unique reads to total targets covered", type=float, default=1)
@@ -148,12 +175,12 @@ if __name__ == '__main__':
 	empiricalTargetEstimator = EmpiricalTargetEstimator(args.modelParameterA, args.modelParameterB, args.modelParameterPower)
 	
 	# empirically measured parameters to extrapolate from
-	total_reads_hitting_any_target_actual, unique_targets_hit = total_and_unique_target_hits(args.target_histogram_filename)
+	target_hits_ignored, unique_targets_hit = total_and_unique_target_hits(args.target_histogram_filename)
 
 	# read preseq table from file
 	reads_hitting_any_target, unique_reads = read_preseq_file(args.preseq_filename)
 	
-	values = preseq_analysis(reads_hitting_any_target, unique_reads, args.number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, args.minimum_raw_reads, args.expected_targets_per_raw_read_threshold, empiricalTargetEstimator)
+	values = preseq_analysis(reads_hitting_any_target, unique_reads, args.number_raw_reads, args.total_reads_hitting_any_target_actual, unique_targets_hit, args.minimum_raw_reads, empiricalTargetEstimator)
 	
 	# output
 	print(args.key, end='\t')
