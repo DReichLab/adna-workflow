@@ -1,14 +1,23 @@
-from __future__ import print_function
 # combine statistics from samples with damage reports into a tab-separated file readable by MS Excel
 import sys
 import math
+import argparse
 
 READS_THRESHOLD_TO_REPORT_KEY = 25000
 
-headersToReport = ['sample_sheet_key',
-				   'library_id',
-				   'plate_id',
-				   'experiment',
+headersToReport = [
+	'sample_sheet_key',
+	'library_id',
+	'plate_id',
+	'experiment',
+	'i5',
+	'i7',
+	'p5_barcode',
+	'p7_barcode',
+	'sample_sheet_i5',
+	'sample_sheet_i7',
+	'sample_sheet_p5_barcode',
+	'sample_sheet_p7_barcode',
 				   'raw', 
 				   'merged', 
 				   'endogenous_pre',
@@ -231,10 +240,62 @@ def recommendation_spike3k(sample):
 		return 'pass'
 	elif recommendation_value == PENDING:
 		return 'pending'
+	
+# parse an index-barcode key into labels
+def parse_index_barcode_key_into_labels(key, i5_labels, i7_labels, barcode_labels):
+	i5 = i7 = p5 = p7 = ''
+	try:
+		i5_sequence, i7_sequence, p5_sequence_set, p7_sequence_set = key.split('_')
+		i5 = sequence_to_label(i5_sequence, i5_labels)
+		i7 = sequence_to_label(i7_sequence, i7_labels)
+		p5 = sequence_to_label(p5_sequence_set, barcode_labels)
+		p7 = sequence_to_label(p7_sequence_set, barcode_labels)
+	except:
+		pass
+	return i5, i7, p5, p7
+
+# if any component sequences are not in the dictionary, then return the sequence
+def sequence_to_label(sequence, labels):
+	if sequence in labels:
+		return labels[sequence]
+	else:
+		return sequence
+
+# return a map of sequences to labels
+# Labels are much easier to read than the sequences
+def sequence_labels(filename):
+	mapping = {}
+	try:
+		with open(filename) as f:
+			for line in f:
+				fields = line.split()
+				sequence_string = fields[0]
+				label = fields[1]
+				mapping[sequence_string] = label # set (or singleton) is always labeled
+				if ':' in sequence_string: # for Q barcodes, each individual sequence has a name
+					sequences = sequence_string.split(':')
+					for i in range(len(sequences)):
+						mapping[sequences[i]] = fields[2+i]
+	except:
+		pass
+	return mapping
 
 if __name__ == '__main__':
+	parser = argparse.ArgumentParser(description="Combine ancient DNA analysis outputs into a single file keyed by index-barcode key")
+	parser.add_argument("--barcode_labels_filename", help="File containing mapping of barcode sequences (P5 and P7) to labels")
+	parser.add_argument("--i5_labels_filename", help="File containing mapping of i5 sequences to labels")
+	parser.add_argument("--i7_labels_filename", help="File containing mapping of i7 sequences to labels")
+	parser.add_argument("statistics_filename", help="File containing read count total and per sample")
+	parser.add_argument("index_barcode_filename", help="Map from index-barcode key to library ID, plate ID, and experiment")
+	parser.add_argument("keyed_values", help="Any number of files containing keyed values. First column is index-barcode key, followed by pairs of (field name, value) columns", nargs='*')
+	args = parser.parse_args()
+	
+	barcode_labels = sequence_labels(args.barcode_labels_filename)
+	i5_labels = sequence_labels(args.i5_labels_filename)
+	i7_labels = sequence_labels(args.i7_labels_filename)
+	
 	# read from stats
-	statsFilename = sys.argv[1]
+	statsFilename = args.statistics_filename
 	with open(statsFilename, "r") as f:
 		line = f.readline()
 		total_reads = int(line)
@@ -243,7 +304,7 @@ if __name__ == '__main__':
 		
 	# mapping from index and barcodes to sample/extract/library ID and plate ID
 	keyMapping = dict()
-	keyMappingFilename = sys.argv[2]
+	keyMappingFilename = args.index_barcode_filename
 	with open(keyMappingFilename, "r") as f:
 		for line in f:
 			fields = [x.strip() for x in line.split('\t')]
@@ -255,17 +316,21 @@ if __name__ == '__main__':
 
 	# read from damages, medians, haplogroups
 	# these are all files with the index barcode keys and additional keyed fields
-	filenames = sys.argv[3:len(sys.argv)]
+	filenames = args.keyed_values
 	for filename in filenames:
 		with open(filename, "r") as f:
 			addToSamples(f)
 			
 	# populate additional sample fields
 	for sampleID in samples:
+		singleSample = samples[sampleID]
+		# parse index-barcode fields into components
+		singleSample['i5'], singleSample['i7'], singleSample['p5_barcode'], singleSample['p7_barcode'] = parse_index_barcode_key_into_labels(sampleID, i5_labels, i7_labels, barcode_labels)
 		# add sample/extract/library ID, if available
 		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'], samples[sampleID]['plate_id'], samples[sampleID]['experiment'] = findSampleSheetEntry(sampleID, keyMapping)
+		singleSample['sample_sheet_i5'], singleSample['sample_sheet_i7'], singleSample['sample_sheet_p5_barcode'], singleSample['sample_sheet_p7_barcode'] = parse_index_barcode_key_into_labels(singleSample.get('sample_sheet_key', ''), i5_labels, i7_labels, barcode_labels)
 		# add % endogenous
-		singleSample = samples[sampleID]
+		
 		if ('autosome_pre' in singleSample
 		or 'X_pre' in singleSample
 		or 'Y_pre' in singleSample

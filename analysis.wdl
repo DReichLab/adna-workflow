@@ -7,6 +7,10 @@ workflow adna_analysis{
 	Array[File] demultiplex_statistics_files = read_lines(demultiplex_statistics_file_list)
 	File index_barcode_keys
 	
+	File labeled_barcodes
+	File labeled_i5
+	File labeled_i7
+	
 	String dataset_label
 	String date
 	
@@ -370,6 +374,9 @@ workflow adna_analysis{
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = preliminary_keyed_statistics,
 		index_barcode_keys = index_barcode_keys,
+		labeled_barcodes = labeled_barcodes,
+		labeled_i5 = labeled_i5,
+		labeled_i7 = labeled_i7,
 		dataset_label = dataset_label,
 		date = date
 	}
@@ -388,6 +395,9 @@ workflow adna_analysis{
 		aggregated_statistics = aggregate_statistics_final.statistics,
 		keyed_statistics = final_keyed_statistics,
 		index_barcode_keys = index_barcode_keys,
+		labeled_barcodes = labeled_barcodes,
+		labeled_i5 = labeled_i5,
+		labeled_i7 = labeled_i7,
 		dataset_label = dataset_label,
 		date = date
 	}
@@ -1015,7 +1025,7 @@ task preseq{
 			targets_histogram_filename = sample_id + ".targets_histogram"
 			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
 			# keyed statistics are written to stdout 
-			result = subprocess.check_output("python3 ${python_preseq_process} %s %s -n %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, preseq_table_filename, raw_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
+			result = subprocess.check_output("python3 ${python_preseq_process} %s %s -n %d -r %d -a ${model_a} -b ${model_b} -k %s | tee %s" % (targets_histogram_filename, preseq_table_filename, raw_count, total_count, sample_id_key_not_filename, sample_id + '.final_results'), shell=True)
 			return result.strip()
 		
 		bams_string = "${sep=',' bams}"
@@ -1134,11 +1144,15 @@ task prepare_report{
 	# they do not contain a leading number of reads
 	Array[File] keyed_statistics
 	
+	File labeled_barcodes
+	File labeled_i5
+	File labeled_i7
+	
 	String dataset_label
 	String date
 	
 	command{
-		python3 ${python_prepare_report} ${aggregated_statistics} ${index_barcode_keys} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
+		python3 ${python_prepare_report} --barcode_labels_filename ${labeled_barcodes} --i5_labels_filename ${labeled_i5} --i7_labels_filename ${labeled_i7} ${aggregated_statistics} ${index_barcode_keys} ${sep=' ' keyed_statistics} > ${date}_${dataset_label}.report
 	}
 	output{
 		File report = "${date}_${dataset_label}.report"
