@@ -54,13 +54,13 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	return values
 
 # assuming decreasing slope, find x, y such that the slope is the slope_threshold
-def find_xy_for_slope(x, y, slope_threshold):
-	if len(x) != len(y):
+def find_xy_for_slope(X, Y, slope_threshold):
+	if len(X) != len(Y):
 		raise ValueError('length mismatch')
-	length = len(y)
+	length = len(Y)
 	slopes = [float('inf')]
 	for i in range(1,length):
-		slope = (y[i] - y[i-1]) / (x[i] - x[i-1])
+		slope = (Y[i] - Y[i-1]) / (X[i] - X[i-1])
 		slopes.append(slope)
 	
 	i = len(slopes)-1
@@ -70,14 +70,14 @@ def find_xy_for_slope(x, y, slope_threshold):
 	if i == 0:
 		return 0, 0
 	elif i == len(slopes)-1:
-		return x[i], y[i]
+		return X[i], Y[i]
 	
 	slope_change = slopes[i+1] - slopes[i]
-	x_change = x[i+1] - x[i]
-	x_at_threshold = x[i] + (slope_threshold - slopes[i]) / slope_change * x_change
+	x_change = X[i+1] - X[i]
+	x_at_threshold = X[i] + (slope_threshold - slopes[i]) / slope_change * x_change
 	# this is not exact: we are mixing a piecewise linear model with acceleration
 	# just use the threshold value
-	y_at_threshold = y[i] + slope_threshold * (x_at_threshold - x[i])
+	y_at_threshold = Y[i] + slope_threshold * (x_at_threshold - X[i])
 	
 	return x_at_threshold, y_at_threshold
 
