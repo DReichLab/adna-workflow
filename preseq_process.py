@@ -39,7 +39,7 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	raw_reads_tenth, ignored = find_xy_for_slope(raw_reads, estimated_targets, tenth)
 	
 	# ratio of unique targets to raw reads
-	unique_target_thresholds = ['0.01', '0.075', '0.005']
+	unique_target_thresholds = ['0.01', '0.0075', '0.005']
 	total_reads_required = {}
 	expected_unique_targets_at_threshold = {}
 	coverage_at_threshold = {}
