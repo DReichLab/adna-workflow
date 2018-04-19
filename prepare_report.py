@@ -43,8 +43,11 @@ headersToReport = [
 				   'damage_rsrs_ct2',
 				   'damage_rsrs_ga1',
 				   'damage_rsrs_ga2',
-				   'Haplogroup',
-				   'Haplogroup_rank',
+				   'MT_Haplogroup',
+				   'MT_Haplogroup_rank',
+				   'MT_Haplogroup_NotFoundPolys',
+				   'MT_Haplogroup_FoundPolys',
+				   'MT_Haplogroup_RemainingPolys',
 				   #spike3k is obsolete
 				   #'spike3k_pre_autosome',
 				   #'spike3k_pre_x',
