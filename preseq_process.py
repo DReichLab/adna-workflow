@@ -4,8 +4,16 @@
 from __future__ import print_function
 import argparse
 
-# raw_reads 
-# number of distinct targets hit
+# preseq projects the number of unique reads given a number of reads, given a histogram of reads at a particular point
+# We analyze four different quantities
+# 1. raw_reads 
+# 2. reads hitting a 1240k autosome target
+# 3. unique reads hitting a 1240k autosome target
+# 4. number of distinct 1240k targets hit
+
+# 1 is assumed to be related to 2 by a constant ratio
+# preseq computes the function between 2 and 3
+# 4 is computed from 3 using an empirical model
 def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, total_reads_hitting_any_target_actual, unique_targets_hit, minimum_raw_reads, empiricalTargetEstimator):
 	length = len(reads_hitting_any_target)
 	if length != len(unique_reads):
@@ -31,15 +39,11 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	raw_reads_tenth, ignored = find_xy_for_slope(raw_reads, estimated_targets, tenth)
 	
 	# ratio of unique targets to raw reads
-	thresholds = ['0.01', '0.075', '0.005']
+	unique_target_thresholds = ['0.01', '0.075', '0.005']
 	total_reads_required = {}
 	expected_unique_targets_at_threshold = {}
+	coverage_at_threshold = {}
 	additional_reads_required = {}
-	
-	for threshold in thresholds:
-		raw_reads_threshold, expected_unique_targets_at_threshold[threshold] = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
-		total_reads_required[threshold] = max(raw_reads_threshold, minimum_raw_reads)
-		additional_reads_required[threshold] = max(total_reads_required[threshold] - number_raw_reads, 0)
 	
 	values = {
 		'number_raw_reads': number_raw_reads,
@@ -47,10 +51,30 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		'preseq_raw_reads_inverse_e': raw_reads_inverse_e,
 		'preseq_raw_reads_tenth': raw_reads_tenth,
 	}
-	for threshold in thresholds:
+	for threshold in unique_target_thresholds:
+		raw_reads_threshold, expected_unique_targets_at_threshold[threshold] = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
+		total_reads_required[threshold] = max(raw_reads_threshold, minimum_raw_reads)
+		additional_reads_required[threshold] = max(total_reads_required[threshold] - number_raw_reads, 0)
+		#reads_hitting_any_target_at_threshold = interpolate(raw_reads, reads_hitting_any_target, raw_reads_threshold)
+		unique_reads_hitting_any_target_at_threshold = interpolate(raw_reads, unique_reads, raw_reads_threshold)
+	
 		values['preseq_total_reads_required_' + threshold] = total_reads_required[threshold]
 		values['preseq_additional_reads_required_' + threshold] = additional_reads_required[threshold]
 		values['preseq_expected_unique_targets_at_threshold_' + threshold] = expected_unique_targets_at_threshold[threshold]
+		values['preseq_target_coverage_at_threshold_' + threshold] = unique_reads_hitting_any_target_at_threshold / empiricalTargetEstimator.total_autosome_targets
+		
+		if raw_reads_threshold == raw_reads[-1]: # outside of preseq projections
+			values['preseq_total_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_total_reads_required_' + threshold])
+			values['preseq_additional_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_additional_reads_required_' + threshold])
+	
+	# marginal uniqueness threshold
+	marginal_uniqueness_thresholds = ['0.10']
+	for threshold in marginal_uniqueness_thresholds:
+		reads_hitting_any_target_at_threshold, unique_reads_hitting_any_target_at_threshold = find_xy_for_slope(reads_hitting_any_target, unique_reads, float(threshold))
+		
+		coverage = unique_reads_hitting_any_target_at_threshold / empiricalTargetEstimator.total_autosome_targets
+		values['preseq_coverage_at_marginal_uniqueness_' + threshold] = coverage if (reads_hitting_any_target_at_threshold < reads_hitting_any_target[-1]) else ('>{:.3f}'.format(coverage))
+		
 	return values
 
 # assuming decreasing slope, find x, y such that the slope is the slope_threshold

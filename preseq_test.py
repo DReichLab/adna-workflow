@@ -57,12 +57,14 @@ class TestPreseq(unittest.TestCase):
 		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
 		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required_0.01'], places=0)
 		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required_0.01'], places=0)
+		self.assertAlmostEqual(3.01, values['preseq_target_coverage_at_threshold_0.01'], places=2)
 		
 		expected_targets_at_threshold = 823460.771239422
 		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold_0.01'], places=0)
 		
 	def test_preseq_analysis2(self):
 		# This is from Ellora 20180312, processed with step size = reads / 4
+		#S11158.Y1.E1.L1
 		preseq_table_filename2 = 'test/AGTTGGT_TCGCAGG_ATCGATT-CAGTCAA-GCTAGCC-TGACTGG_TACGTTC-ACGTAAG-CGTACCT-GTACGGA.preseq_table'
 		histogram_filename2 = 'test/AGTTGGT_TCGCAGG_ATCGATT-CAGTCAA-GCTAGCC-TGACTGG_TACGTTC-ACGTAAG-CGTACCT-GTACGGA.targets_histogram'
 		number_raw_reads = 4940280
@@ -81,9 +83,12 @@ class TestPreseq(unittest.TestCase):
 		self.assertAlmostEqual(number_raw_reads, values['number_raw_reads'], places=0)
 		self.assertAlmostEqual(expected_raw_reads_threshold, values['preseq_total_reads_required_0.01'], places=0)
 		self.assertAlmostEqual(expected_raw_reads_threshold - number_raw_reads, values['preseq_additional_reads_required_0.01'], places=0)
+		self.assertTrue(values['preseq_total_reads_required_0.005'].startswith('>22356844'))
 		
 		expected_targets_at_threshold = 801650.833168125
 		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold_0.01'], places=0)
+		
+		self.assertTrue(values['preseq_coverage_at_marginal_uniqueness_0.10'].startswith('>3.35'))
 		
 	def test_preseq_analysis3(self):
 		# TODO
