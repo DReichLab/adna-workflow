@@ -15,6 +15,8 @@ def read_groups_from_bam(bam_filename):
 		pattern = re.compile('@RG\s+ID:(\S+)')
 		match_obj = pattern.match(line)
 		read_group = match_obj.group(1)
+		if ':' in read_group:
+			raise ValueError("read groups cannot contain ':'")
 		read_groups.append(read_group)
 	sorted_read_groups = sorted(read_groups)
 	return sorted_read_groups
