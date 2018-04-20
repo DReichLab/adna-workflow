@@ -1,6 +1,7 @@
 import unittest
 import tempfile
 import os.path
+import subprocess
 from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis, find_xy_for_slope, interpolate
 
 class TestPreseq(unittest.TestCase):
@@ -95,6 +96,22 @@ class TestPreseq(unittest.TestCase):
 		#S11170.Y1.E1.L1
 		#GGACGCA_CCAGCGG_GTTGACT-TAATCGA-ACCAGTC-CGGCTAG_CGATGTA-GTCATAC-TAGCACG-ACTGCGT
 		pass
+	
+	# test that a command line invocation completes
+	def test_command_line(self):
+		key = 'AGGTATT_AACCTGC_CCTGCAG-GGATGCT-TTCATGA-AAGCATC_CTCTGGA-GAGATTC-TCTCAAG-AGAGCCT'
+		target_histogram_filename = 'test/{}.targets_histogram'.format(key)
+		empty = 'test/{}.preseq_table'.format(key)
+		completed = subprocess.run(['python3', 'preseq_process.py', '-a', '1.1', '-b', '0.9', '-n', '1603322', '-r', '12801', '-k', key, target_histogram_filename, empty], stdout=subprocess.PIPE, check=True)
+		self.assertEqual(0, completed.returncode)
+		
+		fields = completed.stdout.decode('utf-8').split('\t')
+		#print(fields)
+		output_key = fields[0]
+		self.assertEqual(key, output_key)
+		values = dict(zip(fields[1::2], fields[2::2]))
+		self.assertEqual(1603322, int(values['number_raw_reads']))
+		self.assertEqual(12819, int(values['preseq_unique_targets_hit']))
 		
 	def test_fail_to_open_preseq_file(self):
 		reads_hitting_any_target, unique_reads = read_preseq_file('does_not_exist')
@@ -129,14 +146,35 @@ class TestPreseq(unittest.TestCase):
 			total_hits, unique_targets = total_and_unique_target_hits(empty_filename)
 			self.assertEqual(0, total_hits)
 			self.assertEqual(0, unique_targets)
+	
+	def test_target_histogram_file(self):
+		total_hits, unique_targets = total_and_unique_target_hits(self.histogram_filename)
+		self.assertEqual(2226266, total_hits)
+		self.assertEqual(574843, unique_targets)
 			
 	def test_find_xy_for_slope_empty(self):
 		X = []
 		Y = []
+		self.assertRaises(ValueError, find_xy_for_slope, X, Y, 1.0)
 		
+	def test_find_xy_for_slope_single_point(self):
+		X = [1]
+		Y = [1]
+		self.assertRaises(ValueError, find_xy_for_slope, X, Y, 1.0)
+		
+	def test_find_xy_for_slope_single_all_less_than_threshold(self):
+		X = [0, 2]
+		Y = [0, 1]
 		x, y = find_xy_for_slope(X, Y, 1.0)
-		self.assertAlmostEqual(0, x)
-		self.assertAlmostEqual(0, y)
+		self.assertEqual(0, x)
+		self.assertEqual(0, y)
+		
+	def test_find_xy_for_slope_single_all_greater_than_threshold(self):
+		X = [0, 2]
+		Y = [0, 1]
+		x, y = find_xy_for_slope(X, Y, 0.1)
+		self.assertEqual(2, x)
+		self.assertEqual(1, y)
 	
 	def test_find_xy_for_slope_too_high(self):
 		X = [0, 100, 200, 300, 400]
@@ -206,6 +244,11 @@ class TestPreseq(unittest.TestCase):
 		
 		out_of_range = interpolate(X, Y, 500)
 		self.assertTrue(out_of_range.startswith('>75'))
+		
+	def test_interpolate_empty(self):
+		X = []
+		Y = []
+		self.assertRaises(ValueError, interpolate, X, Y, 0)
 	
 if __name__ == '__main__':
 	unittest.main()

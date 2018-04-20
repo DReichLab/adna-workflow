@@ -22,8 +22,8 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	inverse_e = 0.3678794
 	tenth = 0.1
 	
-	reads_inverse_e = float('inf')
-	reads_tenth = float('inf')
+	raw_reads_inverse_e = float('inf')
+	raw_reads_tenth = float('inf')
 	
 	# not all demultiplexing reads merge, align, or map to targets
 	# use a simple ratio to translate between reads for preseq and demultiplexing reads
@@ -35,8 +35,11 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	raw_reads = [x * read_ratio for x in reads_hitting_any_target]
 	estimated_targets = [empiricalTargetEstimator.unique_reads_to_empirical_targets(x) for x in unique_reads]
 	
-	raw_reads_inverse_e, ignored = find_xy_for_slope(raw_reads, estimated_targets, inverse_e)
-	raw_reads_tenth, ignored = find_xy_for_slope(raw_reads, estimated_targets, tenth)
+	try:
+		raw_reads_inverse_e, ignored = find_xy_for_slope(raw_reads, estimated_targets, inverse_e)
+		raw_reads_tenth, ignored = find_xy_for_slope(raw_reads, estimated_targets, tenth)
+	except:
+		pass
 	
 	# ratio of unique targets to raw reads
 	unique_target_thresholds = ['0.01', '0.0075', '0.005']
@@ -47,36 +50,53 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		'preseq_raw_reads_inverse_e': raw_reads_inverse_e,
 		'preseq_raw_reads_tenth': raw_reads_tenth,
 	}
+	# fill out values so something is always returned
 	for threshold in unique_target_thresholds:
-		raw_reads_threshold, expected_unique_targets_at_threshold = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
+		raw_reads_threshold = 0
+		expected_unique_targets_at_threshold = -1
+		try:
+			raw_reads_threshold, expected_unique_targets_at_threshold = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
+		except:
+			pass
 		total_reads_required = max(raw_reads_threshold, minimum_raw_reads)
 		additional_reads_required = max(total_reads_required - number_raw_reads, 0)
-		#reads_hitting_any_target_at_threshold = interpolate(raw_reads, reads_hitting_any_target, raw_reads_threshold)
-		unique_reads_hitting_any_target_at_threshold = interpolate(raw_reads, unique_reads, raw_reads_threshold)
+		unique_reads_hitting_any_target_at_threshold = 0
+		try:
+			unique_reads_hitting_any_target_at_threshold = interpolate(raw_reads, unique_reads, raw_reads_threshold)
+		except:
+			pass
 	
 		values['preseq_total_reads_required_' + threshold] = total_reads_required
 		values['preseq_additional_reads_required_' + threshold] = additional_reads_required
 		values['preseq_expected_unique_targets_at_threshold_' + threshold] = expected_unique_targets_at_threshold
 		values['preseq_target_coverage_at_threshold_' + threshold] = unique_reads_hitting_any_target_at_threshold / empiricalTargetEstimator.total_autosome_targets
 		
-		if raw_reads_threshold == raw_reads[-1]: # outside of preseq projections
+		if len(raw_reads) > 0 and raw_reads_threshold == raw_reads[-1]: # outside of preseq projections
 			values['preseq_total_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_total_reads_required_' + threshold])
 			values['preseq_additional_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_additional_reads_required_' + threshold])
 	
 	# marginal uniqueness threshold
 	marginal_uniqueness_thresholds = ['0.10']
 	for threshold in marginal_uniqueness_thresholds:
-		reads_hitting_any_target_at_threshold, unique_reads_hitting_any_target_at_threshold = find_xy_for_slope(reads_hitting_any_target, unique_reads, float(threshold))
+		reads_hitting_any_target_at_threshold = 0
+		unique_reads_hitting_any_target_at_threshold = 0
+		try:
+			reads_hitting_any_target_at_threshold, unique_reads_hitting_any_target_at_threshold = find_xy_for_slope(reads_hitting_any_target, unique_reads, float(threshold))
+		except:
+			pass
 		
 		coverage = unique_reads_hitting_any_target_at_threshold / empiricalTargetEstimator.total_autosome_targets
-		values['preseq_coverage_at_marginal_uniqueness_' + threshold] = coverage if (reads_hitting_any_target_at_threshold < reads_hitting_any_target[-1]) else ('>{:.3f}'.format(coverage))
+		values['preseq_coverage_at_marginal_uniqueness_' + threshold] = coverage if (len(reads_hitting_any_target) > 0) and (reads_hitting_any_target_at_threshold < reads_hitting_any_target[-1]) else ('>{:.3f}'.format(coverage))
 		
 	return values
 
 # assuming decreasing slope, find x, y such that the slope is the slope_threshold
+# if slope is already less than threshold, report first value
 def find_xy_for_slope(X, Y, slope_threshold):
 	if len(X) != len(Y):
 		raise ValueError('length mismatch')
+	if len(X) < 2:
+		raise ValueError('no slope can be computed')
 	length = len(Y)
 	slopes = [float('inf')]
 	for i in range(1,length):
@@ -88,7 +108,7 @@ def find_xy_for_slope(X, Y, slope_threshold):
 		i -= 1
 	# edge cases
 	if i == 0:
-		return 0, 0
+		return X[0], Y[0]
 	elif i == len(slopes)-1:
 		return X[i], Y[i]
 	
@@ -104,6 +124,8 @@ def find_xy_for_slope(X, Y, slope_threshold):
 def interpolate(X, Y, x):
 	if len(X) != len(Y):
 		raise ValueError('length mismatch')
+	if len(X) == 0:
+		raise ValueError('no data to interpolate')
 	# find position where x[i] <= x < x[i+1]
 	i = len(X)-1
 	while (i > 0) and (x < X[i]):
