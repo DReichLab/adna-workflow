@@ -40,10 +40,6 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	
 	# ratio of unique targets to raw reads
 	unique_target_thresholds = ['0.01', '0.0075', '0.005']
-	total_reads_required = {}
-	expected_unique_targets_at_threshold = {}
-	coverage_at_threshold = {}
-	additional_reads_required = {}
 	
 	values = {
 		'number_raw_reads': number_raw_reads,
@@ -52,15 +48,15 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 		'preseq_raw_reads_tenth': raw_reads_tenth,
 	}
 	for threshold in unique_target_thresholds:
-		raw_reads_threshold, expected_unique_targets_at_threshold[threshold] = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
-		total_reads_required[threshold] = max(raw_reads_threshold, minimum_raw_reads)
-		additional_reads_required[threshold] = max(total_reads_required[threshold] - number_raw_reads, 0)
+		raw_reads_threshold, expected_unique_targets_at_threshold = find_xy_for_slope(raw_reads, estimated_targets, float(threshold))
+		total_reads_required = max(raw_reads_threshold, minimum_raw_reads)
+		additional_reads_required = max(total_reads_required - number_raw_reads, 0)
 		#reads_hitting_any_target_at_threshold = interpolate(raw_reads, reads_hitting_any_target, raw_reads_threshold)
 		unique_reads_hitting_any_target_at_threshold = interpolate(raw_reads, unique_reads, raw_reads_threshold)
 	
-		values['preseq_total_reads_required_' + threshold] = total_reads_required[threshold]
-		values['preseq_additional_reads_required_' + threshold] = additional_reads_required[threshold]
-		values['preseq_expected_unique_targets_at_threshold_' + threshold] = expected_unique_targets_at_threshold[threshold]
+		values['preseq_total_reads_required_' + threshold] = total_reads_required
+		values['preseq_additional_reads_required_' + threshold] = additional_reads_required
+		values['preseq_expected_unique_targets_at_threshold_' + threshold] = expected_unique_targets_at_threshold
 		values['preseq_target_coverage_at_threshold_' + threshold] = unique_reads_hitting_any_target_at_threshold / empiricalTargetEstimator.total_autosome_targets
 		
 		if raw_reads_threshold == raw_reads[-1]: # outside of preseq projections
@@ -209,5 +205,11 @@ if __name__ == '__main__':
 	# output
 	print(args.key, end='\t')
 	for key in values:
-		print('{}\t{:.0f}'.format(key, values[key]), end='\t')
+		print(key, end='\t')
+		if str(values[key].startswith('>')):
+			print('{}'.format(values[key]), end='\t')
+		elif 'coverage' in key:
+			print('{:.3f}'.format(values[key]), end='\t')
+		else:
+			print('{:.0f}'.format(values[key]), end='\t')
 
