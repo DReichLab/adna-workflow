@@ -206,7 +206,7 @@ if __name__ == '__main__':
 	print(args.key, end='\t')
 	for key in values:
 		print(key, end='\t')
-		if str(values[key].startswith('>')):
+		if str(values[key]).startswith('>'):
 			print('{}'.format(values[key]), end='\t')
 		elif 'coverage' in key:
 			print('{:.3f}'.format(values[key]), end='\t')
