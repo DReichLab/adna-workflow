@@ -7,7 +7,7 @@ import argparse
 from read_groups_from_bam import read_groups_from_bam
 
 # Nick's pulldown program has an input file 
-pulldown_parameters = '''BASE: /home/np29
+pulldown_parameters_base = '''BASE: /home/np29
 TT:  BASE/tables
 BB:  BASE/o2bin
 DIR_MACRO:           .
@@ -19,17 +19,17 @@ snpoutname:       DIR_MACRO/SAMPLE_MACRO.snp
 genotypeoutname:  DIR_MACRO/SAMPLE_MACRO.geno
 outputformat:     eigenstrat
 threshtable:      TT/defaultthresh 
-defstring:        ancient2
+defstring:        capture
 dbbam:            DIR_MACRO/SAMPLE_EXTRACT_LIBRARY_ID.dblist
 readbam:          BB/readbam
-pmdscore:         NO 
 majmode:          NO
 printcount:       NO
+udgmode: half
 '''
 
+non_damage_restricted_options = 'pmdscore:         NO'
 # For damage pulldown
-'''
-pmdscore: YES
+damage_restricted_options = '''pmdscore: YES
 pmdlo: 3 
 '''
 
@@ -106,30 +106,43 @@ def pulldown(library_bam_filename, library_id, report_filename, experiment, pull
 	with open("{}/{}.ind".format(working_directory, library_id), 'w') as individual_file:
 		individual_file.write("{0}\t{1}\t{0}".format(library_id, sex))
 			
-	# build parameter file
-	pulldown_parameter_filename_nopath = "{}.parameters".format(library_id)
+	# build parameter files
+	# normal (non-damage restricted)
+	pulldown_parameter_filename_nopath = "{}.normal.parameters".format(library_id)
+	normal_parameters = pulldown_parameters_base.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id) + non_damage_restricted_options
 	with open("{}/{}".format(working_directory, pulldown_parameter_filename_nopath), 'w') as pulldown_parameter_file:
-		parameters = pulldown_parameters.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id)
-		pulldown_parameter_file.write(parameters)
+		pulldown_parameter_file.write(normal_parameters)
+	# damage restricted
+	damage_restricted_parameters = pulldown_parameters_base.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id) + damage_restricted_options
+	pulldown_parameter_damage_restricted_filename_nopath = "{}.damage_restricted.parameters".format(library_id)
+	with open("{}/{}".format(working_directory, pulldown_parameter_damage_restricted_filename_nopath), 'w') as pulldown_parameter_file:
+		pulldown_parameter_file.write(damage_restricted_parameters)
 	
 	# pulldown
+	
 	subprocess.run([pulldown_executable, "-p", pulldown_parameter_filename_nopath], check=True, cwd=working_directory)
+	subprocess.run([pulldown_executable, "-p", pulldown_parameter_damage_restricted_filename_nopath], check=True, cwd=working_directory)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Combine ancient DNA analysis outputs into a single file keyed by index-barcode key. Merges component bams and deduplicates library. Runs pulldown.")
 	
+	# pulldown is optional
+	# 1240k(+) libraries require pulldown. MT libraries do not. 
+	parser.add_argument('-p', "--pulldown", help="executable for running pulldown, computing randomized genotypes from bam", nargs=1)
+	
 	parser.add_argument("bam_list", help="Each line contains the parameters to build a library bam for release. This includes the library ID, the individual ID, experiment, read group description (sequencing run name with experiment type and udg treatment), experiment, and (bam, sequencing run date) pairs ")
 	parser.add_argument("adna_jar", help="jar file for assigning read groups to each read in a bam")
 	parser.add_argument("picard_jar", help="jar file the Broad Institute Picard toolset, used to merge bams and deduplicate")
-	parser.add_argument("pulldown", help="executable for running pulldown, computing randomized genotypes from bam")
 	parser.add_argument("report", help="report is used for looking up sex")
 	args = parser.parse_args()
 	
 	bam_list_filename = args.bam_list
 	adna_jar_filename = args.adna_jar
 	picard_jar = args.picard_jar
-	pulldown_executable = args.pulldown
 	report_filename = args.report
+	
+	if args.pulldown is not None:
+		pulldown_executable = args.pulldown[0]
 	# read list of files
 
 	with open(bam_list_filename) as f:
@@ -146,4 +159,8 @@ if __name__ == "__main__":
 			working_directory = library_id
 			
 			release_library_filename = build_release_library(adna_jar_filename, bam_filenames, bam_date_strings, read_group_description, library_id, individual_id, experiment, picard_jar, working_directory)
-			pulldown(release_library_filename, library_id, report_filename, experiment, pulldown_executable, working_directory, index_barcode_key)
+			# TODO copy library
+			if args.pulldown is not None:
+				pulldown(release_library_filename, library_id, report_filename, experiment, pulldown_executable, working_directory, index_barcode_key)
+			# TODO copy pulldown results
+			# TODO check SNP file to see whether it needs to be copied
