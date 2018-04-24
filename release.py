@@ -3,6 +3,7 @@ import pathlib
 import sys
 import os
 import argparse
+from multiprocessing import Pool
 
 from read_groups_from_bam import read_groups_from_bam
 
@@ -11,7 +12,6 @@ pulldown_parameters_base = '''BASE: /home/np29
 TT:  BASE/tables
 BB:  BASE/o2bin
 DIR_MACRO:           .
-SAMPLE_MACRO:           SAMPLE_EXTRACT_LIBRARY_ID
 indivname:      DIR_MACRO/SAMPLE_EXTRACT_LIBRARY_ID.ind
 snpname:        /n/groups/reich/matt/pipeline/static/1240kSNP.snp
 indivoutname:     DIR_MACRO/SAMPLE_MACRO.ind   
@@ -107,21 +107,27 @@ def pulldown(library_bam_filename, library_id, report_filename, experiment, pull
 		individual_file.write("{0}\t{1}\t{0}".format(library_id, sex))
 			
 	# build parameter files
+	pulldown_parameters_library = pulldown_parameters_base.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id)
 	# normal (non-damage restricted)
 	pulldown_parameter_filename_nopath = "{}.normal.parameters".format(library_id)
-	normal_parameters = pulldown_parameters_base.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id) + non_damage_restricted_options
+	normal_parameters = pulldown_parameters_library.replace('SAMPLE_MACRO', library_id) + non_damage_restricted_options
 	with open("{}/{}".format(working_directory, pulldown_parameter_filename_nopath), 'w') as pulldown_parameter_file:
 		pulldown_parameter_file.write(normal_parameters)
+		
 	# damage restricted
-	damage_restricted_parameters = pulldown_parameters_base.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id) + damage_restricted_options
+	damage_restricted_parameters = pulldown_parameters_library.replace('SAMPLE_MACRO', library_id + '_d') + damage_restricted_options
 	pulldown_parameter_damage_restricted_filename_nopath = "{}.damage_restricted.parameters".format(library_id)
 	with open("{}/{}".format(working_directory, pulldown_parameter_damage_restricted_filename_nopath), 'w') as pulldown_parameter_file:
 		pulldown_parameter_file.write(damage_restricted_parameters)
 	
 	# pulldown
-	
-	subprocess.run([pulldown_executable, "-p", pulldown_parameter_filename_nopath], check=True, cwd=working_directory)
-	subprocess.run([pulldown_executable, "-p", pulldown_parameter_damage_restricted_filename_nopath], check=True, cwd=working_directory)
+	with open('{}/stdout_normal'.format(working_directory), 'w') as stdout_pulldown, \
+		open('{}/stderr_normal'.format(working_directory), 'w') as stderr_pulldown:
+			subprocess.run([pulldown_executable, "-p", pulldown_parameter_filename_nopath], check=True, cwd=working_directory, stdout=stdout_pulldown, stderr=stderr_pulldown)
+	# damage restricted pulldown
+	with open('{}/stdout_damage_restricted'.format(working_directory), 'w') as stdout_pulldown, \
+		open('{}/stderr_damage_restricted'.format(working_directory), 'w') as stderr_pulldown:
+			subprocess.run([pulldown_executable, "-p", pulldown_parameter_damage_restricted_filename_nopath], check=True, cwd=working_directory, stdout=stdout_pulldown, stderr=stderr_pulldown)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Combine ancient DNA analysis outputs into a single file keyed by index-barcode key. Merges component bams and deduplicates library. Runs pulldown.")
