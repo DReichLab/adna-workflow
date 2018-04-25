@@ -60,6 +60,11 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 			pass
 		total_reads_required = max(raw_reads_threshold, minimum_raw_reads)
 		additional_reads_required = max(total_reads_required - number_raw_reads, 0)
+		
+		# if we are already at 70% of raw reads goal, then stop
+		if (additional_reads_required / total_reads_required) < 0.3:
+			additional_reads_required = 0
+		
 		unique_reads_hitting_any_target_at_threshold = 0
 		try:
 			unique_reads_hitting_any_target_at_threshold = interpolate(raw_reads, unique_reads, raw_reads_threshold)
@@ -76,7 +81,7 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 			values['preseq_additional_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_additional_reads_required_' + threshold])
 	
 	# marginal uniqueness threshold
-	marginal_uniqueness_thresholds = ['0.10']
+	marginal_uniqueness_thresholds = ['0.368', '0.10']
 	for threshold in marginal_uniqueness_thresholds:
 		reads_hitting_any_target_at_threshold = 0
 		unique_reads_hitting_any_target_at_threshold = 0

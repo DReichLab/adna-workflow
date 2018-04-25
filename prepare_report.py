@@ -84,9 +84,10 @@ headersToReport = [
 				   'preseq_unique_targets_hit',
 				   'preseq_raw_reads_inverse_e',
 				   'preseq_raw_reads_tenth',
+				   'preseq_coverage_at_marginal_uniqueness_0.368',
 				   'preseq_coverage_at_marginal_uniqueness_0.10',
 				   ]
-preseq_unique_target_per_raw_read_thresholds = ['0.01', '0.0075', '0.005']
+preseq_unique_target_per_raw_read_thresholds = ['0.005']
 for threshold in preseq_unique_target_per_raw_read_thresholds:
 	headersToReport.append('preseq_total_reads_required_{}'.format(threshold))
 	headersToReport.append('preseq_additional_reads_required_{}'.format(threshold))

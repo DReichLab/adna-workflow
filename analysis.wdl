@@ -986,6 +986,8 @@ task preseq{
 		from os.path import basename, splitext
 		import subprocess
 		
+		MINIMUM_RAW_READS_TO_SEQUENCE = 10e7
+		
 		def count_unique_reads(filename): 
 			unique_count = 0
 			total_count = 0
@@ -1007,21 +1009,26 @@ task preseq{
 			# sort
 			sorted_filename = sample_id + ".sorted.bam"
 			subprocess.check_output("java -Xmx4500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (filtered_filename, sorted_filename), shell=True)
+			
+			# demultiplexing reads
+			raw_count_str = subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} AggregateStatistics -k %s -l raw ${statistics}" % (sample_id_key_not_filename), shell=True)
+			raw_count = int(raw_count_str)
+			
 			# build histogram
 			unique_reads_histogram_filename = sample_id + ".unique_reads_histogram"
 			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} DuplicatesHistogram -i %s > %s" % (sorted_filename, unique_reads_histogram_filename), shell=True)
 			unique_read_count, total_count = count_unique_reads(unique_reads_histogram_filename)
 			
+			read_ratio = raw_count / total_count
 			step = int(total_count / 4)
-			extrapolation_max = int(total_count * 5)
+			extrapolation_max = int(max(total_count * 5, MINIMUM_RAW_READS_TO_SEQUENCE / read_ratio))
 			preseq_table_filename = sample_id + ".preseq_table"
 			if (unique_read_count > 0) and ((total_count  / unique_read_count) < 100):
 				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
 			else: # avoid running preseq for low complexity samples
 				subprocess.run("touch %s" % (preseq_table_filename), shell=True)
 			
-			raw_count_str = subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} AggregateStatistics -k %s -l raw ${statistics}" % (sample_id_key_not_filename), shell=True)
-			raw_count = int(raw_count_str)
+			
 			targets_histogram_filename = sample_id + ".targets_histogram"
 			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
 			# keyed statistics are written to stdout 
@@ -1046,7 +1053,6 @@ task preseq{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 360
 		requested_memory_mb_per_core: 5000
 	}
 }
