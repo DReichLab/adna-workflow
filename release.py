@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 from multiprocessing import Pool
+import filecmp
 
 from read_groups_from_bam import read_groups_from_bam
 
@@ -128,6 +129,39 @@ def pulldown(library_bam_filename, library_id, report_filename, experiment, pull
 	with open('{}/stdout_damage_restricted'.format(working_directory), 'w') as stdout_pulldown, \
 		open('{}/stderr_damage_restricted'.format(working_directory), 'w') as stderr_pulldown:
 			subprocess.run([pulldown_executable, "-p", pulldown_parameter_damage_restricted_filename_nopath], check=True, cwd=working_directory, stdout=stdout_pulldown, stderr=stderr_pulldown)
+			
+	# verify that snp files are identical
+	snp_file_check = filecmp.cmp("{}/{}.snp".format(working_directory, library_id), 
+							  "{}/{}_d.snp".format(working_directory, library_id), shallow=False)
+	if not snp_file_check:
+		raise ValueError('snp files are different for normal and damage-restricted pulldown')
+			
+# each line contains the parameters to build one library for pulldown
+def build_library_and_pulldown(line, args):
+	adna_jar_filename = args.adna_jar
+	picard_jar = args.picard_jar
+	report_filename = args.report
+	
+	if args.pulldown is not None:
+		pulldown_executable = args.pulldown[0]
+		
+	parameters_for_library = line.split('\t')
+	index_barcode_key = parameters_for_library[0]
+	library_id = parameters_for_library[1]
+	individual_id = parameters_for_library[2]
+	read_group_description = parameters_for_library[3]
+	experiment = parameters_for_library[4]
+	bam_filenames = parameters_for_library[5::2]
+	bam_date_strings = [date_string.strip() for date_string in parameters_for_library[6::2]]
+	
+	working_directory = library_id
+	
+	release_library_filename = build_release_library(adna_jar_filename, bam_filenames, bam_date_strings, read_group_description, library_id, individual_id, experiment, picard_jar, working_directory)
+	# TODO copy library
+	if args.pulldown is not None:
+		pulldown(release_library_filename, library_id, report_filename, experiment, pulldown_executable, working_directory, index_barcode_key)
+	# TODO copy pulldown results
+	# TODO check SNP file to see whether it needs to be copied
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Combine ancient DNA analysis outputs into a single file keyed by index-barcode key. Merges component bams and deduplicates library. Runs pulldown.")
@@ -135,6 +169,7 @@ if __name__ == "__main__":
 	# pulldown is optional
 	# 1240k(+) libraries require pulldown. MT libraries do not. 
 	parser.add_argument('-p', "--pulldown", help="executable for running pulldown, computing randomized genotypes from bam", nargs=1)
+	parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =10, nargs=1)
 	
 	parser.add_argument("bam_list", help="Each line contains the parameters to build a library bam for release. This includes the library ID, the individual ID, experiment, read group description (sequencing run name with experiment type and udg treatment), experiment, and (bam, sequencing run date) pairs ")
 	parser.add_argument("adna_jar", help="jar file for assigning read groups to each read in a bam")
@@ -143,30 +178,10 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	bam_list_filename = args.bam_list
-	adna_jar_filename = args.adna_jar
-	picard_jar = args.picard_jar
-	report_filename = args.report
-	
-	if args.pulldown is not None:
-		pulldown_executable = args.pulldown[0]
 	# read list of files
-
 	with open(bam_list_filename) as f:
-		for line in f:
-			parameters_for_library = line.split('\t')
-			index_barcode_key = parameters_for_library[0]
-			library_id = parameters_for_library[1]
-			individual_id = parameters_for_library[2]
-			read_group_description = parameters_for_library[3]
-			experiment = parameters_for_library[4]
-			bam_filenames = parameters_for_library[5::2]
-			bam_date_strings = [date_string.strip() for date_string in parameters_for_library[6::2]]
-			
-			working_directory = library_id
-			
-			release_library_filename = build_release_library(adna_jar_filename, bam_filenames, bam_date_strings, read_group_description, library_id, individual_id, experiment, picard_jar, working_directory)
-			# TODO copy library
-			if args.pulldown is not None:
-				pulldown(release_library_filename, library_id, report_filename, experiment, pulldown_executable, working_directory, index_barcode_key)
-			# TODO copy pulldown results
-			# TODO check SNP file to see whether it needs to be copied
+		pool = Pool(processes=args.num_threads)
+		[pool.apply_async(build_library_and_pulldown, args=(line, args)) for line in f]
+		pool.close()
+		pool.join()
+	
