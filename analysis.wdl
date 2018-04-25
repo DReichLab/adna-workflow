@@ -413,9 +413,12 @@ task versions{
 	File picard_jar
 	File htsbox
 	File haplogrep_jar
+	File python_version_git_hash
 
 	command{
 		set -e
+		echo "adna-workflow " >> versions
+		python3 ${python_version_git_hash} >> versions
 		java -version >> versions 2>&1
 		python --version >> versions 2>&1
 		bwa >> versions 2>&1
