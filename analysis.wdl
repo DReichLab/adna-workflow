@@ -1022,7 +1022,7 @@ task preseq{
 			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} DuplicatesHistogram -i %s > %s" % (sorted_filename, unique_reads_histogram_filename), shell=True)
 			unique_read_count, total_count = count_unique_reads(unique_reads_histogram_filename)
 			
-			read_ratio = raw_count / total_count
+			read_ratio = (raw_count / total_count) if total_count > 0 else float('inf')
 			step = int(total_count / 4)
 			extrapolation_max = int(max(total_count * 5, MINIMUM_RAW_READS_TO_SEQUENCE / read_ratio))
 			preseq_table_filename = sample_id + ".preseq_table"
