@@ -13,7 +13,7 @@ pulldown_parameters_base = '''BASE: /home/np29
 TT:  BASE/tables
 BB:  BASE/o2bin
 DIR_MACRO:           .
-indivname:      DIR_MACRO/SAMPLE_EXTRACT_LIBRARY_ID.ind
+indivname:      DIR_MACRO/SAMPLE_MACRO.ind
 snpname:        /n/groups/reich/matt/pipeline/static/1240kSNP.snp
 indivoutname:     DIR_MACRO/SAMPLE_MACRO.ind   
 snpoutname:       DIR_MACRO/SAMPLE_MACRO.snp
@@ -46,6 +46,7 @@ def add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_fi
 		)
 	, shell=True, check=True, cwd=working_directory)
 
+# TODO use stderr by library
 def build_release_library(adna_jar_filename, demultiplexed_bam_filenames, bam_date_strings, label, library_id, experiment, individual, picard_jar, working_directory):
 	if len(demultiplexed_bam_filenames) != len(bam_date_strings):
 		raise ValueError('Each bam needs a date string')
@@ -104,8 +105,13 @@ def pulldown(library_bam_filename, library_id, report_filename, experiment, pull
 					break
 			except:
 				pass
+	# normal individual file
 	with open("{}/{}.ind".format(working_directory, library_id), 'w') as individual_file:
 		individual_file.write("{0}\t{1}\t{0}".format(library_id, sex))
+	# damage restricted individual file
+	library_id_damage_restricted = "{}_d".format(library_id)
+	with open("{}/{}.ind".format(working_directory, library_id_damage_restricted), 'w') as individual_file_damage_restricted:
+		individual_file_damage_restricted.write("{0}\t{1}\t{0}".format(library_id_damage_restricted, sex))
 			
 	# build parameter files
 	pulldown_parameters_library = pulldown_parameters_base.replace('SAMPLE_EXTRACT_LIBRARY_ID', library_id)
@@ -162,6 +168,7 @@ def build_library_and_pulldown(line, args):
 		pulldown(release_library_filename, library_id, report_filename, experiment, pulldown_executable, working_directory, index_barcode_key)
 	# TODO copy pulldown results
 	# TODO check SNP file to see whether it needs to be copied
+	return release_library_filename
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Combine ancient DNA analysis outputs into a single file keyed by index-barcode key. Merges component bams and deduplicates library. Runs pulldown.")
