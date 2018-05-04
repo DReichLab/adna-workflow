@@ -21,6 +21,8 @@ workflow demultiplex_align_bams{
 	File index_barcode_keys
 	
 	File python_lane_name
+	File python_index_pairs_without_barcodes
+	File python_common_unknown_barcodes
 	File python_kmer_analysis
 	File python_prepare_report
 	
@@ -82,14 +84,6 @@ workflow demultiplex_align_bams{
 		adna_screen_jar=adna_screen_jar,
 		statistics_by_group=merge_and_trim_lane.statistics
 	}
-	call kmer_analysis{ input :
-		python_kmer_analysis = python_kmer_analysis,
-		barcodes_q_only = barcodes_q_only,
-		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
-		index_barcode_keys = index_barcode_keys,
-		dataset_label = dataset_label,
-		date = date
-	}
 	call prepare_demultiplex_report{ input:
 		python_prepare_report = python_prepare_report,
 		demultiplex_statistics = aggregate_lane_statistics.statistics,
@@ -150,6 +144,34 @@ workflow demultiplex_align_bams{
 		bams = demultiplex_rsrs.demultiplexed_bam
 	}
 	
+	call index_pairs_without_barcodes{ input:
+		python_index_pairs_without_barcodes = python_index_pairs_without_barcodes,
+		barcode_count_statistics = aggregate_barcode_count_statistics.statistics
+	}
+	call demultiplex as demultiplex_for_unknown_barcodes{ input:
+		adna_screen_jar = adna_screen_jar,
+		prealignment_statistics = aggregate_lane_statistics.statistics,
+		aligned_bam_files = align_rsrs.bam,
+		samples_to_demultiplex = 0,
+		index_barcode_keys = index_pairs_without_barcodes.index_pairs
+	}
+	call common_unknown_barcodes{ input:
+		python_common_unknown_barcodes = python_common_unknown_barcodes,
+		bams_without_known_barcodes = demultiplex_for_unknown_barcodes.demultiplexed_bam
+	}
+	call kmer_analysis{ input :
+		python_kmer_analysis = python_kmer_analysis,
+		python_prepare_report = python_prepare_report,
+		barcodes_q_only = barcodes_q_only,
+		i5_indices = i5_indices,
+		i7_indices = i7_indices,
+		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
+		index_barcode_keys = index_barcode_keys,
+		unknown_barcodes = common_unknown_barcodes.unknown_barcodes,
+		dataset_label = dataset_label,
+		date = date,
+	}
+	
 	# output
 	call copy_output as copy_nuclear_aligned_filtered{ input:
 		files = filter_aligned_only_nuclear.filtered,
@@ -199,9 +221,12 @@ workflow demultiplex_align_bams{
 task versions{
 	File adna_screen_jar
 	File picard_jar
+	File python_version_git_hash
 
 	command{
 		set -e
+		echo "adna-workflow " >> versions
+		python3 ${python_version_git_hash} >> versions
 		java -version >> versions 2>&1
 		python --version >> versions 2>&1
 		bcl2fastq --version >> versions 2>&1
@@ -597,17 +622,55 @@ task copy_and_rename{
 	}
 }
 
+task index_pairs_without_barcodes{
+	File python_index_pairs_without_barcodes
+	File barcode_count_statistics
+
+	command{
+		python3 ${python_index_pairs_without_barcodes} ${barcode_count_statistics} > index_pairs_without_barcodes
+	}
+	output{
+		File index_pairs = "index_pairs_without_barcodes"
+	}
+	runtime{
+		runtime_minutes: 30
+		requested_memory_mb_per_core: 1000
+	}
+}
+
+task common_unknown_barcodes{
+	File python_common_unknown_barcodes
+	Array[File] bams_without_known_barcodes
+	
+	Int processes = 4
+	
+	command{
+		python3 ${python_common_unknown_barcodes} --pool_size ${processes} ${sep=' ' bams_without_known_barcodes} > unknown_barcodes
+	}
+	output{
+		File unknown_barcodes = "unknown_barcodes"
+	}
+	runtime{
+		cpus: processes
+		requested_memory_mb_per_core: 4000
+	}
+}
+
 task kmer_analysis{
 	File python_kmer_analysis
+	File python_prepare_report # required for included functions
 	File barcodes_q_only
+	File i5_indices
+	File i7_indices
 	File counts_by_index_barcode_key
 	File index_barcode_keys
+	File unknown_barcodes
 	
 	String dataset_label
 	String date
 
 	command{
-		python3 ${python_kmer_analysis} ${barcodes_q_only} ${counts_by_index_barcode_key} ${index_barcode_keys} > ${date}_${dataset_label}.kmer
+		python3 ${python_kmer_analysis} ${barcodes_q_only} ${i5_indices} ${i7_indices} ${counts_by_index_barcode_key} ${index_barcode_keys} ${unknown_barcodes} > ${date}_${dataset_label}.kmer
 	}
 	output{
 		File analysis = "${date}_${dataset_label}.kmer"
