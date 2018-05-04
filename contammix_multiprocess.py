@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Manager
 from subprocess import check_output
 import sys
 from threading import Lock
@@ -16,7 +16,7 @@ minimum_base_quality = sys.argv[7]
 deamination_bases_to_clip = sys.argv[8]
 seed = int(sys.argv[9])
 
-resultsQueue = Queue(numCopies)
+resultsQueue = Manager().Queue(numCopies)
 
 # Failure returns a result, upon which we will stop. 
 def contammix(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, numChains, minimum_base_quality, deamination_bases_to_clip, seed, resultsQueue):
