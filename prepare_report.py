@@ -367,7 +367,7 @@ if __name__ == '__main__':
 	for sampleID in sorted_samples:
 		thisSample = samples[sampleID]
 		try:
-			if int(samples[sampleID]['raw']) >= READS_THRESHOLD_TO_REPORT_KEY or sampleID in keyMapping:
+			if int(samples[sampleID].get('raw', 0)) >= READS_THRESHOLD_TO_REPORT_KEY or sampleID in keyMapping:
 				printSample(sampleID, thisSample)
 		except KeyError:
 			eprint('KeyError', sampleID)
