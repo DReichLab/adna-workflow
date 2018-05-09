@@ -362,7 +362,7 @@ if __name__ == '__main__':
 		print(headerToPrint, end='\t')
 	print ('') # includes newline
 
-	sorted_samples = sorted(samples, key=lambda x: int(samples[x]['raw']), reverse=True)
+	sorted_samples = sorted(samples, key=lambda x: int(samples[x].get('raw', 0)), reverse=True)
 	# output each sample with data using preset header order
 	for sampleID in sorted_samples:
 		thisSample = samples[sampleID]
