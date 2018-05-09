@@ -343,11 +343,12 @@ if __name__ == '__main__':
 		or 'X_pre' in singleSample
 		or 'Y_pre' in singleSample
 		or 'MT_pre' in singleSample):
+			merged_count = int(samples[sampleID].get('merged', '0'))
 			samples[sampleID]['endogenous_pre'] = float(
 				int(samples[sampleID].get('autosome_pre', '0'))
 				+ int(samples[sampleID].get('X_pre', '0'))
 				+ int(samples[sampleID].get('Y_pre', '0'))
-				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID].get('merged', '0'))
+				+ int(samples[sampleID].get('MT_pre', '0'))) / merged_count if merged_count > 0 else 0.0
 		# add recommendation concerning future processing
 		#singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
 
