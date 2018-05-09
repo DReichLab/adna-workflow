@@ -347,7 +347,7 @@ if __name__ == '__main__':
 				int(samples[sampleID].get('autosome_pre', '0'))
 				+ int(samples[sampleID].get('X_pre', '0'))
 				+ int(samples[sampleID].get('Y_pre', '0'))
-				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
+				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID].get('merged', '0'))
 		# add recommendation concerning future processing
 		#singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
 
