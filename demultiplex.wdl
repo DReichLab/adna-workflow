@@ -8,6 +8,8 @@ workflow demultiplex_align_bams{
 	File barcodeSets
 	
 	File barcodes_q_only
+	File labeled_i5
+	File labeled_i7
 	
 	File adna_screen_jar
 	File picard_jar
@@ -163,8 +165,8 @@ workflow demultiplex_align_bams{
 		python_kmer_analysis = python_kmer_analysis,
 		python_prepare_report = python_prepare_report,
 		barcodes_q_only = barcodes_q_only,
-		i5_indices = i5_indices,
-		i7_indices = i7_indices,
+		labeled_i5 = labeled_i5,
+		labeled_i7 = labeled_i7,
 		counts_by_index_barcode_key = aggregate_lane_statistics.statistics,
 		index_barcode_keys = index_barcode_keys,
 		unknown_barcodes = common_unknown_barcodes.unknown_barcodes,
@@ -660,8 +662,8 @@ task kmer_analysis{
 	File python_kmer_analysis
 	File python_prepare_report # required for included functions
 	File barcodes_q_only
-	File i5_indices
-	File i7_indices
+	File labeled_i5
+	File labeled_i7
 	File counts_by_index_barcode_key
 	File index_barcode_keys
 	File unknown_barcodes
@@ -670,7 +672,7 @@ task kmer_analysis{
 	String date
 
 	command{
-		python3 ${python_kmer_analysis} ${barcodes_q_only} ${i5_indices} ${i7_indices} ${counts_by_index_barcode_key} ${index_barcode_keys} ${unknown_barcodes} > ${date}_${dataset_label}.kmer
+		python3 ${python_kmer_analysis} ${barcodes_q_only} ${labeled_i5} ${labeled_i7} ${counts_by_index_barcode_key} ${index_barcode_keys} ${unknown_barcodes} > ${date}_${dataset_label}.kmer
 	}
 	output{
 		File analysis = "${date}_${dataset_label}.kmer"

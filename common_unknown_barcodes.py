@@ -1,5 +1,6 @@
 import argparse
 import pysam
+from Bio.Seq import Seq
 from multiprocessing import Pool
 from collections import Counter
 import os
@@ -11,7 +12,7 @@ def most_common_barcode_pairs(filename, barcode_length, num_top_barcode_pairs):
 	for read in bam.fetch(until_eof=True):
 		#print(read)
 		barcode_p5 = read.query_sequence[0:barcode_length]
-		barcode_p7 = read.query_sequence[-barcode_length:]
+		barcode_p7 = Seq(read.query_sequence[-barcode_length:]).reverse_complement()
 		#print(barcode_p5)
 		#print(barcode_p7)
 		key = "{}_{}".format(barcode_p5, barcode_p7)

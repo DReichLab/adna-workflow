@@ -343,11 +343,12 @@ if __name__ == '__main__':
 		or 'X_pre' in singleSample
 		or 'Y_pre' in singleSample
 		or 'MT_pre' in singleSample):
+			merged_count = int(samples[sampleID].get('merged', '0'))
 			samples[sampleID]['endogenous_pre'] = float(
 				int(samples[sampleID].get('autosome_pre', '0'))
 				+ int(samples[sampleID].get('X_pre', '0'))
 				+ int(samples[sampleID].get('Y_pre', '0'))
-				+ int(samples[sampleID].get('MT_pre', '0')) ) / int(samples[sampleID]['merged'])
+				+ int(samples[sampleID].get('MT_pre', '0'))) / merged_count if merged_count > 0 else 0.0
 		# add recommendation concerning future processing
 		#singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
 
@@ -361,12 +362,12 @@ if __name__ == '__main__':
 		print(headerToPrint, end='\t')
 	print ('') # includes newline
 
-	sorted_samples = sorted(samples, key=lambda x: int(samples[x]['raw']), reverse=True)
+	sorted_samples = sorted(samples, key=lambda x: int(samples[x].get('raw', 0)), reverse=True)
 	# output each sample with data using preset header order
 	for sampleID in sorted_samples:
 		thisSample = samples[sampleID]
 		try:
-			if int(samples[sampleID]['raw']) >= READS_THRESHOLD_TO_REPORT_KEY or sampleID in keyMapping:
+			if int(samples[sampleID].get('raw', 0)) >= READS_THRESHOLD_TO_REPORT_KEY or sampleID in keyMapping:
 				printSample(sampleID, thisSample)
 		except KeyError:
 			eprint('KeyError', sampleID)

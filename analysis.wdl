@@ -1024,7 +1024,7 @@ task preseq{
 			
 			read_ratio = (raw_count / total_count) if total_count > 0 else float('inf')
 			step = int(total_count / 4)
-			extrapolation_max = int(max(total_count * 5, MINIMUM_RAW_READS_TO_SEQUENCE / read_ratio))
+			extrapolation_max = int(max(total_count * 5, MINIMUM_RAW_READS_TO_SEQUENCE / read_ratio) if read_ratio > 0 else 0)
 			preseq_table_filename = sample_id + ".preseq_table"
 			if (unique_read_count > 0) and ((total_count  / unique_read_count) < 100):
 				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
