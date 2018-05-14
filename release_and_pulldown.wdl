@@ -4,7 +4,6 @@ workflow release_and_pulldown{
 	File python_release_libraries
 	File python_pulldown
 	File python_read_groups_from_bam
-	File pulldown_binary
 	
 	File report
 	File nuclear_bamlist
@@ -68,7 +67,7 @@ task build_release_libraries{
 task pulldown{
 	File bamlist
 	File report
-	#File pulldown_binary
+	File pulldown_executable
 	File python_pulldown
 	File python_release_libraries
 	File python_read_groups_from_bam
@@ -79,7 +78,7 @@ task pulldown{
 	File unused
 	
 	command{
-		python3 ${python_pulldown} --pulldown_label ${label} --release_directory ${release_parent_directory} ${bamlist} ${report}
+		python3 ${python_pulldown} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_parent_directory} ${bamlist} ${report}
 	}
 	output{
 		#normal_ind = "${label}.normal.ind"
@@ -89,6 +88,7 @@ task pulldown{
 		File dblist = "${label}.dblist"
 	}
 	runtime{
-		requested_memory_mb_per_core: 6000
+		cpus: 2
+		requested_memory_mb_per_core: 8000
 	}
 }

@@ -76,12 +76,12 @@ def create_individual_file(filename, library_parameters, udg_filter, id_transfor
 NORMAL = 'normal'
 DAMAGE_RESTRICTED = 'damage_restricted'
 pulldown_damage_options = {NORMAL : non_damage_restricted_options, DAMAGE_RESTRICTED : damage_restricted_options}
-def create_pulldown_parameter_file(pulldown_label, pulldown, udg_type, damage_type):
-	pulldown_string = "{}.{}.{}".format(pulldown_label, udg_type, damage_type)
-	pulldown_parameters = pulldown_parameters_base.replace('LABEL', pulldown_label).replace('UDG', udg_type).replace('PULLDOWN_STRING', pulldown_string) + pulldown_damage_options[damage_type]
-	pulldown_parameter_filename_nopath = "{}.parameters".format(pulldown_string)
+def create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type):
+	pulldown_parameters = pulldown_parameters_base.replace('LABEL', pulldown_label).replace('UDG', udg_type).replace('PULLDOWN_STRING', pulldown_base_filename) + pulldown_damage_options[damage_type]
+	pulldown_parameter_filename_nopath = "{}.parameters".format(pulldown_base_filename)
 	with open("{}".format(pulldown_parameter_filename_nopath), 'w') as pulldown_parameter_file:
 		pulldown_parameter_file.write(pulldown_parameters)
+	return pulldown_parameter_filename_nopath
 
 def prepare_pulldown(library_parameters, args):
 	# input files for combined pulldown
@@ -107,14 +107,17 @@ def prepare_pulldown(library_parameters, args):
 		(MINUS, DAMAGE_RESTRICTED),
 		(PLUS, NORMAL) # UDG plus cannot be damage restricted
 		]
+	parameter_file_outputs = []
 	for (udg_type, damage_type) in parameter_indices:
 		pulldown_base_filename = "{}.{}.{}".format(pulldown_label, udg_type, damage_type)
 		# Generate individual files
 		name_manipulation_function = identity if damage_type == NORMAL else damage_restricted_d
-		create_individual_file(pulldown_base_filename + ".ind", library_parameters, udg_type, name_manipulation_function, sex_by_index_barcode_key)
+		count = create_individual_file(pulldown_base_filename + ".ind", library_parameters, udg_type, name_manipulation_function, sex_by_index_barcode_key)
 		# build parameter files
-		create_pulldown_parameter_file(pulldown_label, udg_type, damage_type)
-			
+		pulldown_parameter_filename_nopath = create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type)
+		if count > 0:
+			parameter_file_outputs.append(pulldown_parameter_filename_nopath)
+		
 	# build Nick-style database file
 	current_directory = os.getcwd()
 	with open("{}.dblist".format(pulldown_label), 'w') as db_file:
@@ -124,21 +127,22 @@ def prepare_pulldown(library_parameters, args):
 			
 			library_bam_filename  = "{}/{}/{}".format(args.release_directory, parameters.library_id, release_library_name)
 			read_groups = read_groups_from_bam(library_bam_filename)
-			db_line = "{0}\t{0}\t{1}\t{2}".format(parameters.library_id, library_bam_filename, ":".join(read_groups))
+			db_line = "{0}\t{0}\t{1}\t{2}\n".format(parameters.library_id, library_bam_filename, ":".join(read_groups))
 			db_file.write(db_line)
 	
+	return parameter_file_outputs
 
-def pulldown(pulldown_parameter_filename):
+def pulldown(pulldown_parameter_filename, pulldown_executable):
 	with open('{}.stdout'.format(pulldown_parameter_filename), 'w') as stdout_pulldown, \
 		open('{}.stderr'.format(pulldown_parameter_filename), 'w') as stderr_pulldown:
-			subprocess.run([pulldown_executable, "-p", pulldown_parameter_filename], check=True, cwd=working_directory, stdout=stdout_pulldown, stderr=stderr_pulldown)
+			subprocess.run([pulldown_executable, "-p", pulldown_parameter_filename], check=True, stdout=stdout_pulldown, stderr=stderr_pulldown)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Prepare pulldown input files for a batch.")
 	
 	# pulldown is optional
 	# 1240k(+) libraries require pulldown. MT libraries do not. 
-	parser.add_argument('-p', "--pulldown_binary", help="binary to run pulldown")
+	parser.add_argument('-p', "--pulldown_executable", help="executable to run pulldown")
 	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
 	#parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =10)
 	parser.add_argument('-r', "--release_directory", help="parent directory to put released libraries")
@@ -154,4 +158,10 @@ if __name__ == "__main__":
 	
 	# prepare pulldown input files
 	if args.pulldown_label is not None:
-		prepare_pulldown(library_parameters, args)
+		parameter_files = prepare_pulldown(library_parameters, args)
+	
+	pool = Pool(processes=2)
+	results = [pool.apply_async(pulldown, args=(parameter_file, args.pulldown_executable)) for parameter_file in parameter_files]
+	pool.close()
+	[result.get() for result in results] # check for exceptions
+	pool.join()

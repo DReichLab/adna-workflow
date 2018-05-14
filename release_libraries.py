@@ -32,7 +32,7 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 		demultiplexed_bam_filename = library_parameters.bam_filenames[i]
 		bam_date_string = library_parameters.bam_date_strings[i]
 		output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
-		label = library_parameters.read_group_description
+		label = "{}_{}".format(library_parameters.read_group_description, library_id)
 		add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
 		library_component_bams.append(output_bam_filename)
 	
