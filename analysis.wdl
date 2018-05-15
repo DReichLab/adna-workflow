@@ -43,10 +43,6 @@ workflow adna_analysis{
 	File python_angsd_results
 	File python_prepare_report
 	
-	File spike3k_coordinates_autosome
-	File spike3k_coordinates_x
-	File spike3k_coordinates_y
-	
 	File coordinates_1240k_autosome
 	File coordinates_1240k_x
 	File coordinates_1240k_y
@@ -102,19 +98,6 @@ workflow adna_analysis{
 		targets="\"{'autosome_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_pre':'X','Y_pre':'Y','human_pre':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
-	call snp_target_bed as spike3k_pre{ input:
-		coordinates_autosome = spike3k_coordinates_autosome,
-		coordinates_x = spike3k_coordinates_x,
-		coordinates_y = spike3k_coordinates_y,
-		bams = combine_nuclear_libraries.library_bams,
-		minimum_mapping_quality = minimum_mapping_quality,
-		minimum_base_quality = minimum_base_quality,
-		deamination_bases_to_clip = deamination_bases_to_clip,
-		label = "spike3k_pre",
-		picard_jar = picard_jar,
-		adna_screen_jar = adna_screen_jar,
-		python_snp_target_bed = python_snp_target_bed
-	}
 	call snp_target_bed as count_1240k_pre{ input:
 		coordinates_autosome = coordinates_1240k_autosome,
 		coordinates_x = coordinates_1240k_x,
@@ -134,19 +117,6 @@ workflow adna_analysis{
 		pmdtools = pmdtools,
 		unsorted = combine_nuclear_libraries.library_bams,
 		duplicates_label = "duplicates_nuclear"
-	}
-	call snp_target_bed as spike3k_post{ input:
-		coordinates_autosome = spike3k_coordinates_autosome,
-		coordinates_x = spike3k_coordinates_x,
-		coordinates_y = spike3k_coordinates_y,
-		bams = duplicates_nuclear.aligned_deduplicated,
-		minimum_mapping_quality = minimum_mapping_quality,
-		minimum_base_quality = minimum_base_quality,
-		deamination_bases_to_clip = deamination_bases_to_clip,
-		label = "spike3k_post",
-		picard_jar = picard_jar,
-		adna_screen_jar = adna_screen_jar,
-		python_snp_target_bed = python_snp_target_bed
 	}
 	call snp_target_bed as count_1240k_post{ input:
 		coordinates_autosome = coordinates_1240k_autosome,
@@ -319,12 +289,6 @@ workflow adna_analysis{
 		statistics_by_group = cumulative_statistics
 	}
 	
-	call concatenate as concatenate_spike3k_pre{ input:
-		to_concatenate = spike3k_pre.snp_target_stats
-	}
-	call concatenate as concatenate_spike3k_post{ input:
-		to_concatenate = spike3k_post.snp_target_stats
-	}
 	call concatenate as concatenate_count_1240k_pre{ input:
 		to_concatenate = count_1240k_pre.snp_target_stats
 	}
@@ -334,10 +298,6 @@ workflow adna_analysis{
 	call concatenate as concatenate_contammix{ input:
 		to_concatenate = contammix.contamination_estimate
 	}
-	call spike3k_complexity{ input:
-		spike3k_pre_data = concatenate_spike3k_pre.concatenated,
-		spike3k_post_data =concatenate_spike3k_post.concatenated
-	}
 	
 	# same as final statistics, but missing the expensive contammix calculation
 	Array[File] preliminary_keyed_statistics = [
@@ -346,9 +306,6 @@ workflow adna_analysis{
 		central_measures_nuclear.central_measures_output,
 		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups,
-		concatenate_spike3k_pre.concatenated,
-		concatenate_spike3k_post.concatenated,
-		spike3k_complexity.estimates,
 		concatenate_count_1240k_pre.concatenated, 
 		concatenate_count_1240k_post.concatenated,
 		preseq.results,
@@ -360,9 +317,6 @@ workflow adna_analysis{
 		central_measures_nuclear.central_measures_output,
 		central_measures_rsrs.central_measures_output,
 		summarize_haplogroups.haplogroups,
-		concatenate_spike3k_pre.concatenated,
-		concatenate_spike3k_post.concatenated,
-		spike3k_complexity.estimates,
 		concatenate_count_1240k_pre.concatenated, 
 		concatenate_count_1240k_post.concatenated,
 		preseq.results,
@@ -743,28 +697,6 @@ task target_depth_bed{
 	runtime{
 		cpus: processes
 		requested_memory_mb_per_core: 3000
-	}
-}
-
-task spike3k_complexity{
-	File python_spike3k_complexity_prep
-	File python_spike3k_complexity_results
-	File spike3k_complexity_binary
-	File spike3k_pre_data
-	File spike3k_post_data
-	
-	command{
-		set -e
-		python3 ${python_spike3k_complexity_prep} ${spike3k_pre_data} ${spike3k_post_data} > spike3k_for_complexity
-		${spike3k_complexity_binary} -i spike3k_for_complexity -o nick_table
-		python3 ${python_spike3k_complexity_results} nick_table > spike3k_complexity_estimates
-	}
-	output{
-		File estimates = "spike3k_complexity_estimates"
-	}
-	runtime{
-		runtime_minutes: 240
-		requested_memory_mb_per_core: 4096
 	}
 }
 
