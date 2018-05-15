@@ -76,7 +76,8 @@ workflow demultiplex_align_bams{
 			barcodeSets = barcodeSets,
 			read_files_by_lane = lane,
 			label = discover_lane_name_from_filename.lane,
-			barcode_count_statistics = aggregate_barcode_count_statistics.statistics
+			barcode_count_statistics = aggregate_barcode_count_statistics.statistics,
+			index_barcode_keys = index_barcode_keys
 		}
 	}
 	call collect_read_group_info{ input:
@@ -374,11 +375,12 @@ task merge_and_trim_lane{
 	Array[File] read_files_by_lane
 	String label
 	File barcode_count_statistics
+	File index_barcode_keys
 	
 	Int? number_output_files
 	
 	command{
-		java -Xmx7500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx7500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
