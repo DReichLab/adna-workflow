@@ -68,6 +68,7 @@ task pulldown{
 	File bamlist
 	File report
 	File pulldown_executable
+	File mergeit_executable
 	File python_pulldown
 	File python_release_libraries
 	File python_read_groups_from_bam
@@ -78,13 +79,12 @@ task pulldown{
 	File unused
 	
 	command{
-		python3 ${python_pulldown} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_parent_directory} ${bamlist} ${report}
+		python3 ${python_pulldown} --pulldown_executable ${pulldown_executable} --mergeit_executable ${mergeit_executable} --pulldown_label ${label} --release_directory ${release_parent_directory} ${bamlist} ${report}
 	}
 	output{
-		#normal_ind = "${label}.normal.ind"
-		#normal_parameters = "${label}.normal.parameters"
-		#damage_restricted_ind = "${label}.damage_restricted.ind"
-		#damage_restricted_parameters = "${label}.damage_restricted.parameters"
+		File pulldown_ind = "${label}.combined.ind"
+		File pulldown_snp = "${label}.combined.snp"
+		File pulldown_geno = "${label}.combined.geno"
 		File dblist = "${label}.dblist"
 	}
 	runtime{
