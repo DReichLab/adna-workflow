@@ -47,7 +47,8 @@ workflow demultiplex_align_bams{
 	}
 	call versions{ input:
 		adna_screen_jar = adna_screen_jar,
-		picard_jar = picard_jar
+		picard_jar = picard_jar,
+		index_barcode_keys_to_stop_call_caching = index_barcode_keys
 	}
 	
 	call bcl2fastq { input : blc_input_directory=blc_input_directory} 
@@ -225,6 +226,7 @@ task versions{
 	File adna_screen_jar
 	File picard_jar
 	File python_version_git_hash
+	File index_barcode_keys_to_stop_call_caching
 
 	command{
 		set -e

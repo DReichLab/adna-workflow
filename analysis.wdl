@@ -64,7 +64,8 @@ workflow adna_analysis{
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		htsbox = htsbox,
-		haplogrep_jar = haplogrep_jar
+		haplogrep_jar = haplogrep_jar,
+		index_barcode_keys_to_stop_call_caching = index_barcode_keys
 	}
 	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_across_sequencing_runs{ input:
 		adna_screen_jar = adna_screen_jar,
@@ -368,6 +369,7 @@ task versions{
 	File htsbox
 	File haplogrep_jar
 	File python_version_git_hash
+	File index_barcode_keys_to_stop_call_caching
 
 	command{
 		set -e
