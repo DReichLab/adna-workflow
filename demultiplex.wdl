@@ -225,13 +225,13 @@ workflow demultiplex_align_bams{
 task versions{
 	File adna_screen_jar
 	File picard_jar
-	File python_version_git_hash # copy fails to retrieve git hash
+	String python_version_git_hash
 	File index_barcode_keys_to_stop_call_caching
 
 	command{
 		set -e
 		echo "adna-workflow " >> versions
-		python3 /home/mym11/pipeline/adna-workflow/version_git_hash.py >> versions
+		python3 ${python_version_git_hash} >> versions
 		java -version >> versions 2>&1
 		python --version >> versions 2>&1
 		bcl2fastq --version >> versions 2>&1
