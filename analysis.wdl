@@ -374,7 +374,7 @@ task versions{
 	command{
 		set -e
 		echo "adna-workflow " >> versions
-		python3 ${python_version_git_hash} >> versions
+		python3 /home/mym11/pipeline/adna-workflow/version_git_hash.py >> versions
 		java -version >> versions 2>&1
 		python --version >> versions 2>&1
 		bwa >> versions 2>&1
