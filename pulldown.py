@@ -8,6 +8,7 @@ import filecmp
 
 from read_groups_from_bam import read_groups_from_bam
 from release_libraries import LibraryParameters
+from merge_pulldown import merge_geno_snp_ind
 
 # Nick's pulldown program has an input file 
 pulldown_parameters_base = '''BASE: /home/np29
@@ -170,26 +171,13 @@ def pulldown(pulldown_parameter_filename, pulldown_executable):
 	
 	return PulldownResults(modified_individual_filename, snpout_filename, geno_filename)
 
-def merge_pulldowns(mergeit_executable, pulldown_label, pulldown_results1, pulldown_results2):
+def merge_pulldowns(pulldown_label, pulldown_file_sets):
+	geno_files = [pulldown_results.geno for pulldown_results in pulldown_file_sets]
+	snp_files = [pulldown_results.snp for pulldown_results in pulldown_file_sets]
+	ind_files = [pulldown_results.ind for pulldown_results in pulldown_file_sets]
 	
-	# create a mergeit parameter file
-	mergeit_parameters = '''geno1: {0}
-	snp1:  {1}
-	ind1:  {2}
-	geno2: {3}
-	snp2:  {4}
-	ind2:  {5}
-	genooutfilename:   {6}.combined.geno
-	snpoutfilename:    {6}.combined.snp
-	indoutfilename:    {6}.combined.ind'''.format(pulldown_results1.geno, pulldown_results1.snp, pulldown_results1.ind, pulldown_results2.geno, pulldown_results2.snp, pulldown_results2.ind, pulldown_label)
-	
-	mergeit_parameter_filename = "{}.mergeit.parameters".format(pulldown_label)
-	
-	with open(mergeit_parameter_filename, 'w') as f:
-		f.write(mergeit_parameters)
-	with open('{}.stdout'.format(mergeit_parameter_filename), 'w') as stdout_pulldown, \
-		open('{}.stderr'.format(mergeit_parameter_filename), 'w') as stderr_pulldown:
-			subprocess.run([mergeit_executable, '-p', mergeit_parameter_filename], check=True, stdout=stdout_pulldown, stderr=stderr_pulldown)
+	output_stem = "{}.combined".format(pulldown_label)
+	merge_geno_snp_ind(geno_files, snp_files, ind_files, output_stem)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Prepare pulldown input files for a batch.")
@@ -197,7 +185,6 @@ if __name__ == "__main__":
 	# pulldown is optional
 	# 1240k(+) libraries require pulldown. MT libraries do not. 
 	parser.add_argument('-p', "--pulldown_executable", help="executable to run pulldown")
-	parser.add_argument('-m', "--mergeit_executable", help="executable to merge pulldown results")
 	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
 	#parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =10)
 	parser.add_argument('-r', "--release_directory", help="parent directory to put released libraries")
@@ -223,7 +210,4 @@ if __name__ == "__main__":
 		pool.join()
 		
 		# merge pulldown results
-		if args.mergeit_executable is not None and len(pulldown_file_sets) == 2:
-			merge_pulldowns(args.mergeit_executable, args.pulldown_label, pulldown_file_sets[0], pulldown_file_sets[1])
-		else:
-			raise ValueError('Unhandled case to merge more than two pulldown result sets')
+		merge_pulldowns(args.pulldown_label, pulldown_file_sets)

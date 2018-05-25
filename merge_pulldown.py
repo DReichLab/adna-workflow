@@ -40,7 +40,7 @@ def check_snp_file(snp_filename):
 	return count
 
 # combine the contents of multiple individual files into one
-def write_ind_file(output_filename, input_ind_filenames):
+def merge_ind_files(output_filename, input_ind_filenames):
 	ind_counts = []
 	individuals = set()
 	VALID_SEX = frozenset('MFU')
@@ -65,7 +65,7 @@ def write_ind_file(output_filename, input_ind_filenames):
 			ind_counts.append(count)
 	return ind_counts
 
-def combine_geno_files(output_filename, input_geno_filenames, ind_counts, num_snps):
+def merge_geno_files(output_filename, input_geno_filenames, ind_counts, num_snps):
 	geno_files = []
 	VALID_GENO = frozenset('029')
 	try:
@@ -96,6 +96,17 @@ def combine_geno_files(output_filename, input_geno_filenames, ind_counts, num_sn
 		for f in geno_files:
 			f.close()
 
+# Perform snp file comparison (currently SNP files must be identical)
+# Merge ind and genotype files
+def merge_geno_snp_ind(geno_filenames, snp_filenames, ind_filenames, output_stem):
+	num_snps = check_snp_file(snp_filenames[0])
+	if not compare_snp_files(snp_filenames):
+		raise ValueError('SNP file mismatch')
+	
+	shutil.copyfile(snp_filenames[0], "{}.snp".format(output_stem) )
+	ind_counts = merge_ind_files("{}.ind".format(output_stem), ind_filenames)
+	merge_geno_files("{}.geno".format(output_stem), geno_filenames, ind_counts, num_snps)
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Merge pulldown eigenstrat results. SNP sets must be the same.")
 	
@@ -106,11 +117,6 @@ if __name__ == "__main__":
 	geno_filenames = ["{}.geno".format(stem) for stem in args.input_stems]
 	snp_filenames = ["{}.snp".format(stem) for stem in args.input_stems]
 	ind_filenames = ["{}.ind".format(stem) for stem in args.input_stems]
-	
-	num_snps = check_snp_file(snp_filenames[0])
-	if not compare_snp_files(snp_filenames):
-		raise ValueError('SNP file mismatch')
-	
-	shutil.copyfile(snp_filenames[0], "{}.snp".format(args.output_stem) )
-	ind_counts = write_ind_file("{}.ind".format(args.output_stem), ind_filenames)
-	combine_geno_files("{}.geno".format(args.output_stem), geno_filenames, ind_counts, num_snps)
+	output_stem = args.output_stem
+
+	merge_geno_snp_ind(geno_filenames, snp_filenames, ind_filenames, output_stem)

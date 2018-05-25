@@ -73,8 +73,9 @@ class LibraryParameters:
 		self.udg = parameters_for_library[5]
 		self.reference = parameters_for_library[6]
 		self.version = int(parameters_for_library[7])
-		self.bam_filenames = parameters_for_library[8::2]
-		self.bam_date_strings = [date_string.strip() for date_string in parameters_for_library[9::2]]
+		self.wetlab_notes = parameters_for_library[8]
+		self.bam_filenames = parameters_for_library[9::2]
+		self.bam_date_strings = [date_string.strip() for date_string in parameters_for_library[10::2]]
 		
 		if len(self.bam_filenames) != len(self.bam_date_strings):
 			raise ValueError('Each bam needs a date string')
