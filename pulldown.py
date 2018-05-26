@@ -196,7 +196,8 @@ if __name__ == "__main__":
 	bam_list_filename = args.bam_list
 	# read list of files
 	with open(bam_list_filename) as f:
-		library_parameters = [LibraryParameters(line) for line in f]
+		unfiltered_library_parameters = [LibraryParameters(line) for line in f]
+		library_parameters = [par for par in unfiltered_library_parameters if ('1240' in par.experiment)]
 	
 	# prepare pulldown input files
 	if args.pulldown_label is not None:
