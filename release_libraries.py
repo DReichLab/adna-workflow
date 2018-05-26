@@ -56,7 +56,7 @@ def copy_release_library(library_parameters, destination_parent_directory, relea
 		pathlib.Path(destination_library_path).mkdir(exist_ok=True)
 		source_file = Path(working_directory) / release_library_name
 		# handle case where this library already exists
-		if not os.path.exists(source_file):
+		if not os.path.exists(destination_library_path):
 			shutil.copy(source_file, destination_library_path)
 		else:
 			sys.stderr.write('{} already exists'.format(source_file))
