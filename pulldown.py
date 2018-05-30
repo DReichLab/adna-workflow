@@ -62,11 +62,11 @@ def sex_from_report(report_filename):
 				pass
 	return sex_by_index_barcode_key
 
-def create_individual_file(filename, library_parameters, udg_filter, sex_by_index_barcode_key):
+def create_individual_file(filename, library_parameters, udg_filter, sex_by_index_barcode_key, exclude_library_list):
 	count = 0
 	with open(filename, 'w') as individual_file:
 		for parameters in library_parameters:
-			if parameters.udg == udg_filter:
+			if parameters.udg == udg_filter and parameters.library_id not in exclude_library_list:
 				count += 1
 				library_id = parameters.library_id
 				sex = sex_by_index_barcode_key[parameters.index_barcode_key]
@@ -109,6 +109,22 @@ def prepare_pulldown(library_parameters, args):
 	for parameters in library_parameters:
 		if parameters.udg not in ALLOWED_UDG_VALUES:
 			raise ValueError('Unhandled udg {}'.format(parameters.udg))
+		
+	# build Nick-style database file
+	exclude_library_list = []
+	current_directory = os.getcwd()
+	with open("{}.dblist".format(pulldown_label), 'w') as db_file:
+		for parameters in library_parameters:
+			# filename must match the deduplicated bam
+			release_library_name = parameters.get_release_library_name()
+			
+			library_bam_filename  = "{}/{}/{}".format(args.release_directory, parameters.library_id, release_library_name)
+			read_groups = read_groups_from_bam(library_bam_filename)
+			if len(read_groups) > 0:
+				db_line = "{0}\t{0}\t{1}\t{2}\n".format(parameters.library_id, library_bam_filename, ":".join(read_groups))
+				db_file.write(db_line)
+			else:
+				exclude_library_list.append(parameters.library_id)
 	
 	parameter_indices = [
 		(HALF, NORMAL),
@@ -121,23 +137,11 @@ def prepare_pulldown(library_parameters, args):
 	for (udg_type, damage_type) in parameter_indices:
 		pulldown_base_filename = "{}.{}.{}".format(pulldown_label, udg_type, damage_type)
 		# Generate individual files
-		count = create_individual_file(pulldown_base_filename + ".ind", library_parameters, udg_type, sex_by_index_barcode_key)
+		count = create_individual_file(pulldown_base_filename + ".ind", library_parameters, udg_type, sex_by_index_barcode_key, exclude_library_list)
 		# build parameter files
 		pulldown_parameter_filename_nopath = create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type)
 		if count > 0:
 			parameter_file_outputs.append(pulldown_parameter_filename_nopath)
-		
-	# build Nick-style database file
-	current_directory = os.getcwd()
-	with open("{}.dblist".format(pulldown_label), 'w') as db_file:
-		for parameters in library_parameters:
-			# filename must match the deduplicated bam
-			release_library_name = parameters.get_release_library_name()
-			
-			library_bam_filename  = "{}/{}/{}".format(args.release_directory, parameters.library_id, release_library_name)
-			read_groups = read_groups_from_bam(library_bam_filename)
-			db_line = "{0}\t{0}\t{1}\t{2}\n".format(parameters.library_id, library_bam_filename, ":".join(read_groups))
-			db_file.write(db_line)
 	
 	return parameter_file_outputs
 
