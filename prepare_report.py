@@ -48,16 +48,6 @@ headersToReport = [
 				   'MT_Haplogroup_NotFoundPolys',
 				   'MT_Haplogroup_FoundPolys',
 				   'MT_Haplogroup_RemainingPolys',
-				   #spike3k is obsolete
-				   #'spike3k_pre_autosome',
-				   #'spike3k_pre_x',
-				   #'spike3k_pre_y',
-				   #'spike3k_post_autosome',
-				   #'spike3k_post_x',
-				   #'spike3k_post_y',
-				   #'spike3k_post_sex',
-				   #'spike3k_complexity',
-				   #'recommendation_spike3k',
 #				   'contamination_schmutzi',
 #				   'contamination_schmutzi_lower',
 #				   'contamination_schmutzi_upper',
@@ -183,71 +173,6 @@ def findSampleSheetEntry(sampleID, keyMapping):
 					experiment = MULTIPLE
 					
 	return sampleSheetID, libraryID, plateID, experiment
-
-# Make an initial recommendation for whether this sample should continue in processing based on spike3k metrics, assuming it is UDG-half treated
-def recommendation_spike3k(sample):
-	# There are five possible outcomes
-	PENDING = -2 # contamination estimate is not complete
-	LOW_DATA = -1
-	FAIL = 0
-	WARNING = 1
-	PASS = 2
-	
-	# if any criterion is poor, we downgrade recommendation
-	recommendation_value = PASS
-	
-	if int(sample.get('merged', 0)) < 1000:
-		return 'low data'
-	
-	# damage assuming UDG-half treatment
-	DAMAGE_FAIL = 0.01
-	DAMAGE_WARN = 0.03
-	damage_first_base = (float(sample.get('damage_rsrs_ct1', -1.0)) + float(sample.get('damage_rsrs_ga1', -1.0)))/2
-	if damage_first_base < 0:
-		recommendation_value = PENDING
-	elif damage_first_base < DAMAGE_FAIL:
-		recommendation_value = min(recommendation_value, FAIL)
-	elif damage_first_base < DAMAGE_WARN:
-		recommendation_value = min(recommendation_value, WARNING)
-	# contamination
-	CONTAMINATION_FAIL = 0.6
-	CONTAMINATION_WARN = 0.95
-	contamination_fraction_matching_consensus = float(sample.get('contamination_contammix', 0))
-	if math.isnan(contamination_fraction_matching_consensus) or contamination_fraction_matching_consensus < CONTAMINATION_FAIL:
-		recommendation_value = min(recommendation_value, FAIL)
-	elif contamination_fraction_matching_consensus < CONTAMINATION_WARN:
-		recommendation_value = min(recommendation_value, WARNING)
-	# MT coverage
-	COVERAGE_FAIL = 0.5
-	COVERAGE_WARN = 2.0
-	label = 'MT_post-coverageLength'
-	shortened_label, mt_coverage = coverageNormalization(label, sample.get(label, 0))
-	if mt_coverage < COVERAGE_FAIL:
-		recommendation_value = min(recommendation_value, FAIL)
-	elif mt_coverage < COVERAGE_WARN:
-		recommendation_value = min(recommendation_value, WARNING)
-	# spike coverage estimate
-	COMPLEXITY_FAIL = 0.005
-	COMPLEXITY_WARN = 0.05
-	spike_complexity = float(sample.get('spike3k_complexity', 0))
-	if spike_complexity < COMPLEXITY_FAIL:
-		recommendation_value = min(recommendation_value, FAIL)
-	elif spike_complexity < COMPLEXITY_WARN:
-		recommendation_value = min(recommendation_value, WARNING)
-	# failed samples that have substantial good data are promoted to warning
-	RESCUE_PRODUCT = 0.05
-	if spike_complexity * damage_first_base > RESCUE_PRODUCT:
-		recommendation_value = max(recommendation_value, WARNING)
-	
-	# return a string representing the recommendation
-	if recommendation_value == FAIL:
-		return 'fail'
-	elif recommendation_value == WARNING:
-		return 'warning'
-	elif recommendation_value == PASS:
-		return 'pass'
-	elif recommendation_value == PENDING:
-		return 'pending'
 	
 # parse an index-barcode key into labels
 def parse_index_barcode_key_into_labels(key, i5_labels, i7_labels, barcode_labels):
@@ -349,8 +274,6 @@ if __name__ == '__main__':
 				+ int(samples[sampleID].get('X_pre', '0'))
 				+ int(samples[sampleID].get('Y_pre', '0'))
 				+ int(samples[sampleID].get('MT_pre', '0'))) / merged_count if merged_count > 0 else 0.0
-		# add recommendation concerning future processing
-		#singleSample['recommendation_spike3k'] = recommendation_spike3k(singleSample)
 
 	# print headers
 	print ('Index-Barcode Key', end='\t')
