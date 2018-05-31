@@ -44,6 +44,8 @@ headersToReport = [
 				   'damage_rsrs_ct2',
 				   'damage_rsrs_ga1',
 				   'damage_rsrs_ga2',
+				   'damage_last_base_avg',
+				   'damage_penultimate_base_avg'
 				   'MT_Haplogroup',
 				   'MT_Haplogroup_rank',
 				   'MT_Haplogroup_NotFoundPolys',
@@ -256,7 +258,7 @@ if __name__ == '__main__':
 		with open(filename, "r") as f:
 			addToSamples(f)
 			
-	# populate additional sample fields
+	# populate additional sample fields derivable from other fields
 	for sampleID in samples:
 		singleSample = samples[sampleID]
 		# parse index-barcode fields into components
@@ -288,6 +290,12 @@ if __name__ == '__main__':
 		# 1240k_unique_target_frac
 		num_1240k_autosomes = 1150639
 		singleSample['1240k_unique_target_frac'] = int(singleSample.get('preseq_unique_targets_hit', '0')) / num_1240k_autosomes
+		
+		# damage at last base and second to last base
+		if 'damage_rsrs_ct1' in singleSample and 'damage_rsrs_ga1' in singleSample:
+			singleSample['damage_last_base_avg'] = (float(singleSample['damage_rsrs_ct1']) + float(singleSample[ 'damage_rsrs_ga1'])) / 2
+		if 'damage_rsrs_ct2' in singleSample and 'damage_rsrs_ga2' in singleSample:
+			singleSample['damage_penultimate_base_avg'] = (float(singleSample['damage_rsrs_ct2']) + float(singleSample[ 'damage_rsrs_ga2'])) / 2
 
 	# print headers
 	print ('Index-Barcode Key', end='\t')
