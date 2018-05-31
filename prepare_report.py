@@ -36,6 +36,7 @@ headersToReport = [
 				   'damage_nuclear_ga2',
 				   'MT_pre', 'MT_pre-coverageLength',
 				   'MT_post', 'MT_post-coverageLength',
+				   'MT_nuclear_ratio',
 				   'duplicates_rsrs',
 				   'median_rsrs',
 				   'mean_rsrs',
@@ -71,6 +72,7 @@ headersToReport = [
 				   'angsd_SE(MoM)',
 				   'angsd_ML',
 				   'angsd_SE(ML)',
+				   '1240k_unique_target_frac',
 				   'preseq_unique_targets_hit',
 				   'preseq_raw_reads_inverse_e',
 				   'preseq_raw_reads_tenth',
@@ -262,8 +264,8 @@ if __name__ == '__main__':
 		# add sample/extract/library ID, if available
 		samples[sampleID]['sample_sheet_key'], samples[sampleID]['library_id'], samples[sampleID]['plate_id'], samples[sampleID]['experiment'] = findSampleSheetEntry(sampleID, keyMapping)
 		singleSample['sample_sheet_i5'], singleSample['sample_sheet_i7'], singleSample['sample_sheet_p5_barcode'], singleSample['sample_sheet_p7_barcode'] = parse_index_barcode_key_into_labels(singleSample.get('sample_sheet_key', ''), i5_labels, i7_labels, barcode_labels)
-		# add % endogenous
 		
+		# add % endogenous
 		if ('autosome_pre' in singleSample
 		or 'X_pre' in singleSample
 		or 'Y_pre' in singleSample
@@ -274,6 +276,18 @@ if __name__ == '__main__':
 				+ int(samples[sampleID].get('X_pre', '0'))
 				+ int(samples[sampleID].get('Y_pre', '0'))
 				+ int(samples[sampleID].get('MT_pre', '0'))) / merged_count if merged_count > 0 else 0.0
+		
+		# % MT_nuclear_ratio
+		chromosome_count = int(singleSample.get('autosome_post', '0')) +  int(singleSample.get('X_post', '0')) + int(singleSample.get('Y_post', '0'))
+		MT_count = int(singleSample.get('MT_post', '0'))
+		if MT_count == 0:
+			singleSample['MT_nuclear_ratio'] = 0
+		else:
+			singleSample['MT_nuclear_ratio'] =  MT_count / chromosome_count if chromosome_count > 0 else 1
+		
+		# 1240k_unique_target_frac
+		num_1240k_autosomes = 1150639
+		singleSample['1240k_unique_target_frac'] = int(singleSample.get('preseq_unique_targets_hit', '0')) / num_1240k_autosomes
 
 	# print headers
 	print ('Index-Barcode Key', end='\t')
