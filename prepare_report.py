@@ -34,6 +34,8 @@ headersToReport = [
 				   'damage_nuclear_ct2',
 				   'damage_nuclear_ga1',
 				   'damage_nuclear_ga2',
+				   'damage_nuclear_last_base_avg',
+				   'damage_nuclear_penultimate_base_avg',
 				   'MT_pre', 'MT_pre-coverageLength',
 				   'MT_post', 'MT_post-coverageLength',
 				   'MT_nuclear_ratio',
@@ -44,8 +46,8 @@ headersToReport = [
 				   'damage_rsrs_ct2',
 				   'damage_rsrs_ga1',
 				   'damage_rsrs_ga2',
-				   'damage_last_base_avg',
-				   'damage_penultimate_base_avg'
+				   'damage_rsrs_last_base_avg',
+				   'damage_rsrs_penultimate_base_avg',
 				   'MT_Haplogroup',
 				   'MT_Haplogroup_rank',
 				   'MT_Haplogroup_NotFoundPolys',
@@ -293,11 +295,16 @@ if __name__ == '__main__':
 		num_1240k_autosomes = 1150639
 		singleSample['1240k_unique_target_frac'] = int(singleSample.get('preseq_unique_targets_hit', '0')) / num_1240k_autosomes
 		
-		# damage at last base and second to last base
+		# damage for hg19 at last base and second to last base
+		if 'damage_nuclear_ct1' in singleSample and 'damage_nuclear_ga1' in singleSample:
+			singleSample['damage_nuclear_last_base_avg'] = (float(singleSample['damage_nuclear_ct1']) + float(singleSample[ 'damage_nuclear_ga1'])) / 2
+		if 'damage_nuclear_ct2' in singleSample and 'damage_nuclear_ga2' in singleSample:
+			singleSample['damage_nuclear_penultimate_base_avg'] = (float(singleSample['damage_nuclear_ct2']) + float(singleSample[ 'damage_nuclear_ga2'])) / 2
+		# damage for rsrs  at last base and second to last base
 		if 'damage_rsrs_ct1' in singleSample and 'damage_rsrs_ga1' in singleSample:
-			singleSample['damage_last_base_avg'] = (float(singleSample['damage_rsrs_ct1']) + float(singleSample[ 'damage_rsrs_ga1'])) / 2
+			singleSample['damage_rsrs_last_base_avg'] = (float(singleSample['damage_rsrs_ct1']) + float(singleSample[ 'damage_rsrs_ga1'])) / 2
 		if 'damage_rsrs_ct2' in singleSample and 'damage_rsrs_ga2' in singleSample:
-			singleSample['damage_penultimate_base_avg'] = (float(singleSample['damage_rsrs_ct2']) + float(singleSample[ 'damage_rsrs_ga2'])) / 2
+			singleSample['damage_rsrs_penultimate_base_avg'] = (float(singleSample['damage_rsrs_ct2']) + float(singleSample[ 'damage_rsrs_ga2'])) / 2
 			
 		# angsd z scores
 		if 'angsd_MoM' in singleSample and 'angsd_SE(MoM)' in singleSample:
