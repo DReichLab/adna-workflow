@@ -70,8 +70,10 @@ headersToReport = [
 				   '1240k_post_y',
 				   '1240k_post_sex',
 				   'angsd_nsites',
+				   'angsd_MoM_z',
 				   'angsd_MoM',
 				   'angsd_SE(MoM)',
+				   'angsd_ML_z',
 				   'angsd_ML',
 				   'angsd_SE(ML)',
 				   '1240k_unique_target_frac',
@@ -296,6 +298,18 @@ if __name__ == '__main__':
 			singleSample['damage_last_base_avg'] = (float(singleSample['damage_rsrs_ct1']) + float(singleSample[ 'damage_rsrs_ga1'])) / 2
 		if 'damage_rsrs_ct2' in singleSample and 'damage_rsrs_ga2' in singleSample:
 			singleSample['damage_penultimate_base_avg'] = (float(singleSample['damage_rsrs_ct2']) + float(singleSample[ 'damage_rsrs_ga2'])) / 2
+			
+		# angsd z scores
+		if 'angsd_MoM' in singleSample and 'angsd_SE(MoM)' in singleSample:
+			value = float(singleSample['angsd_MoM'])
+			stdev = float(singleSample['angsd_SE(MoM)'])
+			if stdev > 0:
+				singleSample['angsd_MoM_z'] =  value / stdev
+		if 'angsd_ML' in singleSample and 'angsd_SE(ML)' in singleSample:
+			value = float(singleSample['angsd_ML'])
+			stdev = float(singleSample['angsd_SE(ML)'])
+			if stdev > 0:
+				singleSample['angsd_ML_z'] = value / stdev
 
 	# print headers
 	print ('Index-Barcode Key', end='\t')
