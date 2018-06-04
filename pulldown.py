@@ -11,19 +11,17 @@ from release_libraries import LibraryParameters
 from merge_pulldown import merge_geno_snp_ind
 
 # Nick's pulldown program has an input file 
-pulldown_parameters_base = '''BASE: /home/np29
-TT:  BASE/tables
-BB:  BASE/o2bin
+pulldown_parameters_base = '''BASE: /n/groups/reich/matt/pipeline/static
 indivname:      PULLDOWN_STRING.ind
-snpname:        /n/groups/reich/matt/pipeline/static/1240kSNP.snp
+snpname:        BASE/1240kSNP.snp
 indivoutname:     PULLDOWN_STRING.out.prelim.ind   
 snpoutname:       PULLDOWN_STRING.out.snp
 genotypeoutname:  PULLDOWN_STRING.out.geno
 outputformat:     eigenstrat
-threshtable:      TT/defaultthresh 
-defstring:        capture
+threshtable:      BASE/pulldown_thresholds 
+defstring:        capture_UDG
 dbbam:            LABEL.dblist
-readbam:          BB/readbam
+readbam:          BASE/readbam
 majmode:          NO
 printcount:       NO
 udgmode: UDG
@@ -191,7 +189,7 @@ if __name__ == "__main__":
 	parser.add_argument('-p', "--pulldown_executable", help="executable to run pulldown")
 	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
 	#parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =10)
-	parser.add_argument('-r', "--release_directory", help="parent directory to put released libraries")
+	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries")
 	
 	parser.add_argument("bam_list", help="Each line contains the parameters to build a library bam for release. This includes the library ID, the individual ID, experiment, read group description (sequencing run name with experiment type and udg treatment), experiment, and (bam, sequencing run date) pairs ")
 	parser.add_argument("report", help="report is used for looking up sex")
