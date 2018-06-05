@@ -80,6 +80,7 @@ headersToReport = [
 				   'angsd_SE(ML)',
 				   '1240k_unique_target_frac',
 				   'preseq_unique_targets_hit',
+				   'preseq_marginal_uniqueness',
 				   'preseq_raw_reads_inverse_e',
 				   'preseq_raw_reads_tenth',
 				   'preseq_coverage_at_marginal_uniqueness_0.368',

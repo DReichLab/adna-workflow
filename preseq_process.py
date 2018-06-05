@@ -6,7 +6,7 @@ import argparse
 
 # preseq projects the number of unique reads given a number of reads, given a histogram of reads at a particular point
 # We analyze four different quantities
-# 1. raw_reads 
+# 1. raw_reads (reads demultiplexing for index-barcode key)
 # 2. reads hitting a 1240k autosome target
 # 3. unique reads hitting a 1240k autosome target
 # 4. number of distinct 1240k targets hit
@@ -80,6 +80,12 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 			values['preseq_total_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_total_reads_required_' + threshold])
 			values['preseq_additional_reads_required_' + threshold] = '>{:.0f}'.format(values['preseq_additional_reads_required_' + threshold])
 	
+	# marginal uniqueness at current number of reads
+	try:
+		expected_distinct_reads, marginal_uniqueness = interpolate_base(reads_hitting_any_target, unique_reads, total_reads_hitting_any_target_actual)
+		values['preseq_marginal_uniqueness'] = marginal_uniqueness
+	except:
+		pass
 	# marginal uniqueness threshold
 	marginal_uniqueness_thresholds = ['0.368', '0.10']
 	for threshold in marginal_uniqueness_thresholds:
@@ -127,6 +133,12 @@ def find_xy_for_slope(X, Y, slope_threshold):
 	return x_at_threshold, y_at_threshold
 
 def interpolate(X, Y, x):
+	y, slope = interpolate_base(X, Y, x)
+	return y
+
+# return interpolated value of y at x and slope
+# slope is defined on interval [ x_i, x_{i+1} )
+def interpolate_base(X, Y, x):
 	if len(X) != len(Y):
 		raise ValueError('length mismatch')
 	if len(X) == 0:
@@ -138,14 +150,14 @@ def interpolate(X, Y, x):
 	
 	if i == len(X)-1:
 		if x > X[i]:
-			return '>{:.1f}'.format(Y[i])
+			return '>{:.1f}'.format(Y[i]), None
 		else:
-			return Y[i]
+			return Y[i], None
 	
 	slope = (Y[i+1] - Y[i]) / (X[i+1] - X[i])
 	x_change = x - X[i]
 	y = Y[i] + slope * x_change
-	return y
+	return y, slope
 
 # count number of reads overlapping any target and number of unique targets hit
 # This histogram is not the input to preseq. It counts the number of reads

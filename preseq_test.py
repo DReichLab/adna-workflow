@@ -2,7 +2,7 @@ import unittest
 import tempfile
 import os.path
 import subprocess
-from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis, find_xy_for_slope, interpolate
+from preseq_process import read_preseq_file, total_and_unique_target_hits, EmpiricalTargetEstimator, preseq_analysis, find_xy_for_slope, interpolate, interpolate_base
 
 class TestPreseq(unittest.TestCase):
 	# This is from Ellora 20180312, processed with step size = reads / 4
@@ -63,6 +63,10 @@ class TestPreseq(unittest.TestCase):
 		expected_targets_at_threshold = 823460.771239422
 		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold_0.01'], places=0)
 		
+		expected_distinct_reads, expected_marginal_uniqueness = interpolate_base(reads_hitting_any_target, unique_reads, total_hits)
+		self.assertAlmostEqual(0.912, expected_marginal_uniqueness, places=2)
+		self.assertAlmostEqual(expected_marginal_uniqueness, values['preseq_marginal_uniqueness'], places=2)
+		
 	def test_preseq_analysis2(self):
 		# This is from Ellora 20180312, processed with step size = reads / 4
 		#S11158.Y1.E1.L1
@@ -88,6 +92,10 @@ class TestPreseq(unittest.TestCase):
 		
 		expected_targets_at_threshold = 801650.833168125
 		self.assertAlmostEqual(expected_targets_at_threshold, values['preseq_expected_unique_targets_at_threshold_0.01'], places=0)
+		
+		expected_distinct_reads, expected_marginal_uniqueness = interpolate_base(reads_hitting_any_target, unique_reads, total_hits)
+		self.assertAlmostEqual(0.909, expected_marginal_uniqueness, places=2)
+		self.assertAlmostEqual(expected_marginal_uniqueness, values['preseq_marginal_uniqueness'], places=2)
 		
 		self.assertTrue(values['preseq_coverage_at_marginal_uniqueness_0.10'].startswith('>3.35'))
 		
@@ -244,6 +252,34 @@ class TestPreseq(unittest.TestCase):
 		
 		out_of_range = interpolate(X, Y, 500)
 		self.assertTrue(out_of_range.startswith('>75'))
+		
+	def test_interpolate_slope(self):
+		X = [0, 100, 200, 300, 400]
+		Y = [0, 40, 60, 70, 75]
+		
+		y, slope = interpolate_base(X, Y, 0)
+		self.assertEqual(0, y)
+		self.assertAlmostEqual(0.4, slope)
+		
+		y, slope = interpolate_base(X, Y, 50)
+		self.assertEqual(20, y)
+		self.assertAlmostEqual(0.4, slope)
+		
+		y, slope = interpolate_base(X, Y, 100)
+		self.assertEqual(40, y)
+		self.assertAlmostEqual(0.2, slope)
+		
+		y, slope = interpolate_base(X, Y, 150)
+		self.assertEqual(50, y)
+		self.assertAlmostEqual(0.2, slope)
+		
+		y, slope = interpolate_base(X, Y, 200)
+		self.assertEqual(60, y)
+		self.assertAlmostEqual(0.1, slope)
+		
+		y, slope = interpolate_base(X, Y, 400)
+		self.assertEqual(75, y)
+		self.assertEqual(None, slope)
 		
 	def test_interpolate_empty(self):
 		X = []
