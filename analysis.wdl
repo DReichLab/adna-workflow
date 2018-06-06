@@ -376,7 +376,7 @@ task versions{
 		echo "adna-workflow " >> versions
 		python3 ${python_version_git_hash} >> versions
 		java -version >> versions 2>&1
-		python --version >> versions 2>&1
+		python3 --version >> versions 2>&1
 		bwa >> versions 2>&1
 		samtools --version >> versions 2>&1
 		
