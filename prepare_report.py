@@ -290,7 +290,7 @@ if __name__ == '__main__':
 		if MT_count == 0:
 			singleSample['MT_nuclear_ratio'] = 0
 		else:
-			singleSample['MT_nuclear_ratio'] =  MT_count / chromosome_count if chromosome_count > 0 else 1
+			singleSample['MT_nuclear_ratio'] =  MT_count / chromosome_count if chromosome_count > 0 else 100
 		
 		# 1240k_unique_target_frac
 		num_1240k_autosomes = 1150639
