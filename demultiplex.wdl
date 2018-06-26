@@ -456,7 +456,7 @@ task align{
 	}
 	runtime{
 		cpus: "${threads}"
-		runtime_minutes: 600
+		runtime_minutes: 300
 		requested_memory_mb_per_core: 2000
 	}
 }
