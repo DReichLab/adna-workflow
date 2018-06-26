@@ -245,8 +245,8 @@ task versions{
 		File versions = "versions"
 	}
 	runtime{
-		runtime_minutes: 10
-		requested_memory_mb_per_core: 1000
+		runtime_minutes: 5
+		requested_memory_mb_per_core: 200
 		continueOnReturnCode: true
 	}
 }
@@ -328,8 +328,8 @@ task bcl2fastq{
 	}
 	runtime{
 		cpus: 4
-		runtime_minutes: 480
-		requested_memory_mb_per_core: 8192
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 1500
 	}
 }
 
@@ -344,8 +344,8 @@ task discover_lane_name_from_filename{
 		String lane = read_string("./lane_name")
 	}
 	runtime{
-		runtime_minutes: 10
-		requested_memory_mb_per_core: 500
+		runtime_minutes: 5
+		requested_memory_mb_per_core: 100
 	}
 }
 
@@ -358,14 +358,14 @@ task barcode_count_check{
 	Array[File] read_files_by_lane
 	
 	command{
-		java -Xmx3500m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
+		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
 	}
 	output{
 		File barcode_count_statistics = "barcodeCount.stats"
 	}
 	runtime{
-		runtime_minutes: 300
-		requested_memory_mb_per_core: 4000
+		runtime_minutes: 100
+		requested_memory_mb_per_core: 2000
 	}
 }
 
@@ -382,7 +382,7 @@ task merge_and_trim_lane{
 	Int? number_output_files
 	
 	command{
-		java -Xmx7500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
@@ -391,8 +391,8 @@ task merge_and_trim_lane{
 		File read_group = "read_group"
 	}
 	runtime{
-		runtime_minutes: 300
-		requested_memory_mb_per_core: 8000
+		runtime_minutes: 200
+		requested_memory_mb_per_core: 4000
 	}
 }
 
@@ -418,14 +418,14 @@ task aggregate_statistics{
 	Array [File] statistics_by_group
 	
 	command{
-		java -Xmx500m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
+		java -Xmx250m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
 		runtime_minutes: 20
-		requested_memory_mb_per_core: 1000
+		requested_memory_mb_per_core: 300
 	}
 }
 
@@ -456,8 +456,8 @@ task align{
 	}
 	runtime{
 		cpus: "${threads}"
-		runtime_minutes: 300
-		requested_memory_mb_per_core: 2000
+		runtime_minutes: 240
+		requested_memory_mb_per_core: 1000
 	}
 }
 
@@ -506,8 +506,8 @@ task align_pool{
 	}
 	runtime{
 		cpus: "${processes}"
-		runtime_minutes: 480
-		requested_memory_mb_per_core: 6000
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 1000
 	}
 }
 
@@ -524,8 +524,8 @@ task collect_filenames{
 		Array[String] filenames = read_lines("./file_of_filenames")
 	}
 	runtime{
-		runtime_minutes: 10
-		requested_memory_mb_per_core: 1000
+		runtime_minutes: 5
+		requested_memory_mb_per_core: 100
 	}
 }
 
@@ -538,15 +538,15 @@ task demultiplex{
 	File? barcodes
 	
 	command{
-		java -Xmx14g -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
+		java -Xmx7500m -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
 		File statistics = "postalignment_statistics"
 	}
 	runtime{
-		cpus: 2
-		runtime_minutes: 480
+		cpus: 1
+		runtime_minutes: 180
 		requested_memory_mb_per_core: 8000
 	}
 }
