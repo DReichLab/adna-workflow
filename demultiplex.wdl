@@ -281,7 +281,8 @@ task prepare_reference{
 	}
 	runtime{
 		cpus: 4
-		requested_memory_mb_per_core: 8192
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 2000
 	}
 }
 
