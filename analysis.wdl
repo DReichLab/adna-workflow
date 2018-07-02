@@ -895,8 +895,8 @@ task contammix{
 	}
 	runtime{
 		cpus: threads
-		runtime_minutes: 300
-		requested_memory_mb_per_core: 7000
+		runtime_minutes: 200
+		requested_memory_mb_per_core: 1000
 	}
 }
 

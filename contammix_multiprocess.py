@@ -1,7 +1,8 @@
 from multiprocessing import Process, Queue
-from subprocess import check_output
+import subprocess
 import sys
 from threading import Lock
+import os
 
 # We run multiple copies of contammix to retrieve one set of results. 
 # We do this because contammix sometimes does not complete and exceeds cluster runtime limits. 
@@ -20,11 +21,15 @@ resultsQueue = Queue(numCopies)
 
 # Failure returns a result, upon which we will stop. 
 def contammix(contammix_estimate_script, bamFilename, multipleAlignmentFASTA, numChains, minimum_base_quality, deamination_bases_to_clip, seed, resultsQueue):
+	# setup R environment variable to garbage collect more aggressively to restrict memory usage 
+	contammix_env = os.environ.copy()
+	contammix_env["R_GC_MEM_GROW"] = "0"
+	
 	result = None
 	try:
 		filename = "stderr-seed-" + str(seed)
 		with open(filename, "w") as f: 
-			result = check_output(["Rscript", contammix_estimate_script, "--samFn", bamFilename, "--malnFn", multipleAlignmentFASTA, "--consId", "MT", "--nChains", numChains, "--figure", "diagnostic_plots.pdf", "--baseq", minimum_base_quality, "--trimBases", deamination_bases_to_clip, "--seed", seed, "--tabOutput"], stderr=f)
+			result = subprocess.run(["Rscript", contammix_estimate_script, "--samFn", bamFilename, "--malnFn", multipleAlignmentFASTA, "--consId", "MT", "--nChains", numChains, "--figure", "diagnostic_plots.pdf", "--baseq", minimum_base_quality, "--trimBases", deamination_bases_to_clip, "--seed", seed, "--tabOutput"], stderr=f, env=contammix_env, check=True, stdout=subprocess.PIPE).stdout
 	except:
 		pass
 	if result == None:
