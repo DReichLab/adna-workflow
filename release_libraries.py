@@ -43,9 +43,9 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 		library_with_duplicates_filename = "{0}.{1}.{2}.duplicates.bam".format(library_id, experiment, reference)
 		subprocess.run("java -Xmx5500m -jar {} MergeSamFiles I={} O={} SORT_ORDER=coordinate".format(picard_jar, ' I='.join(library_component_bams), library_with_duplicates_filename), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
 		
-		# deduplicate
+		# mark, but leave duplicates
 		library_filename = library_parameters.get_release_library_name()
-		subprocess.run("java -Xmx5500m -jar {0} MarkDuplicates I={1} O={2} M={2}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000".format(picard_jar, library_with_duplicates_filename, library_filename), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
+		subprocess.run("java -Xmx5500m -jar {0} MarkDuplicates I={1} O={2} M={2}.dedup_stats BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000".format(picard_jar, library_with_duplicates_filename, library_filename), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
 		
 	return library_filename
 
