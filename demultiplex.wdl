@@ -419,14 +419,14 @@ task aggregate_statistics{
 	Array [File] statistics_by_group
 	
 	command{
-		java -Xmx250m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
+		java -Xmx450m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
 		runtime_minutes: 20
-		requested_memory_mb_per_core: 300
+		requested_memory_mb_per_core: 500
 	}
 }
 
