@@ -854,6 +854,7 @@ task contammix{
 	
 	String sample_id = basename(bam, ".bam")
 	
+	Float bam_size = size(bam)
 	# used to delay contammix until after other tasks
 	Int? unused
 	
@@ -894,9 +895,9 @@ task contammix{
 		File consensus = "${sample_id}.consensus.fa"
 	}
 	runtime{
-		cpus: threads
-		runtime_minutes: 200
-		requested_memory_mb_per_core: 1000
+		cpus: if bam_size < 2000 then 1 else threads
+		runtime_minutes: if bam_size < 2000 then 20 else 200
+		requested_memory_mb_per_core: if bam_size < 2000 then 2000 else 1000
 	}
 }
 
