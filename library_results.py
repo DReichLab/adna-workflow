@@ -86,7 +86,6 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 
 		' 1240K sequences de-indexing for Matt (raw reads for Shop) ' : 'raw',
 		' 1240K sequences that merge and pass barcode check ' : 'merged',
-		'1240K coverage on targeted positions (from reporting)' : '1240k_post_autosome',
 		'1240K Expected Coverage at 10% Marginal Uniqueness' : 'preseq_coverage_at_marginal_uniqueness_0.10',
 		'1240K Expected Coverage at 37% Marginal Uniqueness' : 'preseq_coverage_at_marginal_uniqueness_0.368',
 		'1240K marginal uniqueness' : 'preseq_marginal_uniqueness',
@@ -95,7 +94,8 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 		'1240K Y hits' : '1240k_post_y',
 		'1240K Sex' : '1240k_post_sex',
 		'1240K ANGSD-SNPs' : 'angsd_nsites',
-		'1240K ANGSD-mean' : 'angsd_MoM'
+		'1240K ANGSD-mean' : 'angsd_MoM',
+		#' 1240K ANGSD-Z ' : 'angsd_MoM_z'
 	}
 
 	for library_header_to_replace, report_field_replacing in header_mapping_1240k.items():
@@ -132,6 +132,12 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 		pass
 	
 	try:
+		num_1240k_autosome_targets = 1150639
+		current_library[library_headers.index('1240K coverage on targeted positions (from reporting)')] = '{:.3f}'.format(z1240k_post_autosome / num_1240k_autosome_targets)
+	except:
+		pass
+	
+	try:
 		damage_nuclear_ct1 = float(report_entry_values[report_headers.index('damage_nuclear_ct1')])
 		damage_nuclear_ga1 = float(report_entry_values[report_headers.index('damage_nuclear_ga1')])
 		current_library[library_headers.index('1240K damage in last base')] = '{:.3f}'.format((damage_nuclear_ct1 + damage_nuclear_ga1) / 2)
@@ -141,7 +147,7 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 	try:
 		angsd_MoM = float(report_entry_values[report_headers.index('angsd_MoM')])
 		angsd_SE = float(report_entry_values[report_headers.index('angsd_SE(MoM)')])
-		current_library[library_headers.index('1240K ANGSD-Z')] = '{:.3f}'.format(angsd_MoM / angsd_SE)
+		current_library[library_headers.index(' 1240K ANGSD-Z ')] = '{:.3f}'.format(angsd_MoM / angsd_SE)
 	except:
 		pass
 	'1240K Y chromsome haplogroup'
