@@ -235,6 +235,7 @@ def pulldown_snp_stats(filename):
 	return library_targets
 
 # run this from release directory where pulldown directories are subdirectories
+# TODO this does not handle UDG minus properly
 def logfile_and_dblist(name, library_headers, library_info):
 	parent_path = Path(name)
 	#logfile_name_only = '{}.half.normal.parameters.stdout'.format(name)
