@@ -1069,7 +1069,7 @@ task signal_preliminary_report_ready{
 	Int unused
 	
 	command{
-		ssh -t mym11@orchestra-legacy.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} preliminary_report_ready --date_string ${date_string} --name ${name}
+		ssh -t mym11@loge.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} preliminary_report_ready --date_string ${date_string} --name ${name}
 	}
 	runtime{
 		runtime_minutes: 30
