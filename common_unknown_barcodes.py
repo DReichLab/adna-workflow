@@ -34,7 +34,7 @@ def output_result(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Find the most common barcode pairs for a sam/bam file.")
-	parser.add_argument("-b", "--barcode_length", help="keyed statistics file from barcode counting", type=int, default=6)
+	parser.add_argument("-b", "--barcode_length", help="barcode length to report. For memory reasons, restrict to <= 6.", type=int, default=6)
 	parser.add_argument("-t", "--top_barcode_pairs", help="number of top barcode pairs to return", type=int, default=10)
 	parser.add_argument("-p", "--pool_size", help="size of thread pool to process", type=int, default=4)
 	parser.add_argument("bams", help="bam file(s) with potential barcodes inline", nargs='+')
