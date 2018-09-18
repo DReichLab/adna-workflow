@@ -60,7 +60,7 @@ workflow adna_analysis{
 		reference = mt_reference_rcrs_in
 	}
 	
-	call versions{ input:
+	call analysis_versions as versions{ input:
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		htsbox = htsbox,
@@ -363,7 +363,7 @@ workflow adna_analysis{
 	}
 }
 
-task versions{
+task analysis_versions{
 	File adna_screen_jar
 	File picard_jar
 	File htsbox
@@ -435,6 +435,7 @@ task combine_bams_into_libraries{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 6000
 	}
 }
@@ -779,6 +780,7 @@ task haplogrep{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 360
 		requested_memory_mb_per_core: 2000
 	}
 }
