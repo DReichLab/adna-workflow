@@ -659,6 +659,7 @@ task common_unknown_barcodes{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 60
 		requested_memory_mb_per_core: 4000
 	}
 }
