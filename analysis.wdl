@@ -114,7 +114,6 @@ workflow adna_analysis{
 	call duplicates as duplicates_nuclear { input: 
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
-		pmdtools = pmdtools,
 		unsorted = combine_nuclear_libraries.library_bams,
 		duplicates_label = "duplicates_nuclear"
 	}
@@ -157,7 +156,6 @@ workflow adna_analysis{
 	call duplicates as duplicates_rsrs{ input: 
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
-		pmdtools = pmdtools,
 		unsorted = combine_mt_libraries.library_bams,
 		duplicates_label = "duplicates_rsrs"
 	}
@@ -442,7 +440,6 @@ task combine_bams_into_libraries{
 task duplicates{
 	File picard_jar
 	File adna_screen_jar
-	File pmdtools
 	Array[File] unsorted
 	String duplicates_label
 	
