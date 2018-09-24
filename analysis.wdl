@@ -36,7 +36,6 @@ workflow adna_analysis{
 	File python_damage_two_bases
 	File python_target
 	File python_central_measures
-	File python_snp_target
 	File python_snp_target_bed
 	File python_coverage
 	File python_depth_histogram
