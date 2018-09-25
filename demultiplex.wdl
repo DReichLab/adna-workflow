@@ -145,7 +145,8 @@ workflow demultiplex_align_bams{
 	}
 	call filter_aligned_only as filter_aligned_only_rsrs{ input:
 		picard_jar = picard_jar,
-		bams = demultiplex_rsrs.demultiplexed_bam
+		bams = demultiplex_rsrs.demultiplexed_bam,
+		minutes = 20
 	}
 	
 	call index_pairs_without_barcodes{ input:
@@ -557,6 +558,7 @@ task filter_aligned_only{
 	File picard_jar
 	Array[File] bams
 	Int processes = 5
+	Int minutes = 150
 	
 	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
 	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
@@ -588,7 +590,7 @@ task filter_aligned_only{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 480
+		runtime_minutes: minutes
 		requested_memory_mb_per_core: 4000
 	}
 }
@@ -596,6 +598,7 @@ task filter_aligned_only{
 task copy_output{
 	Array[File] files
 	String output_path
+	Int minutes = 180
 	
 	command{
 		mkdir -p ${output_path};
@@ -607,6 +610,7 @@ task copy_output{
 		Int copied = length(files)
 	}
 	runtime{
+		runtime_minutes: minutes
 		requested_memory_mb_per_core: 2048
 	}
 }
@@ -615,6 +619,7 @@ task copy_and_rename{
 	File source_file
 	String output_path
 	String output_filename_no_path
+	Int minutes = 10
 	
 	command{
 		mkdir -p ${output_path};
@@ -624,7 +629,7 @@ task copy_and_rename{
 		Int copied = 1
 	}
 	runtime{
-		runtime_minutes: 60
+		runtime_minutes: minutes
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -684,7 +689,7 @@ task kmer_analysis{
 		File analysis = "${date}_${dataset_label}.kmer"
 	}
 	runtime{
-		runtime_minutes: 30
+		runtime_minutes: 10
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -704,7 +709,7 @@ task prepare_demultiplex_report{
 		File report = "${date}_${dataset_label}.demultiplex_report"
 	}
 	runtime{
-		runtime_minutes: 30
+		runtime_minutes: 10
 		requested_memory_mb_per_core: 1000
 	}
 }
