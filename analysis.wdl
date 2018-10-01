@@ -391,7 +391,7 @@ task analysis_versions{
 		File versions = "versions"
 	}
 	runtime{
-		runtime_minutes: 10
+		runtime_minutes: 5
 		requested_memory_mb_per_core: 1000
 		continueOnReturnCode: true
 	}
@@ -415,7 +415,7 @@ task combine_bams_into_libraries{
 			#print('combine bams ' + sample_id_filename)
 			
 			merge_file_list = 'I=' + ' I='.join(bam_filenames)
-			command = "java -Xmx5500m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, sample_id_filename)
+			command = "java -Xmx2000m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, sample_id_filename)
 			#print('combine bam lists ' + command)
 			subprocess.check_output(command, shell=True)
 		
@@ -432,8 +432,8 @@ task combine_bams_into_libraries{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 480
-		requested_memory_mb_per_core: 6000
+		runtime_minutes: 180
+		requested_memory_mb_per_core: 2200
 	}
 }
 
@@ -551,7 +551,8 @@ task chromosome_target{
 	}
 	runtime{
 		cpus: 2
-		requested_memory_mb_per_core: 8192
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 2000
 	}
 }
 
