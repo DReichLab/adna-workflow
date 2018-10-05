@@ -550,9 +550,9 @@ task chromosome_target{
 		Array[File] length_histogram = glob("*.histogram")
 	}
 	runtime{
-		cpus: 2
+		cpus: 1
 		runtime_minutes: 120
-		requested_memory_mb_per_core: 2000
+		requested_memory_mb_per_core: 3000
 	}
 }
 

@@ -13,4 +13,4 @@ for bam in filenames:
 	histogram = filename_only + ".histogram"
 	statistics = filename_only + ".stats"
 	with open(statistics, "w") as statistics_file:
-		call(["java", "-jar", adna_screen_jar, "SAMStats", "-f", bam, "-t", targets, "-l", histogram, "-q", minimum_mapping_quality], stdout=statistics_file)
+		call(["java", "-Xmx2500m", "-jar", adna_screen_jar, "SAMStats", "-f", bam, "-t", targets, "-l", histogram, "-q", minimum_mapping_quality], stdout=statistics_file)
