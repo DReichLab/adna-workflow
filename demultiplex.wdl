@@ -605,7 +605,7 @@ task copy_output{
 		mkdir -p ${output_path};
 		for file in ${sep=' ' files}  ; do 
 			cp -l $file "${output_path}" || cp $file "${output_path}"
-			chmod 440 "${output_path}"
+			chmod 440 "${output_path}/$file"
 		done
 	}
 	output{
