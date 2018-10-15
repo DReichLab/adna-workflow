@@ -625,6 +625,7 @@ task copy_and_rename{
 	Int minutes = 10
 	
 	command{
+		set -e
 		mkdir -p ${output_path};
 		cp -l ${source_file} "${output_path}/${output_filename_no_path}" || cp ${source_file} "${output_path}/${output_filename_no_path}"
 	}
