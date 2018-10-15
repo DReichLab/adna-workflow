@@ -793,7 +793,7 @@ task summarize_haplogroups{
 		File haplogroups = "haplogroups"
 	}
 	runtime{
-		runtime_minutes: 60
+		runtime_minutes: 30
 		requested_memory_mb_per_core: 2000
 	}
 }

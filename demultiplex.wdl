@@ -601,9 +601,11 @@ task copy_output{
 	Int minutes = 180
 	
 	command{
+		set -e
 		mkdir -p ${output_path};
 		for file in ${sep=' ' files}  ; do 
 			cp -l $file "${output_path}" || cp $file "${output_path}"
+			chmod 440 "${output_path}"
 		done
 	}
 	output{
@@ -726,7 +728,7 @@ task update_database_with_demultiplexed{
 		ssh -t mym11@loge.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name} --analysis_run ${django_analysis_run_id} --start_analysis
 	}
 	runtime{
-		runtime_minutes: 30
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 1000
 	}
 }
