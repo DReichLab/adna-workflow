@@ -8,6 +8,7 @@ targets = sys.argv[2]
 minimum_mapping_quality = sys.argv[3]
 filenames = sys.argv[4:len(sys.argv)]
 
+# TODO convert this into a thread pool
 for bam in filenames:
 	filename_only = basename(bam)
 	histogram = filename_only + ".histogram"

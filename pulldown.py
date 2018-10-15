@@ -182,7 +182,7 @@ def merge_pulldowns(pulldown_label, pulldown_file_sets):
 	merge_geno_snp_ind(geno_files, snp_files, ind_files, output_stem)
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Prepare pulldown input files for a batch.")
+	parser = argparse.ArgumentParser(description="Prepare pulldown input files for a list of libraries and run pulldown.")
 	
 	# pulldown is optional
 	# 1240k(+) libraries require pulldown. MT libraries do not. 
