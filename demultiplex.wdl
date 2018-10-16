@@ -230,7 +230,6 @@ task versions{
 	File index_barcode_keys_to_stop_call_caching
 
 	command{
-		set -e
 		echo "adna-workflow " >> versions
 		python3 ${python_version_git_hash} >> versions
 		java -version >> versions 2>&1
@@ -548,7 +547,7 @@ task demultiplex{
 	}
 	runtime{
 		cpus: 1
-		runtime_minutes: 180
+		runtime_minutes: 240
 		requested_memory_mb_per_core: 8000
 	}
 }

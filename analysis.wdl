@@ -369,7 +369,6 @@ task analysis_versions{
 	File index_barcode_keys_to_stop_call_caching
 
 	command{
-		set -e
 		echo "adna-workflow " >> versions
 		python3 ${python_version_git_hash} >> versions
 		java -version >> versions 2>&1
@@ -479,6 +478,7 @@ task duplicates{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 5000
 	}
 }
@@ -633,6 +633,7 @@ task snp_target_bed{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 4000
 	}
 }
@@ -696,6 +697,7 @@ task target_depth_bed{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 3000
 	}
 }
@@ -793,7 +795,7 @@ task summarize_haplogroups{
 		File haplogroups = "haplogroups"
 	}
 	runtime{
-		runtime_minutes: 30
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -811,7 +813,7 @@ task central_measures{
 		File central_measures_output = "central_measures"
 	}
 	runtime{
-		runtime_minutes: 60
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -990,6 +992,7 @@ task preseq{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 600
 		requested_memory_mb_per_core: 5000
 	}
 }
@@ -1056,6 +1059,7 @@ task angsd_contamination{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: 480
 		requested_memory_mb_per_core: 4000
 	}
 }
@@ -1071,7 +1075,7 @@ task signal_preliminary_report_ready{
 		ssh -t mym11@loge.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} preliminary_report_ready --date_string ${date_string} --name ${name}
 	}
 	runtime{
-		runtime_minutes: 30
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 2000
 	}
 	output{
@@ -1101,7 +1105,7 @@ task prepare_report{
 		File report = "${date}_${dataset_label}.report"
 	}
 	runtime{
-		runtime_minutes: 60
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 2000
 	}
 }
