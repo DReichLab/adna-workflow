@@ -547,7 +547,7 @@ task demultiplex{
 	}
 	runtime{
 		cpus: 1
-		runtime_minutes: 240
+		runtime_minutes: 360
 		requested_memory_mb_per_core: 8000
 	}
 }
