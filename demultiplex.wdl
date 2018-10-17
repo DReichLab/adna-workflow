@@ -345,8 +345,8 @@ task discover_lane_name_from_filename{
 		String lane = read_string("./lane_name")
 	}
 	runtime{
-		runtime_minutes: 5
-		requested_memory_mb_per_core: 100
+		runtime_minutes: 2
+		requested_memory_mb_per_core: 10
 	}
 }
 
@@ -419,14 +419,14 @@ task aggregate_statistics{
 	Array [File] statistics_by_group
 	
 	command{
-		java -Xmx450m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
+		java -Xmx950m -jar ${adna_screen_jar} AggregateStatistics ${sep=' ' statistics_by_group} > aggregated_statistics
 	}
 	output{
 		File statistics = "aggregated_statistics"
 	}
 	runtime{
 		runtime_minutes: 20
-		requested_memory_mb_per_core: 500
+		requested_memory_mb_per_core: 1000
 	}
 }
 
