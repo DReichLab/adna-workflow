@@ -18,7 +18,8 @@ workflow release_and_pulldown{
 		picard_jar = picard_jar,
 		python_release_libraries = python_release_libraries,
 		python_read_groups_from_bam = python_read_groups_from_bam,
-		release_parent_directory = release_parent_directory
+		release_parent_directory = release_parent_directory,
+		minutes = 80
 	}
 	call build_release_libraries as build_nuclear{input:
 		bamlist = nuclear_bamlist,
@@ -51,6 +52,7 @@ task build_release_libraries{
 	String release_parent_directory
 	
 	Int processes = 8
+	Int minutes = 720
 	
 	command{
 		python3 ${python_release_libraries} --num_threads ${processes} --release_directory ${release_parent_directory} ${bamlist} ${adna_jar} ${picard_jar} > out
@@ -60,6 +62,7 @@ task build_release_libraries{
 	}
 	runtime{
 		cpus: processes
+		runtime_minutes: minutes
 		requested_memory_mb_per_core: 6000
 	}
 }
