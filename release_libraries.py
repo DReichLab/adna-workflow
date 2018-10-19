@@ -7,6 +7,10 @@ import shutil
 from pathlib import Path
 from multiprocessing import Pool
 
+def bam_has_reads(bam_filename):
+	result = subprocess.run(['samtools', 'view', '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
+	return int(result) > 0
+
 def add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, individual, working_directory):
 	subprocess.run(["java", "-Xmx5000m", "-jar", adna_jar_filename,
 				 "AssignReadGroups", 
@@ -28,13 +32,14 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 	count = 0
 	library_component_bams = []
 	for i in range(len(library_parameters.bam_filenames)):
-		count += 1
 		demultiplexed_bam_filename = library_parameters.bam_filenames[i]
-		bam_date_string = library_parameters.bam_date_strings[i]
-		output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
-		label = "{}_{}".format(library_parameters.read_group_description, library_id)
-		add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
-		library_component_bams.append(output_bam_filename)
+		if bam_has_reads(demultiplexed_bam_filename):
+			count += 1
+			bam_date_string = library_parameters.bam_date_strings[i]
+			output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
+			label = "{}_{}".format(library_parameters.read_group_description, library_id)
+			add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
+			library_component_bams.append(output_bam_filename)
 	
 	# use stderr by library
 	with open('{}/stdout_build_release_library'.format(working_directory), 'w') as stdout_build, \
