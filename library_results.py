@@ -235,46 +235,47 @@ def pulldown_snp_stats(filename):
 	return library_targets
 
 # run this from release directory where pulldown directories are subdirectories
-# TODO this does not handle UDG minus properly
 def logfile_and_dblist(name, library_headers, library_info):
 	parent_path = Path(name)
-	#logfile_name_only = '{}.half.normal.parameters.stdout'.format(name)
-	#print(logfile_name_only, file=sys.stderr)
-	logfile_fullpath = str(parent_path.resolve()) + '/{}.half.normal.parameters.stdout'.format(name)
-	#print(logfile_fullpath, file=sys.stderr)
-	library_targets = pulldown_snp_stats(logfile_fullpath)
 	
-	logfile_index = library_headers.index('pulldown: logfile location')
-	
-	dblist_filename = parent_path / ('{}.dblist'.format(name))
-	#print(dblist_filename, file=sys.stderr)
-	with open(dblist_filename) as dblist:
-		for line in dblist:
-			fields = line.split()
-			if len(fields) == 4:
-				library_id = fields[0]
-				second = fields[1]
-				bam = fields[2]
-				read_groups = fields[3]
-				
-				if library_id in library_info:
-					current_library = library_info[library_id]
-					
-					current_library[logfile_index] = logfile_fullpath
-					current_library[library_headers.index('pulldown: 1st column of nickdb (sample ID used in logfile)')] = library_id
-					current_library[library_headers.index('pulldown: 2nd column of nickdb (alt sample ID)')] = library_id
-					current_library[library_headers.index('pulldown: 3rd column of nickdb (bam)')] = bam
-					#'pulldown: 4th column of nickdb (or hetfa)'
-					current_library[library_headers.index('pulldown: 5th column of nickdb (readgroup list or diploid source)')] = read_groups
-					
-					try:
-						targets = library_targets[library_id]
-						current_library[library_headers.index('1240K number of unique autosomal targets hit (from pulldown)')] = '{:d}'.format(targets)
-					except:
-						print('{} not in library_targets'.format(library_id), file=sys.stderr)
-					#current_library[library_headers.index('1240K fraction of unique targets hit')] = '{:.3f}'.format(targets / )
-				else:
-					print('{} not in libraries'.format(library_id), file=sys.stderr)
+	logfiles = ['{}.half.normal.parameters.stdout'.format(name), '{}.minus.normal.parameters.stdout'.format(name)]
+	for logfile in logfiles:
+		logfile_fullpath = str(parent_path.resolve()) / logfile
+		#print(logfile_fullpath, file=sys.stderr)
+		if logfile_fullpath.is_file() and  logfile_fullpath.exists():
+			library_targets = pulldown_snp_stats(logfile_fullpath)
+			
+			logfile_index = library_headers.index('pulldown: logfile location')
+			
+			dblist_filename = parent_path / ('{}.dblist'.format(name))
+			#print(dblist_filename, file=sys.stderr)
+			with open(dblist_filename) as dblist:
+				for line in dblist:
+					fields = line.split()
+					if len(fields) == 4:
+						library_id = fields[0]
+						second = fields[1]
+						bam = fields[2]
+						read_groups = fields[3]
+						
+						if library_id in library_info:
+							current_library = library_info[library_id]
+							
+							current_library[logfile_index] = logfile_fullpath
+							current_library[library_headers.index('pulldown: 1st column of nickdb (sample ID used in logfile)')] = library_id
+							current_library[library_headers.index('pulldown: 2nd column of nickdb (alt sample ID)')] = library_id
+							current_library[library_headers.index('pulldown: 3rd column of nickdb (bam)')] = bam
+							#'pulldown: 4th column of nickdb (or hetfa)'
+							current_library[library_headers.index('pulldown: 5th column of nickdb (readgroup list or diploid source)')] = read_groups
+							
+							try:
+								targets = library_targets[library_id]
+								current_library[library_headers.index('1240K number of unique autosomal targets hit (from pulldown)')] = '{:d}'.format(targets)
+							except:
+								print('{} not in library_targets'.format(library_id), file=sys.stderr)
+							#current_library[library_headers.index('1240K fraction of unique targets hit')] = '{:.3f}'.format(targets / )
+						else:
+							print('{} not in libraries'.format(library_id), file=sys.stderr)
 				
 
 if __name__ == "__main__":
