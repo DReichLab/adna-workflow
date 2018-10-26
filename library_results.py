@@ -36,7 +36,7 @@ def read_library_file(filename):
 		headers = header_line.split('\t')
 		library_ids = []
 		library_info = {}
-		id_index = headers.index('Library_id')
+		id_index = headers.index('Library_ID')
 		
 		for line in f:
 			fields = line.split('\t')
@@ -205,6 +205,7 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 			if library_id.startswith('S'): # is not '' and library_id is not 'Contl.Capture':
 				current_library = library_info[library_id]
 				# sample file data
+				'''
 				try:
 					sample_id = LibraryID(library_id).sample
 					for sample_header in header_mapping_sample:
@@ -217,6 +218,7 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 				except Exception as exception:
 					print(exception, file=sys.stderr)
 					#raise
+				'''
 				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
 					if '1240k' in experiment:
@@ -242,8 +244,8 @@ def logfile_and_dblist(name, library_headers, library_info):
 	
 	logfiles = ['{}.half.normal.parameters.stdout'.format(name), '{}.minus.normal.parameters.stdout'.format(name)]
 	for logfile in logfiles:
-		logfile_fullpath = str(parent_path.resolve()) / logfile
-		#print(logfile_fullpath, file=sys.stderr)
+		logfile_fullpath = parent_path.resolve() / logfile
+		print(logfile_fullpath, file=sys.stderr)
 		if logfile_fullpath.is_file() and  logfile_fullpath.exists():
 			library_targets = pulldown_snp_stats(logfile_fullpath)
 			
@@ -263,7 +265,7 @@ def logfile_and_dblist(name, library_headers, library_info):
 						if library_id in library_info:
 							current_library = library_info[library_id]
 							
-							current_library[logfile_index] = logfile_fullpath
+							current_library[logfile_index] = str(logfile_fullpath)
 							current_library[library_headers.index('Pulldown_1st_Column_NickDB')] = library_id
 							current_library[library_headers.index('Pulldown_2nd_Column_NickDB_alt_sample')] = library_id
 							current_library[library_headers.index('Pulldown_3rd_Column_NickDB_bam')] = bam
