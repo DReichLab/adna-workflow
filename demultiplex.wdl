@@ -381,9 +381,10 @@ task merge_and_trim_lane{
 	File index_barcode_keys
 	
 	Int? number_output_files
+	String? positive_oligo
 	
 	command{
-		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive_oligo " + positive_oligo} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
