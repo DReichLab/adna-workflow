@@ -5,26 +5,27 @@ import argparse
 from library_id import LibraryID
 
 # Map headers in Rebecca's sample spreadsheet to the library spreadsheet
+# key is sample spreadsheet column name, value is library spreadsheet column name
 header_mapping_sample = {
 	'sample_id' : 'Sample_ID',
-	'individual_id' : 'individual_id',
-	'shipment_id' : 'shipment_id',
-	'Skeletal codes' : 'Skeletal codes',
-	'Skeletal element' : 'Skeletal element',
+	'individual_id' : 'Individual_ID',
+	'shipment_id' : 'Shipment_ID',
+	'Skeletal codes' : 'Skeletal_Code',
+	'Skeletal element' : 'Skeletal_Element',
 	'Collaborator' : 'Collaborator',
-	'Date Fix Flag' : 'Date Fix Flag',
-	'  Average of 95.4% date range in calBP (defined as 1950 CE)' : '  Average of 95.4% date range in calBP (defined as 1950 CE)',
-	'Date' : 'Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE',
-	'Culture' : 'Culture',
-	'Location' : 'Location',
+	'Date Fix Flag' : 'Date_Fix_Flag',
+	'  Average of 95.4% date range in calBP (defined as 1950 CE)' : 'Average_BP_Date',
+	'Date' : 'Date',
+	'Culture' : 'Culture_Period',
+	'Location' : 'Locality',
 	'Country' : 'Country',
-	'  Lat.' : '  Lat.',
-	'  Long.' : '  Long.',
+	'  Lat.' : 'Latitude',
+	'  Long.' : 'Longitude',
 	'notes' : 'Notes',
-	'notes_2' : 'notes_2',
-	'14C_Status' : '14C_Status',
-	'AMS_Ship_ID' : '14C Ship-ID',
-	'AMS_Ship_Date' : '14C Ship Date',
+	'notes_2' : 'Notes_2',
+	#'14C_Status' : '14C_Status',
+	#'AMS_Ship_ID' : '14C Ship-ID',
+	#'AMS_Ship_Date' : '14C Ship Date',
 	'sampling_tech' : 'Sampling_Tech'
 }
 
@@ -73,28 +74,29 @@ def replace_field(current_library, library_headers, report_entry_values, report_
 		current_library[to_replace_index] = str(value)
 		
 def replace_capture_fields(current_library, library_headers, report_entry_values, report_headers):
+	# key is column name in Rebecca's library spreadsheet, value is field name from pipeline report
 	header_mapping_1240k = {
-		'mt-experiment raw sequences' : 'raw',
-		'mt-experiment sequences going into alignment (passing barcode and other filters)' : 'merged',
-		'mt sequences aligning to target' : 'MT_pre',
-		'mt sequences aligning to target post-dup' : 'MT_post',
-		'mt coverage' : 'MT_post-coverage',
-		'mt mean length (median for old-style analyses)' : 'mean_rsrs',
-		'mt match to consensus (only if mtcov>2)' : 'contamination_contammix',
-		'mt haplogroup (only if mtcov>2)' : 'MT_Haplogroup',
-		'mt haplogroup confidence (only if mtcov>2)' : 'MT_Haplogroup_rank',
+		'mtDNA_Raw_Sequences' : 'raw',
+		'mtDNA_Sequences_Passing_Filters' : 'merged',
+		'mtDNA_Sequences_Target_Alignment' : 'MT_pre',
+		'mtDNA_Sequences_Target_Alignment_PostDedup' : 'MT_post',
+		'mtDNA_Coverage' : 'MT_post-coverage',
+		'mtDNA_Mean_Median_Seq_Length' : 'mean_rsrs',
+		'mtDNA_Consensus_Match' : 'contamination_contammix',
+		'mtDNA_Haplogroup' : 'MT_Haplogroup',
+		'mtDNA_Haplogroup_Confidence' : 'MT_Haplogroup_rank',
 
-		' 1240K sequences de-indexing for Matt (raw reads for Shop) ' : 'raw',
-		' 1240K sequences that merge and pass barcode check ' : 'merged',
-		'1240K Expected Coverage at 10% Marginal Uniqueness' : 'preseq_coverage_at_marginal_uniqueness_0.10',
-		'1240K Expected Coverage at 37% Marginal Uniqueness' : 'preseq_coverage_at_marginal_uniqueness_0.368',
-		'1240K marginal uniqueness' : 'preseq_marginal_uniqueness',
-		'1240K mean sequence length (median for Shop processing)' : 'mean_nuclear',
-		'1240K X hits' : '1240k_post_x',
-		'1240K Y hits' : '1240k_post_y',
-		'1240K Sex' : '1240k_post_sex',
-		'1240K ANGSD-SNPs' : 'angsd_nsites',
-		'1240K ANGSD-mean' : 'angsd_MoM',
+		'Nuclear_Raw_Reads_OR_Deindexing' : 'raw',
+		'Nuclear_Sequences_Merge_Pass_Barcode' : 'merged',
+		'Nuclear_Expected_Coverage_10%_Marginal_Uniqueness' : 'preseq_coverage_at_marginal_uniqueness_0.10',
+		'Nuclear_Expected_Coverage_37%_Marginal_Uniqueness' : 'preseq_coverage_at_marginal_uniqueness_0.368',
+		'Nuclear_Marginal_Uniqueness' : 'preseq_marginal_uniqueness',
+		'Nuclear_Mean_Median_Seq_Length' : 'mean_nuclear',
+		'Nuclear_X_Hits' : '1240k_post_x',
+		'Nuclear_Y_Hits' : '1240k_post_y',
+		'Nuclear_Sex' : '1240k_post_sex',
+		'Nuclear_ANGSD_SNPs' : 'angsd_nsites',
+		'Nuclear_ANGSD_Mean' : 'angsd_MoM',
 		#' 1240K ANGSD-Z ' : 'angsd_MoM_z'
 	}
 
@@ -104,14 +106,14 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 	try:
 		damage_rsrs_ct1 = float(report_entry_values[report_headers.index('damage_rsrs_ct1')])
 		damage_rsrs_ga1 = float(report_entry_values[report_headers.index('damage_rsrs_ga1')])
-		current_library[library_headers.index('mt fraction damaged in last base')] = '{:.3f}'.format((damage_rsrs_ct1 + damage_rsrs_ga1) / 2)
+		current_library[library_headers.index('mtDNA_Damage_Last_Base')] = '{:.3f}'.format((damage_rsrs_ct1 + damage_rsrs_ga1) / 2)
 	except:
 		pass
 	
 	try:
 		contamination_contammix_lower = float(report_entry_values[report_headers.index('contamination_contammix_lower')])
 		contamination_contammix_upper = float(report_entry_values[report_headers.index('contamination_contammix_upper')])
-		current_library[library_headers.index('mt match to consensus 95CI (only if mtcov>2)')] = '[{:.3f}, {:.3f}]'.format(contamination_contammix_lower, contamination_contammix_upper)
+		current_library[library_headers.index('mtDNA_Consensus_Match_95CI')] = '[{:.3f}, {:.3f}]'.format(contamination_contammix_lower, contamination_contammix_upper)
 	except:
 		pass
 	
@@ -119,7 +121,7 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 		z1240k_pre_x = int(report_entry_values[report_headers.index('1240k_pre_x')])
 		z1240k_pre_y = int(report_entry_values[report_headers.index('1240k_pre_y')])
 		z1240k_pre_autosome = int(report_entry_values[report_headers.index('1240k_pre_autosome')])
-		current_library[library_headers.index('1240K sequences passing QC hitting targets pre-dedup')] = '{:d}'.format(z1240k_pre_x + z1240k_pre_y + z1240k_pre_autosome)
+		current_library[library_headers.index('Nuclear_Target_Sequences_Pass_QC_PreDedup')] = '{:d}'.format(z1240k_pre_x + z1240k_pre_y + z1240k_pre_autosome)
 	except:
 		pass
 	
@@ -127,37 +129,37 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 		z1240k_post_x = int(report_entry_values[report_headers.index('1240k_post_x')])
 		z1240k_post_y = int(report_entry_values[report_headers.index('1240k_post_y')])
 		z1240k_post_autosome = int(report_entry_values[report_headers.index('1240k_post_autosome')])
-		current_library[library_headers.index('1240K sequences passing QC hitting targets post-dedup')] = '{:d}'.format(z1240k_post_x + z1240k_post_y + z1240k_post_autosome)
+		current_library[library_headers.index('Nuclear_Target_Sequences_Pass_QC_PostDedup')] = '{:d}'.format(z1240k_post_x + z1240k_post_y + z1240k_post_autosome)
 	except:
 		pass
 	
 	try:
 		num_1240k_autosome_targets = 1150639
-		current_library[library_headers.index('1240K coverage on targeted positions (from reporting)')] = '{:.3f}'.format(z1240k_post_autosome / num_1240k_autosome_targets)
+		current_library[library_headers.index('Nuclear_Coverage_Targeted_Positions')] = '{:.3f}'.format(z1240k_post_autosome / num_1240k_autosome_targets)
 	except:
 		pass
 	
 	try:
 		damage_nuclear_ct1 = float(report_entry_values[report_headers.index('damage_nuclear_ct1')])
 		damage_nuclear_ga1 = float(report_entry_values[report_headers.index('damage_nuclear_ga1')])
-		current_library[library_headers.index('1240K damage in last base')] = '{:.3f}'.format((damage_nuclear_ct1 + damage_nuclear_ga1) / 2)
+		current_library[library_headers.index('Nuclear_Damage_Last_Base')] = '{:.3f}'.format((damage_nuclear_ct1 + damage_nuclear_ga1) / 2)
 	except:
 		pass
 	
 	try:
 		angsd_MoM = float(report_entry_values[report_headers.index('angsd_MoM')])
 		angsd_SE = float(report_entry_values[report_headers.index('angsd_SE(MoM)')])
-		current_library[library_headers.index(' 1240K ANGSD-Z ')] = '{:.3f}'.format(angsd_MoM / angsd_SE)
+		current_library[library_headers.index('Nuclear_ANGSD_Z')] = '{:.3f}'.format(angsd_MoM / angsd_SE)
 	except:
 		pass
 	'1240K Y chromsome haplogroup'
 
 def replace_shotgun_fields(current_library, library_headers, report_entry_values, report_headers):
 	header_mapping_shotgun = {
-		'Shotgun Raw Sequences' : 'raw',
-		'Shotgun sequences going into alignment (passing barcode and other filters)' : 'merged',
-		"Shotgun mean length (median length for Shop's processing)" : 'mean_nuclear',
-		'Shotgun Fraction Raw Sequences Mapping to hg19 (% Human)' : 'endogenous_pre',
+		'Shotgun_Raw_Sequences' : 'raw',
+		'Shotgun_Sequences_Passing_Filters' : 'merged',
+		"Shotgun_Mean_Median_Seq_Length" : 'mean_nuclear',
+		'Shotgun_Percent_HG19' : 'endogenous_pre',
 	}
 	
 	for library_header_to_replace, report_field_replacing in header_mapping_shotgun.items():
@@ -168,19 +170,19 @@ def replace_shotgun_fields(current_library, library_headers, report_entry_values
 		X_pre = int(report_entry_values[report_headers.index('X_pre')])
 		Y_pre = int(report_entry_values[report_headers.index('Y_pre')])
 		MT_pre = int(report_entry_values[report_headers.index('MT_pre')])
-		current_library[library_headers.index('Shotgun reads mapping to hg19')] = '{:d}'.format(autosome_pre + X_pre + Y_pre + MT_pre)
+		current_library[library_headers.index('Shotgun_Reads_Mapped_HG19')] = '{:d}'.format(autosome_pre + X_pre + Y_pre + MT_pre)
 	except:
 		pass
 	
 	try:
 		damage_nuclear_ct1 = float(report_entry_values[report_headers.index('damage_nuclear_ct1')])
 		damage_nuclear_ga1 = float(report_entry_values[report_headers.index('damage_nuclear_ga1')])
-		current_library[library_headers.index('Shotgun damage rate')] = '{:.3f}'.format((damage_nuclear_ct1 + damage_nuclear_ga1) / 2)
+		current_library[library_headers.index('Shotgun_Damage_Rate')] = '{:.3f}'.format((damage_nuclear_ct1 + damage_nuclear_ga1) / 2)
 	except:
 		pass
 	
 	try:
-		current_library[library_headers.index('Shotgun Fraction Aligning to hg19 that Also Hit mtDNA for ones with at least 1,000 shotgun reads matchin hg19')] = '{:.3f}'.format(MT_pre / (autosome_pre + X_pre + Y_pre + MT_pre))
+		current_library[library_headers.index('Shotgun_Fraction_HG19_Hit_mtDNA')] = '{:.3f}'.format(MT_pre / (autosome_pre + X_pre + Y_pre + MT_pre))
 	except:
 		pass
 
@@ -245,7 +247,7 @@ def logfile_and_dblist(name, library_headers, library_info):
 		if logfile_fullpath.is_file() and  logfile_fullpath.exists():
 			library_targets = pulldown_snp_stats(logfile_fullpath)
 			
-			logfile_index = library_headers.index('pulldown: logfile location')
+			logfile_index = library_headers.index('Pulldown_Logfile_Location')
 			
 			dblist_filename = parent_path / ('{}.dblist'.format(name))
 			#print(dblist_filename, file=sys.stderr)
@@ -262,15 +264,15 @@ def logfile_and_dblist(name, library_headers, library_info):
 							current_library = library_info[library_id]
 							
 							current_library[logfile_index] = logfile_fullpath
-							current_library[library_headers.index('pulldown: 1st column of nickdb (sample ID used in logfile)')] = library_id
-							current_library[library_headers.index('pulldown: 2nd column of nickdb (alt sample ID)')] = library_id
-							current_library[library_headers.index('pulldown: 3rd column of nickdb (bam)')] = bam
+							current_library[library_headers.index('Pulldown_1st_Column_NickDB')] = library_id
+							current_library[library_headers.index('Pulldown_2nd_Column_NickDB_alt_sample')] = library_id
+							current_library[library_headers.index('Pulldown_3rd_Column_NickDB_bam')] = bam
 							#'pulldown: 4th column of nickdb (or hetfa)'
-							current_library[library_headers.index('pulldown: 5th column of nickdb (readgroup list or diploid source)')] = read_groups
+							current_library[library_headers.index('Pulldown_5th_Column_NickDB_readgroup_diploid_source')] = read_groups
 							
 							try:
 								targets = library_targets[library_id]
-								current_library[library_headers.index('1240K number of unique autosomal targets hit (from pulldown)')] = '{:d}'.format(targets)
+								current_library[library_headers.index('Nuclear_Unique_SNPS_Hit')] = '{:d}'.format(targets)
 							except:
 								print('{} not in library_targets'.format(library_id), file=sys.stderr)
 							#current_library[library_headers.index('1240K fraction of unique targets hit')] = '{:.3f}'.format(targets / )
