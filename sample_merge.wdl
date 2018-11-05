@@ -5,6 +5,8 @@ import "release_and_pulldown.wdl" as pulldown
 workflow sample_merge_and_pulldown_with_analysis{
 	File sample_library_list
 	String release_directory
+	String genome_reference_string
+	String mt_reference_string
 
 	File adna_screen_jar
 	File picard_jar
@@ -35,12 +37,15 @@ workflow sample_merge_and_pulldown_with_analysis{
 	}
 
 	call prepare_bam_list{ input:
-		library_id_file = sample_library_list
+		library_id_file = sample_library_list,
+		genome_reference_string = genome_reference_string,
+		mt_reference_string = mt_reference_string
 	}
 	call merge_bams as merge_bams_nuclear{ input : 
 		bam_lists_per_individual = prepare_bam_list.nuclear_list,
 		adna_screen_jar = adna_screen_jar,
-		picard_jar = picard_jar
+		picard_jar = picard_jar,
+		reference = genome_reference_string
 	}
 	call release_samples as release_samples_nuclear { input:
 		release_directory = release_directory,
@@ -50,7 +55,8 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call merge_bams as merge_bams_mt{ input:
 		bam_lists_per_individual = prepare_bam_list.mt_list,
 		adna_screen_jar = adna_screen_jar,
-		picard_jar = picard_jar
+		picard_jar = picard_jar,
+		reference = genome_reference_string
 	}
 	call release_samples as release_samples_mt{ input:
 		release_directory = release_directory,
