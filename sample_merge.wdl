@@ -206,7 +206,7 @@ task prepare_bam_list{
 		with open("${library_id_file}", 'r') as f, open('nuclear_list', 'w') as nuclear_filelist, open('mt_list', 'w') as mt_filelist:
 			shop_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 			for line in f:
-				fields = line.split('\t')
+				fields = line.strip().split('\t')
 				individual_id = fields[0]
 				instance_id = fields[1]
 				udg = fields[2] # not needed for merge
