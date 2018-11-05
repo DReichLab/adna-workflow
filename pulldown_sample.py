@@ -22,7 +22,7 @@ class Instance:
 		self.udg = udg
 		self.bam = None
 			
-# File format is [instance id] [udg] [library list]
+# File format is [individual_id] [instance id] [udg] [library list]
 # libraries are ignored because we are reusing the file that specifies merges
 # return a dictionary of instance_ids -> Instance
 def instances_from_file(filename):
@@ -30,8 +30,9 @@ def instances_from_file(filename):
 	with open(filename) as f:
 		for line in f:
 			fields = line.split('\t')
-			instance_id = fields[0]
-			udg = fields[1]
+			individual_id = fields[0]
+			instance_id = fields[1]
+			udg = fields[2]
 			if udg not in ALLOWED_UDG_VALUES:
 				raise ValueError('Invalid UDG value: {}'.format(udg))
 			instance = Instance(instance_id, udg)
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 	
 	parser.add_argument("sample_bam_list", help="Each line contains the instance id and its list of component bams")
 	parser.add_argument("sex", help="sex by instance id")
-	parser.add_argument("bams", help="bam files for pulldown, labeled by instance id", nargs='+')
+	parser.add_argument("bams", help="bam files for pulldown, labeled beginning with instance id", nargs='+')
 	
 	args = parser.parse_args()
 	
