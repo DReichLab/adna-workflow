@@ -50,18 +50,20 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call release_samples as release_samples_nuclear { input:
 		release_directory = release_directory,
 		bams = merge_bams_nuclear.bams,
-		sample_library_list = sample_library_list
+		sample_library_list = sample_library_list,
+		reference = genome_reference_string
 	}
 	call merge_bams as merge_bams_mt{ input:
 		bam_lists_per_individual = prepare_bam_list.mt_list,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
-		reference = genome_reference_string
+		reference = mt_reference_string
 	}
 	call release_samples as release_samples_mt{ input:
 		release_directory = release_directory,
 		bams = merge_bams_mt.bams,
-		sample_library_list = sample_library_list
+		sample_library_list = sample_library_list,
+		reference = mt_reference_string
 	}
 	call analysis.damage_loop as damage_nuclear{ input :
 		pmdtools = pmdtools,
@@ -318,6 +320,7 @@ task release_samples{
 	String release_directory
 	Array[File] bams
 	File sample_library_list
+	String reference
 	
 	command{
 		python3 <<CODE
@@ -346,7 +349,7 @@ task release_samples{
 				bam_directory = Path("${release_directory}") / individual_id
 				bam_directory.mkdir(exist_ok=True)
 				# copy file
-				bam_destination = bam_directory / instance_id
+				bam_destination = bam_directory / (instance_id + ".${reference}.bam")
 				if bam_destination.exists():
 					sys.stderr.write('%s already exists' % (source_file))
 				else:
