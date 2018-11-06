@@ -322,6 +322,7 @@ task release_samples{
 	command{
 		python3 <<CODE
 		import os
+		import sys
 		import shutil
 		from pathlib import Path
 		
@@ -340,16 +341,16 @@ task release_samples{
 			for bam in bams:
 				source_file = Path(bam)
 				# create a directory for the individual if it does not exist yet
-				instance_id = os.path.splitext(os.path.basename(bam))[0]
+				instance_id = os.path.basename(bam).split('.')[0]
 				individual_id = instance_to_individual[instance_id]
-				bam_directory = Path(release_directory) / individual_id
+				bam_directory = Path("${release_directory}") / individual_id
 				bam_directory.mkdir(exist_ok=True)
 				# copy file
 				bam_destination = bam_directory / instance_id
 				if bam_destination.exists():
 					sys.stderr.write('%s already exists' % (source_file))
 				else:
-					create = shutil.copy(source_file, bam_destination)
+					created = shutil.copy(source_file, bam_destination)
 					os.chmod(created, 0o440)
 				print(str(bam_destination), file=bam_list)
 		CODE
