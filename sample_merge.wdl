@@ -20,7 +20,6 @@ workflow sample_merge_and_pulldown_with_analysis{
 	File python_damage_two_bases
 	File python_angsd_results
 	File python_target
-	File python_coverage
 
 	Float missing_alignments_fraction
 	Int max_open_gaps
@@ -41,6 +40,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		genome_reference_string = genome_reference_string,
 		mt_reference_string = mt_reference_string
 	}
+	
 	call merge_bams as merge_bams_nuclear{ input : 
 		bam_lists_per_individual = prepare_bam_list.nuclear_list,
 		adna_screen_jar = adna_screen_jar,
@@ -53,6 +53,10 @@ workflow sample_merge_and_pulldown_with_analysis{
 		sample_library_list = sample_library_list,
 		reference = genome_reference_string
 	}
+	call remove_marked_duplicates as remove_marked_duplicates_nuclear{ input:
+		bams = merge_bams_nuclear.bams
+	}
+	
 	call merge_bams as merge_bams_mt{ input:
 		bam_lists_per_individual = prepare_bam_list.mt_list,
 		adna_screen_jar = adna_screen_jar,
@@ -65,10 +69,14 @@ workflow sample_merge_and_pulldown_with_analysis{
 		sample_library_list = sample_library_list,
 		reference = mt_reference_string
 	}
+	call remove_marked_duplicates as remove_marked_duplicates_mt{ input:
+		bams = merge_bams_mt.bams
+	}
+	
 	call analysis.damage_loop as damage_nuclear{ input :
 		pmdtools = pmdtools,
 		python_damage_two_bases = python_damage_two_bases,
-		bams = merge_bams_nuclear.bams,
+		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
 		damage_label = "damage_nuclear",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
@@ -77,14 +85,14 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call analysis.damage_loop as damage_mt{ input :
 		pmdtools = pmdtools,
 		python_damage_two_bases = python_damage_two_bases,
-		bams = merge_bams_mt.bams,
+		bams = remove_marked_duplicates_mt.no_duplicates_bams,
 		damage_label = "damage_mt",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		processes = 1
 	}
 	call analysis.angsd_contamination{ input:
-		bams = merge_bams_nuclear.bams,
+		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		python_angsd_results = python_angsd_results,
@@ -100,7 +108,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
-		bams = merge_bams_mt.bams,
+		bams = remove_marked_duplicates_mt.no_duplicates_bams,
 		reference = prepare_reference_rcrs.reference_fa,
 		reference_amb = prepare_reference_rcrs.reference_amb,
 		reference_ann = prepare_reference_rcrs.reference_ann,
@@ -118,17 +126,16 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call analysis.chromosome_target as rsrs_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = merge_bams_mt.bams,
+		bams = remove_marked_duplicates_mt.no_duplicates_bams,
 		targets="\"{'MT_post':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
-	call analysis.chromosome_coverage as rsrs_coverage{ input:
+	call coverage_without_index_barcode_key as rsrs_coverage{ input:
 		bam_stats = rsrs_chromosome_target_post.target_stats,
-		python_coverage = python_coverage,
 		reference_length = 16569,
 		coverage_field = "MT_post-coverageLength"
 	}
-	scatter(bam in merge_bams_mt.bams){
+	scatter(bam in remove_marked_duplicates_mt.no_duplicates_bams){
 		call analysis.contammix{ input:
 			bam = bam,
 			picard_jar = picard_jar,
@@ -156,7 +163,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 #		coordinates_autosome = coordinates_1240k_autosome,
 #		coordinates_x = coordinates_1240k_x,
 #		coordinates_y = coordinates_1240k_y,
-		bams = merge_bams_nuclear.bams,
+		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
@@ -298,6 +305,90 @@ task merge_bams{
 		runtime_minutes: 200
 		requested_memory_mb_per_core: 3000
 	}
+}
+
+# Remove duplicates that are already marked
+# We do not deduplicate across libraries
+task remove_marked_duplicates{
+	Array[File] bams
+	
+	Int processes = 4
+	command{
+		python3 <<CODE
+		from multiprocessing import Pool
+		from os.path import basename
+		import subprocess
+		
+		def remove_marked_duplicates_bam(input_bam):
+			bam = basename(input_bam) # same name, in working directory
+			subprocess.run(['samtools', 'view', '-h', '-b', '-F', '0x400', '-o', bam, input_bam], check=True)
+		
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		for bam in bams:
+			pool.apply_async(remove_marked_duplicates_bam, args=(bam, ))
+		pool.close()
+		pool.join()
+		CODE
+	}
+	output{
+		Array[File] no_duplicates_bams = glob("*.bam")
+	}
+	runtime{
+		cpus: processes
+		runtime_minutes: 100
+		requested_memory_mb_per_core: 1000
+	}
+}
+
+task coverage_without_index_barcode_key{
+	Array[File] bam_stats
+	Int reference_length
+	String coverage_field
+	
+	command{
+		python3 <<CODE
+		from os.path import basename
+		
+		# adna SamStats assumes that the identifier is an index-barcode key 
+		# trim trailing _ characters that are added when processing the filename as a key
+		def cleaned_coverage(stats_file, coverage_field, reference_length):
+			sample_id_from_filename = basename(stats_file).split('.')[0]
+			with open(stats_file) as f:
+				f.readline() # skip first line with read total
+				for line in f:
+					fields = line.strip().split('\t')
+					sample_id = fields[0].rstrip('_') # remove key _ artifacts
+					labels = fields[1:len(fields):2]
+					values = fields[2:len(fields):2]
+					if sample_id_from_filename == sample_id:
+						for label, value in zip(labels, values):
+							if coverage_field == label:
+								coverage = float(value) / reference_length
+								return (sample_id, coverage)
+						return None
+					raise ValueError('no ID match for %s' % (stats_file))
+		
+		bam_stats_string = "${sep=',' bam_stats}"
+		stats_files = bam_stats_string.split(',')
+		
+		results = [cleaned_coverage(stats_file, "${coverage_field}", int(${reference_length}) ) for stats_file in stats_files]
+		for result in results:
+			if result is not None:
+				print("%s\t%f" % result)
+		
+		CODE
+	}
+	output{
+		File coverages = stdout()
+	}
+	runtime{
+		runtime_minutes: 3
+		requested_memory_mb_per_core: 100
+	}
+	
 }
 
 task analysis_results{
