@@ -54,7 +54,9 @@ workflow sample_merge_and_pulldown_with_analysis{
 		reference = genome_reference_string
 	}
 	call remove_marked_duplicates as remove_marked_duplicates_nuclear{ input:
-		bams = merge_bams_nuclear.bams
+		bams = merge_bams_nuclear.bams,
+		references = [genome_reference_string, mt_reference_string],
+		processes = 1
 	}
 	
 	call merge_bams as merge_bams_mt{ input:
@@ -70,7 +72,9 @@ workflow sample_merge_and_pulldown_with_analysis{
 		reference = mt_reference_string
 	}
 	call remove_marked_duplicates as remove_marked_duplicates_mt{ input:
-		bams = merge_bams_mt.bams
+		bams = merge_bams_mt.bams,
+		references = [genome_reference_string, mt_reference_string],
+		processes = 1
 	}
 	
 	call analysis.damage_loop as damage_nuclear{ input :
@@ -311,6 +315,7 @@ task merge_bams{
 # We do not deduplicate across libraries
 task remove_marked_duplicates{
 	Array[File] bams
+	Array[String] references
 	
 	Int processes = 4
 	command{
@@ -319,8 +324,16 @@ task remove_marked_duplicates{
 		from os.path import basename
 		import subprocess
 		
+		reference_string = "${sep=',' references}"
+		references = reference_string.split(',')
+		
 		def remove_marked_duplicates_bam(input_bam):
 			bam = basename(input_bam) # same name, in working directory
+			# remove reference specific part of filename because downstream tools do not expect
+			for reference in references:
+				search_for = '.' + reference
+				if search_for in bam:
+					bam = bam.replace(search_for, '', 1)
 			subprocess.run(['samtools', 'view', '-h', '-b', '-F', '0x400', '-o', bam, input_bam], check=True)
 		
 		bams_string = "${sep=',' bams}"
