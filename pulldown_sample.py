@@ -70,7 +70,9 @@ def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths):
 		for bam_path in bam_paths:
 			read_groups = read_groups_from_bam(bam_path)
 			bam_filename = os.path.basename(bam_path)
-			instance_id = os.path.splitext(bam_filename)[0]
+			# filename contains reference, for example I8861.hg19, remove this
+			instance_id_with_reference = os.path.splitext(bam_filename)[0]
+			instance_id = instance_id_with_reference.rsplit('.', 1)[0]
 
 			instance = instances[instance_id]
 			if instance_id != instance.instance_id:
