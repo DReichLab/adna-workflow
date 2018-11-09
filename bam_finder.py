@@ -62,6 +62,10 @@ def bamInThisDirectory(path, bam_root):
 	try:
 		with os.scandir(path) as final_directory:
 			# find .bam file that starts with the specified root
+			exact = [x for x in final_directory if isPossibleBAM(x) and x.name == (bam_root + '.bam')]
+			if len(exact) == 1:
+				return exact[0].path
+			
 			bams = [x for x in final_directory if isPossibleBAM(x) and x.name.startswith(bam_root)]
 			if len(bams) == 1:
 				return bams[0].path
