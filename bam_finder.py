@@ -155,7 +155,8 @@ def getBamPath(requestedID, shop_parent_directory, bam_root, reference):
 	pipeline_bam_path = find_pipeline_bam(requestedID, reference)
 	
 	if shop_bam_path != '' and pipeline_bam_path != '':
-		raise ValueError('multiple bams for {}'.format(requestedID))
+		#raise ValueError('multiple bams for {}'.format(requestedID))
+		print('multiple bams for {}'.format(requestedID), file=sys.stderr)
 	elif shop_bam_path != '':
 		return shop_bam_path
 	elif pipeline_bam_path != '':
