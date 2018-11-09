@@ -56,7 +56,6 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call remove_marked_duplicates as remove_marked_duplicates_nuclear{ input:
 		bams = merge_bams_nuclear.bams,
 		references = [genome_reference_string, mt_reference_string],
-		processes = 1
 	}
 	
 	call merge_bams as merge_bams_mt{ input:
@@ -74,7 +73,6 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call remove_marked_duplicates as remove_marked_duplicates_mt{ input:
 		bams = merge_bams_mt.bams,
 		references = [genome_reference_string, mt_reference_string],
-		processes = 1
 	}
 	
 	call analysis.damage_loop as damage_nuclear{ input :
@@ -84,7 +82,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		damage_label = "damage_nuclear",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		processes = 1
+		processes = 6
 	}
 	call analysis.damage_loop as damage_mt{ input :
 		pmdtools = pmdtools,
@@ -93,7 +91,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		damage_label = "damage_mt",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		processes = 1
+		processes = 6
 	}
 	call analysis.angsd_contamination{ input:
 		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
@@ -103,7 +101,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
-		processes = 1
+		processes = 6
 	}
 	call analysis.haplogrep as haplogrep_rcrs{ input:
 		missing_alignments_fraction = missing_alignments_fraction,
@@ -122,7 +120,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		haplogrep_jar = haplogrep_jar,
-		processes = 1
+		processes = 4
 	}
 	call analysis.summarize_haplogroups{ input:
 		haplogrep_output = haplogrep_rcrs.haplogroup_report
@@ -175,7 +173,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 #		python_snp_target_bed = python_snp_target_bed,
-		processes = 1
+		processes = 6
 	}
 	call analysis.concatenate as concatenate_count_1240k_post{ input:
 		to_concatenate = count_1240k_post.snp_target_stats
