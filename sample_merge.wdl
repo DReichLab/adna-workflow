@@ -209,6 +209,7 @@ task prepare_bam_list{
 	command{
 		python3 <<CODE
 		import subprocess
+		import sys
 		
 		def bam_path_from_library_id(library_id, reference):
 			result = subprocess.run(['python3', '${python_bam_finder}', '--reference', reference, library_id], check=True, stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
@@ -232,11 +233,15 @@ task prepare_bam_list{
 					mt = bam_path_from_library_id(library_id, "${mt_reference_string}")
 					
 					# all libraries should have a nuclear and MT component
-					if nuclear == '' or mt == '':
-						raise ValueError('missing bam for %s' % library_id)
+					if nuclear == '':
+						raise ValueError('missing nuclear bam for %s' % library_id)
 					else:
 						nuclear_fields.append(library_id)
 						nuclear_fields.append(nuclear)
+					
+					if mt == '':
+						print('missing mt bam for %s' % library_id)
+					else:
 						mt_fields.append(library_id)
 						mt_fields.append(mt)
 				print('\t'.join(nuclear_fields), file=nuclear_filelist)
