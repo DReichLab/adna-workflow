@@ -45,7 +45,8 @@ workflow sample_merge_and_pulldown_with_analysis{
 		bam_lists_per_individual = prepare_bam_list.nuclear_list,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
-		reference = genome_reference_string
+		reference = genome_reference_string,
+		processes = 6
 	}
 	call release_samples as release_samples_nuclear { input:
 		release_directory = release_directory,
@@ -82,7 +83,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		damage_label = "damage_nuclear",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		processes = 6
+		processes = 10
 	}
 	call analysis.damage_loop as damage_mt{ input :
 		pmdtools = pmdtools,
@@ -91,7 +92,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		damage_label = "damage_mt",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		processes = 6
+		processes = 4
 	}
 	call analysis.angsd_contamination{ input:
 		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
@@ -120,7 +121,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		haplogrep_jar = haplogrep_jar,
-		processes = 4
+		processes = 3
 	}
 	call analysis.summarize_haplogroups{ input:
 		haplogrep_output = haplogrep_rcrs.haplogroup_report
