@@ -280,17 +280,19 @@ task merge_bams{
 			instance_id_filename = "%s.${reference}.bam" % (instance_id)
 			# make a directory for this instance ID
 			os.makedirs(instance_id)
-			# write instance ID into read groups
-			bams_with_altered_read_groups = []
-			for library_id, bam in zip(library_ids, bam_paths):
-				bam_with_altered_read_groups = instance_id + '/' + basename(bam)
-				subprocess.run(["java", "-Xmx2700m", "-jar", "${adna_screen_jar}", "ReadGroupRewrite", "-i", bam, "-o", bam_with_altered_read_groups, "-s", instance_id, "-l", library_id], check=True)
-				bams_with_altered_read_groups.append(bam_with_altered_read_groups)
-			# merge
-			merge_file_list = 'I=' + ' I='.join(bams_with_altered_read_groups)
-			command = "java -Xmx2500m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, instance_id_filename)
-			#print('combine bam lists ' + command)
-			subprocess.check_output(command, shell=True)
+			with open(instance_id + '/stdout_merge', 'w') as stdout_merge, \
+				open(instance_id + '/stderr_merge', 'w') as stderr_merge:
+				# write instance ID into read groups
+				bams_with_altered_read_groups = []
+				for library_id, bam in zip(library_ids, bam_paths):
+					bam_with_altered_read_groups = instance_id + '/' + basename(bam)
+					subprocess.run(["java", "-Xmx2700m", "-jar", "${adna_screen_jar}", "ReadGroupRewrite", "-i", bam, "-o", bam_with_altered_read_groups, "-s", instance_id, "-l", library_id], check=True, stdout=stdout_merge, stderr=stderr_merge)
+					bams_with_altered_read_groups.append(bam_with_altered_read_groups)
+				# merge
+				merge_file_list = 'I=' + ' I='.join(bams_with_altered_read_groups)
+				command = "java -Xmx2500m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, instance_id_filename)
+				#print('combine bam lists ' + command)
+				subprocess.check_output(command, shell=True,  stdout=stdout_merge, stderr=stderr_merge)
 		
 		pool = Pool(processes=${processes})
 		with open("${bam_lists_per_individual}") as f:
