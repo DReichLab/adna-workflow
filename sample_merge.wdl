@@ -290,9 +290,10 @@ task merge_bams{
 					bams_with_altered_read_groups.append(bam_with_altered_read_groups)
 				# merge
 				merge_file_list = 'I=' + ' I='.join(bams_with_altered_read_groups)
+				# TODO output should be captured per instance
 				command = "java -Xmx2500m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, instance_id_filename)
 				#print('combine bam lists ' + command)
-				subprocess.check_output(command, shell=True,  stdout=stdout_merge, stderr=stderr_merge)
+				subprocess.check_output(command, shell=True)
 		
 		pool = Pool(processes=${processes})
 		with open("${bam_lists_per_individual}") as f:
@@ -301,7 +302,8 @@ task merge_bams{
 				instance_id = fields[0]
 				library_ids = fields[1::2]
 				bam_paths = fields[2::2]
-				pool.apply_async(merge_bam, args=(instance_id, library_ids, bam_paths))
+				result = pool.apply_async(merge_bam, args=(instance_id, library_ids, bam_paths))
+				result.get()
 		pool.close()
 		pool.join()
 		CODE
@@ -347,7 +349,8 @@ task remove_marked_duplicates{
 		
 		pool = Pool(processes=${processes})
 		for bam in bams:
-			pool.apply_async(remove_marked_duplicates_bam, args=(bam, ))
+			result = pool.apply_async(remove_marked_duplicates_bam, args=(bam, ))
+			result.get()
 		pool.close()
 		pool.join()
 		CODE
