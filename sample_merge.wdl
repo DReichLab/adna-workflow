@@ -220,8 +220,8 @@ task prepare_bam_list{
 			shop_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 			for line in f:
 				fields = line.strip().split('\t')
-				individual_id = fields[0]
-				instance_id = fields[1]
+				instance_id = fields[0]
+				individual_id = fields[1]
 				udg = fields[2] # not needed for merge
 				library_ids = fields[3:]
 				
@@ -296,16 +296,18 @@ task merge_bams{
 				subprocess.check_output(command, shell=True)
 		
 		pool = Pool(processes=${processes})
+		results = []
 		with open("${bam_lists_per_individual}") as f:
 			for line in f:
 				fields = line.split()
 				instance_id = fields[0]
 				library_ids = fields[1::2]
 				bam_paths = fields[2::2]
-				result = pool.apply_async(merge_bam, args=(instance_id, library_ids, bam_paths))
-				result.get()
+				results.append(pool.apply_async(merge_bam, args=(instance_id, library_ids, bam_paths)))
 		pool.close()
 		pool.join()
+		for result in results:
+			result.get()
 		CODE
 	}
 
@@ -348,11 +350,11 @@ task remove_marked_duplicates{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		for bam in bams:
-			result = pool.apply_async(remove_marked_duplicates_bam, args=(bam, ))
-			result.get()
+		results = [pool.apply_async(remove_marked_duplicates_bam, args=(bam, )) for bam in bams]
 		pool.close()
 		pool.join()
+		for result in results:
+			result.get()
 		CODE
 	}
 	output{
