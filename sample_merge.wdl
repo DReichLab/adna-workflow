@@ -84,7 +84,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		damage_label = "damage_nuclear",
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		processes = 10
+		processes = 12
 	}
 	call analysis.damage_loop as damage_mt{ input :
 		pmdtools = pmdtools,
@@ -287,7 +287,16 @@ task merge_bams{
 				bams_with_altered_read_groups = []
 				for library_id, bam in zip(library_ids, bam_paths):
 					bam_with_altered_read_groups = instance_id + '/' + basename(bam)
-					subprocess.run(["java", "-Xmx2700m", "-jar", "${adna_screen_jar}", "ReadGroupRewrite", "-i", bam, "-o", bam_with_altered_read_groups, "-s", instance_id, "-l", library_id], check=True, stdout=stdout_merge, stderr=stderr_merge)
+					#subprocess.run(["java", "-Xmx2700m", "-jar", "${adna_screen_jar}", "ReadGroupRewrite", "-i", bam, "-o", bam_with_altered_read_groups, "-s", instance_id, "-l", library_id], check=True, stdout=stdout_merge, stderr=stderr_merge)
+					subprocess.run(["java", "-Xmx2700m", "-jar", "${picard_jar}", "AddOrReplaceReadGroups", 
+						"I=%s" % (bam,), 
+						"O=%s" % (bam_with_altered_read_groups,), 
+						"RGID=%s" % (library_id,), 
+						"RGLB=%s" % (library_id,),
+						"RGPL=illumina",
+						"RGPU=%s" % (library_id,),
+						"RGSM=%s" % instance_id], 
+						check=True, stdout=stdout_merge, stderr=stderr_merge)
 					bams_with_altered_read_groups.append(bam_with_altered_read_groups)
 				# merge
 				merge_file_list = 'I=' + ' I='.join(bams_with_altered_read_groups)
