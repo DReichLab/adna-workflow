@@ -30,8 +30,8 @@ def instances_from_file(filename):
 	with open(filename) as f:
 		for line in f:
 			fields = line.split('\t')
-			individual_id = fields[0]
-			instance_id = fields[1]
+			instance_id = fields[0]
+			individual_id = fields[1]
 			udg = fields[2]
 			if udg not in ALLOWED_UDG_VALUES:
 				raise ValueError('Invalid UDG value: {}'.format(udg))
