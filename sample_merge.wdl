@@ -46,7 +46,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		reference = genome_reference_string,
-		processes = 6
+		processes = 10
 	}
 	call release_samples as release_samples_nuclear { input:
 		release_directory = release_directory,
@@ -63,7 +63,8 @@ workflow sample_merge_and_pulldown_with_analysis{
 		bam_lists_per_individual = prepare_bam_list.mt_list,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
-		reference = mt_reference_string
+		reference = mt_reference_string,
+		processes = 2
 	}
 	call release_samples as release_samples_mt{ input:
 		release_directory = release_directory,
@@ -316,7 +317,7 @@ task merge_bams{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 360
+		runtime_minutes: 600
 		requested_memory_mb_per_core: 3000
 	}
 }
@@ -448,8 +449,8 @@ task release_samples{
 		with open("${sample_library_list}") as f:
 			for line in f:
 				fields = line.split('\t')
-				individual_id = fields[0]
-				instance_id = fields[1]
+				instance_id = fields[0]
+				individual_id = fields[1]
 				instance_to_individual[instance_id] = individual_id
 		
 		bams_string = "${sep=',' bams}"
