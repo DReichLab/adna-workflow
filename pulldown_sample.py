@@ -79,7 +79,7 @@ def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths):
 				raise ValueError('instance id is not consistent')
 
 			if len(read_groups) > 0:
-				db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.abspath(bam_path), ":".join(read_groups))
+				db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups))
 				db_file.write(db_line)
 			else:
 				print("{} has no read groups".format(instance_id), file=sys.stderr)
