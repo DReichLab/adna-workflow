@@ -103,7 +103,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
 		deamination_bases_to_clip = deamination_bases_to_clip,
-		processes = 6
+		processes = 10
 	}
 	call analysis.haplogrep as haplogrep_rcrs{ input:
 		missing_alignments_fraction = missing_alignments_fraction,
@@ -175,7 +175,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		picard_jar = picard_jar,
 		adna_screen_jar = adna_screen_jar,
 #		python_snp_target_bed = python_snp_target_bed,
-		processes = 6
+		processes = 12
 	}
 	call analysis.concatenate as concatenate_count_1240k_post{ input:
 		to_concatenate = count_1240k_post.snp_target_stats
