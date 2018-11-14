@@ -411,7 +411,7 @@ task coverage_without_index_barcode_key{
 		results = [cleaned_coverage(stats_file, "${coverage_field}", int(${reference_length}) ) for stats_file in stats_files]
 		for result in results:
 			if result is not None:
-				print("%s\t%f" % result)
+				print("%s\tMT_coverage\t%f" % result)
 		
 		CODE
 	}
@@ -481,6 +481,7 @@ task release_samples{
 					created = shutil.copy(source_file, bam_destination)
 					os.chmod(created, 0o440)
 				print(str(bam_destination), file=bam_list)
+				# TODO index bam
 		CODE
 	}
 	output{
