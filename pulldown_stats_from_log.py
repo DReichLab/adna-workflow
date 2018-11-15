@@ -2,15 +2,15 @@ import argparse
 
 # read a pulldown log file and return a map of ids to SNPs
 def pulldown_snp_stats(filename):
-	library_targets = {}
+	targets_by_instance = {}
 	with open(filename) as f:
 		for line in f:
 			if 'coverage' in line:
 				fields = line.split()
-				library_id = fields[0]
+				instance_id = fields[0]
 				targets = int(fields[-1])
-				library_targets[library_id] = targets
-	return library_targets
+				targets_by_instance[instance_id] = targets
+	return targets_by_instance
 				
 
 if __name__ == "__main__":
@@ -18,5 +18,6 @@ if __name__ == "__main__":
 	parser.add_argument('-l', "--log", help="pulldown log file to parse", required=True)
 	args = parser.parse_args()
 	
-	library_targets = pulldown_snp_stats(args.log)
-	print(library_targets)
+	targets_by_instance = pulldown_snp_stats(args.log)
+	for instance, targets in library_targets.items():
+		print("{}\tpulldown_coverage\t{:d}".format(instance, targets))
