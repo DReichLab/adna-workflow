@@ -19,5 +19,5 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	targets_by_instance = pulldown_snp_stats(args.log)
-	for instance, targets in library_targets.items():
+	for instance, targets in targets_by_instance.items():
 		print("{}\tpulldown_coverage\t{:d}".format(instance, targets))
