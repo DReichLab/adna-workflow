@@ -1,28 +1,39 @@
-import subprocess
-import sys
-import re
+import argparse
+import pysam
 
 # parse the read group strings from a bam/sam header
 # return array of read group strings
-def read_groups_from_bam(bam_filename):
-	bam_header = subprocess.run(["samtools", "view", "-H", bam_filename], stdout=subprocess.PIPE, check=True)
-	#print(bam_header)
-	bam_header_lines = bam_header.stdout.decode('utf-8').split('\n')
-	read_groups_lines = [line for line in bam_header_lines if line.startswith('@RG')]
-	#print(read_groups_lines)
-	read_groups = []
-	for line in read_groups_lines:
-		pattern = re.compile('@RG\s+ID:(\S+)')
-		match_obj = pattern.match(line)
-		read_group = match_obj.group(1)
-		if ':' in read_group:
-			raise ValueError("read groups cannot contain ':'")
-		read_groups.append(read_group)
-	sorted_read_groups = sorted(read_groups)
+def read_groups_from_bam(bam_filename, use_libraries):
+	bam = pysam.AlignmentFile(bam_filename, "rb")
+	header = bam.header
+	
+	read_groups = header['RG']
+	
+	if use_libraries:
+		field = 'LB'
+	else:
+		field = 'ID'
+		
+	#print(read_groups)
+	results = {}
+	for read_group in read_groups:
+		results[read_group[field]] = 1
+		#read_group['SM'] = sample
+		#print(read_group)
+	results_without_duplicates = [key for (key, ignored) in results.items()]
+	
+	sorted_read_groups = sorted(results_without_duplicates)
 	return sorted_read_groups
 
 if __name__ == "__main__":
-	bam_filename = sys.argv[1]
-	read_groups = read_groups_from_bam(bam_filename)
+	parser = argparse.ArgumentParser(description="Prepare pulldown input files for by-sample pulldown batch.")
+
+	parser.add_argument('-l', "--libraries", help="report libraries instead of read groups", action='store_true')
+	parser.add_argument("bam", help="bam for read groups")
+	
+	args = parser.parse_args()
+	
+	bam_filename = args.bam
+	read_groups = read_groups_from_bam(bam_filename, args.libraries)
 	for read_group in read_groups:
 		print(read_group)
