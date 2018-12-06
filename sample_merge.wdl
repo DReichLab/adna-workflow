@@ -1,5 +1,6 @@
 import "demultiplex.wdl" as demultiplex_align_bams
 import "analysis.wdl" as analysis
+import "analysis_clipping.wdl" as analysis_clipping
 import "release_and_pulldown.wdl" as pulldown
 
 workflow sample_merge_and_pulldown_with_analysis{
@@ -26,7 +27,15 @@ workflow sample_merge_and_pulldown_with_analysis{
 	Int seed_length
 	Int minimum_mapping_quality
 	Int minimum_base_quality
-	Int deamination_bases_to_clip
+	
+	Int deamination_bases_to_clip_half
+	Int deamination_bases_to_clip_minus
+	Int deamination_bases_to_clip_plus
+	File udg_minus_libraries_file
+	File udg_plus_libraries_file
+	Array[String] udg_minus_libraries
+	Array[String] udg_plus_libraries
+	File python_read_groups_from_bam
 	
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rsrs{ input:
 		reference = mt_reference_rsrs_in
@@ -58,6 +67,17 @@ workflow sample_merge_and_pulldown_with_analysis{
 		bams = merge_bams_nuclear.bams,
 		references = [genome_reference_string, mt_reference_string],
 	}
+	call analysis_clipping.clip_deamination as clip_nuclear { input:
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar,
+		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
+		deamination_bases_to_clip_half = deamination_bases_to_clip_half,
+		deamination_bases_to_clip_minus = deamination_bases_to_clip_minus,
+		deamination_bases_to_clip_plus = deamination_bases_to_clip_plus,
+		udg_minus_libraries = udg_minus_libraries,
+		udg_plus_libraries = udg_plus_libraries,
+		python_read_groups_from_bam = python_read_groups_from_bam
+	}
 	
 	call merge_bams as merge_bams_mt{ input:
 		bam_lists_per_individual = prepare_bam_list.mt_list,
@@ -75,6 +95,17 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call remove_marked_duplicates as remove_marked_duplicates_mt{ input:
 		bams = merge_bams_mt.bams,
 		references = [genome_reference_string, mt_reference_string],
+	}
+	call analysis_clipping.clip_deamination as clip_mt { input:
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar,
+		bams = remove_marked_duplicates_mt.no_duplicates_bams,
+		deamination_bases_to_clip_half = deamination_bases_to_clip_half,
+		deamination_bases_to_clip_minus = deamination_bases_to_clip_minus,
+		deamination_bases_to_clip_plus = deamination_bases_to_clip_plus,
+		udg_minus_libraries = udg_minus_libraries,
+		udg_plus_libraries = udg_plus_libraries,
+		python_read_groups_from_bam = python_read_groups_from_bam
 	}
 	
 	call analysis.damage_loop as damage_nuclear{ input :
@@ -95,23 +126,21 @@ workflow sample_merge_and_pulldown_with_analysis{
 		minimum_base_quality = minimum_base_quality,
 		processes = 4
 	}
-	call analysis.angsd_contamination{ input:
-		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
+	call analysis_clipping.angsd_contamination{ input:
+		bams = clip_nuclear.clipped_bams,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		python_angsd_results = python_angsd_results,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		deamination_bases_to_clip = deamination_bases_to_clip,
 		processes = 10
 	}
-	call analysis.haplogrep as haplogrep_rcrs{ input:
+	call analysis_clipping.haplogrep as haplogrep_rcrs{ input:
 		missing_alignments_fraction = missing_alignments_fraction,
 		max_open_gaps = max_open_gaps,
 		seed_length = seed_length,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		deamination_bases_to_clip = deamination_bases_to_clip,
 		bams = remove_marked_duplicates_mt.no_duplicates_bams,
 		reference = prepare_reference_rcrs.reference_fa,
 		reference_amb = prepare_reference_rcrs.reference_amb,
@@ -122,15 +151,21 @@ workflow sample_merge_and_pulldown_with_analysis{
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
 		haplogrep_jar = haplogrep_jar,
+		deamination_bases_to_clip_half = deamination_bases_to_clip_half,
+		deamination_bases_to_clip_minus = deamination_bases_to_clip_minus,
+		deamination_bases_to_clip_plus = deamination_bases_to_clip_plus,
+		udg_minus_libraries = udg_minus_libraries,
+		udg_plus_libraries = udg_plus_libraries,
+		python_read_groups_from_bam = python_read_groups_from_bam,
 		processes = 3
 	}
 	call analysis.summarize_haplogroups{ input:
 		haplogrep_output = haplogrep_rcrs.haplogroup_report
 	}
-	call analysis.chromosome_target as rsrs_chromosome_target_post{ input:
+	call analysis_clipping.chromosome_target as rsrs_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
-		bams = remove_marked_duplicates_mt.no_duplicates_bams,
+		bams = clip_mt.clipped_bams,
 		targets="\"{'MT_post':'MT'}\"",
 		minimum_mapping_quality = minimum_mapping_quality
 	}
@@ -139,8 +174,8 @@ workflow sample_merge_and_pulldown_with_analysis{
 		reference_length = 16569,
 		coverage_field = "MT_post-coverageLength"
 	}
-	scatter(bam in remove_marked_duplicates_mt.no_duplicates_bams){
-		call analysis.contammix{ input:
+	scatter(bam in clip_mt.clipped_bams){
+		call analysis_clipping.contammix{ input:
 			bam = bam,
 			picard_jar = picard_jar,
 			htsbox = htsbox,
@@ -149,7 +184,6 @@ workflow sample_merge_and_pulldown_with_analysis{
 			seed_length = seed_length,
 			minimum_mapping_quality = minimum_mapping_quality,
 			minimum_base_quality = minimum_base_quality,
-			deamination_bases_to_clip = deamination_bases_to_clip,
 			reference = prepare_reference_rsrs.reference_fa,
 			reference_amb = prepare_reference_rsrs.reference_amb,
 			reference_ann = prepare_reference_rsrs.reference_ann,
@@ -163,17 +197,14 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call analysis.concatenate as concatenate_contammix{ input:
 		to_concatenate = contammix.contamination_estimate
 	}
-	call analysis.snp_target_bed as count_1240k_post { input:
+	call analysis_clipping.snp_target_bed as count_1240k_post { input:
 #		coordinates_autosome = coordinates_1240k_autosome,
 #		coordinates_x = coordinates_1240k_x,
 #		coordinates_y = coordinates_1240k_y,
-		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
+		bams = clip_nuclear.clipped_bams,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
-		deamination_bases_to_clip = deamination_bases_to_clip,
 		label = "1240k_post",
-		picard_jar = picard_jar,
-		adna_screen_jar = adna_screen_jar,
 #		python_snp_target_bed = python_snp_target_bed,
 		processes = 12
 	}
@@ -200,7 +231,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 
 # take a list of instance ids with library ids, build corresponding list of bam paths for nuclear and mt components
 task prepare_bam_list{
-	# each line has an individual/instance ID, UDG treatment, then component library ids
+	# each line has an individual/instance ID, then component library ids
 	# does each line also need version number?
 	File library_id_file
 	File python_bam_finder
@@ -223,8 +254,7 @@ task prepare_bam_list{
 				fields = line.strip().split('\t')
 				instance_id = fields[0]
 				individual_id = fields[1]
-				udg = fields[2] # not needed for merge
-				library_ids = fields[3:]
+				library_ids = fields[2:]
 				
 				nuclear_fields = [instance_id]
 				mt_fields = [instance_id]
@@ -453,6 +483,7 @@ task release_samples{
 		import sys
 		import shutil
 		from pathlib import Path
+		import subprocess
 		
 		instance_to_individual = dict()
 		with open("${sample_library_list}") as f:
@@ -481,15 +512,16 @@ task release_samples{
 					created = shutil.copy(source_file, bam_destination)
 					os.chmod(created, 0o440)
 				print(str(bam_destination), file=bam_list)
-				# TODO index bam
+				# index bam
+				subprocess.run(['samtools', 'index', created], check=True)
 		CODE
 	}
 	output{
 		Array[String] released_bams = read_lines('bam_list')
 	}
 	runtime{
-		runtime_minutes: 60
-		requested_memory_mb_per_core: 100
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 2000
 	}
 }
 
