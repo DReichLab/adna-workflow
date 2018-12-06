@@ -33,8 +33,8 @@ workflow sample_merge_and_pulldown_with_analysis{
 	Int deamination_bases_to_clip_plus
 	File udg_minus_libraries_file
 	File udg_plus_libraries_file
-	Array[String] udg_minus_libraries
-	Array[String] udg_plus_libraries
+	Array[String] udg_minus_libraries = read_lines(udg_minus_libraries_file)
+	Array[String] udg_plus_libraries = read_lines(udg_plus_libraries_file)
 	File python_read_groups_from_bam
 	
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rsrs{ input:
