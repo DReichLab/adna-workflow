@@ -85,7 +85,7 @@ task clip_deamination{
 		udg_plus_libs = udg_plus_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		results = [pool.apply_async(count_SNPs, args=(bam, ${deamination_bases_to_clip_half}, udg_minus_libs, ${deamination_bases_to_clip_minus}, udg_plus_libs, ${deamination_bases_to_clip_plus} )) for bam in bams]
+		results = [pool.apply_async(clip_ends, args=(bam, ${deamination_bases_to_clip_half}, udg_minus_libs, ${deamination_bases_to_clip_minus}, udg_plus_libs, ${deamination_bases_to_clip_plus} )) for bam in bams]
 		pool.close()
 		pool.join()
 		[result.get() for result in results]
