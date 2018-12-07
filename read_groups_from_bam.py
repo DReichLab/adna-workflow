@@ -36,7 +36,7 @@ def read_groups_and_libraries_from_bam(bam_filename):
 		read_group_id = read_group['ID']
 		read_group_library = read_group['LB']
 		
-		results[read_group[field]] = read_group_library
+		results[read_group_id] = read_group_library
 	return results
 
 if __name__ == "__main__":
