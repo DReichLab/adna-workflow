@@ -103,16 +103,16 @@ def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, m
 					db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups_matching_udg))
 					db_file.write(db_line)
 				else:
-					print("{} has no read groups".format(instance_id), file=sys.stderr)
+					print("{} has no read groups for udg {}".format(instance_id, udg), file=sys.stderr)
 	
 
 	# order matters for preference of results when merging mixed UDG reads
 	parameter_indices = [
-		(PLUS, NORMAL) # UDG plus cannot be damage restricted
+		(PLUS, NORMAL), # UDG plus cannot be damage restricted
 		(HALF, NORMAL),
 		(HALF, DAMAGE_RESTRICTED),
 		(MINUS, NORMAL),
-		(MINUS, DAMAGE_RESTRICTED),
+		(MINUS, DAMAGE_RESTRICTED)
 		]
 	
 	parameter_file_outputs = []
