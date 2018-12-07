@@ -15,15 +15,14 @@ def read_library_ids(filename):
 				library_ids.add(library_id)
 	return library_ids
 
-def create_individual_file(filename, instances, sex_by_instance_id, udg_filter):
+def create_individual_file(filename, instances, sex_by_instance_id):
 	count = 0
 	with open(filename, 'w') as individual_file:
 		for instance_id, instance in instances.items():
-			if udg_filter == instance.udg:
-				if instance_id != instance.instance_id:
-					raise ValueError('instance id is not consistent')
-				individual_file.write("{0}\t{1}\t{0}\n".format(instance_id, sex_by_instance_id[instance_id]))
-				count += 1
+			if instance_id != instance.instance_id:
+				raise ValueError('instance id is not consistent')
+			individual_file.write("{0}\t{1}\t{0}\n".format(instance_id, sex_by_instance_id[instance_id]))
+			count += 1
 	return count
 
 class Instance:
@@ -75,36 +74,41 @@ def udg_for_library(library_id, minus_libraries, plus_libraries):
 		return PLUS
 	else:
 		return HALF
+	
+def generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_libraries, udg):
+	# dblist bam paths should be permanent
+	instances_with_this_udg = []
+	with open("{}.{}.dblist".format(pulldown_label, udg), 'w') as db_file:
+		for bam_path in bam_paths:
+			read_groups_to_libraries = read_groups_and_libraries_from_bam(bam_path)
+			bam_filename = os.path.basename(bam_path)
+			# filename contains reference, for example I8861.hg19, remove this
+			instance_id_with_reference = os.path.splitext(bam_filename)[0]
+			instance_id = instance_id_with_reference.rsplit('.', 1)[0]
+
+			instance = instances[instance_id]
+			if instance_id != instance.instance_id:
+				raise ValueError('instance id is not consistent')
+			
+			# only include read groups for libraries which match the UDG treatment
+			read_groups_matching_udg = []
+			for read_group in sorted(read_groups_to_libraries.keys()):
+				library_id = read_groups_to_libraries[read_group]
+				if udg_for_library(library_id, minus_libraries, plus_libraries) == udg:
+					read_groups_matching_udg.append(read_group)
+
+			if len(read_groups_matching_udg) > 0:
+				db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups_matching_udg))
+				db_file.write(db_line)
+				instances_with_this_udg.append(instance)
+	return instances_with_this_udg
 
 def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, minus_libraries, plus_libraries):
 	# generate one dblist file per UDG treatment
-	# dblist bam paths should be permanent
-	for udg in ALLOWED_UDG_VALUES:
-		with open("{}.{}.dblist".format(pulldown_label, udg), 'w') as db_file:
-			for bam_path in bam_paths:
-				read_groups_to_libraries = read_groups_and_libraries_from_bam(bam_path)
-				bam_filename = os.path.basename(bam_path)
-				# filename contains reference, for example I8861.hg19, remove this
-				instance_id_with_reference = os.path.splitext(bam_filename)[0]
-				instance_id = instance_id_with_reference.rsplit('.', 1)[0]
-
-				instance = instances[instance_id]
-				if instance_id != instance.instance_id:
-					raise ValueError('instance id is not consistent')
-				
-				# only include read groups for libraries which match the UDG treatment
-				read_groups_matching_udg = []
-				for read_group in sorted(read_groups_to_libraries.keys()):
-					library_id = read_groups_to_libraries[read_group]
-					if udg_for_library(library_id, minus_libraries, plus_libraries) == udg:
-						read_groups_matching_udg.append(read_group)
-
-				if len(read_groups_matching_udg) > 0:
-					db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups_matching_udg))
-					db_file.write(db_line)
-				else:
-					print("{} has no read groups for udg {}".format(instance_id, udg), file=sys.stderr)
-	
+	instances_by_udg = {}
+	instances_by_udg[HALF] = generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_libraries, HALF)
+	instances_by_udg[MINUS] = generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_libraries, MINUS)
+	instances_by_udg[PLUS] = generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_libraries, PLUS)
 
 	# order matters for preference of results when merging mixed UDG reads
 	parameter_indices = [
@@ -118,7 +122,7 @@ def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, m
 	parameter_file_outputs = []
 	for (udg_type, damage_type) in parameter_indices:
 		pulldown_base_filename = "{}.{}.{}".format(pulldown_label, udg_type, damage_type)
-		count = create_individual_file("{}.ind".format(pulldown_base_filename), instances, sex_by_instance_id, udg_type)
+		count = create_individual_file("{}.ind".format(pulldown_base_filename), instances_by_udg[udg_type], sex_by_instance_id)
 		pulldown_parameter_filename_nopath = create_pulldown_parameter_file('{}.{}'.format(pulldown_label, udg_type), pulldown_base_filename, udg_type, damage_type)
 		if count > 0:
 			parameter_file_outputs.append(pulldown_parameter_filename_nopath)
