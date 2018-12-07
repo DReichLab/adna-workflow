@@ -513,7 +513,7 @@ task release_samples{
 					os.chmod(created, 0o440)
 				print(str(bam_destination), file=bam_list)
 				# index bam
-				subprocess.run(['samtools', 'index', created], check=True)
+				subprocess.run(['samtools', 'index', bam_destination], check=True)
 		CODE
 	}
 	output{
