@@ -12,7 +12,7 @@ def read_library_ids(filename):
 		with open(filename) as f:
 			for line in f:
 				library_id = line.strip()
-				library_ids.append(library_id)
+				library_ids.add(library_id)
 	return library_ids
 
 def create_individual_file(filename, instances, sex_by_instance_id, udg_filter):
