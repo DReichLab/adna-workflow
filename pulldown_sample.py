@@ -96,7 +96,7 @@ def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, m
 				read_groups_matching_udg = []
 				for read_group in sorted(read_groups_to_libraries.keys()):
 					library_id = read_groups_to_libraries[read_group]
-					if udg_for_library(library_id) == udg:
+					if udg_for_library(library_id, minus_libraries, plus_libraries) == udg:
 						read_groups_matching_udg.append(read_group)
 
 				if len(read_groups_matching_udg) > 0:
