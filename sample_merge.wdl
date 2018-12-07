@@ -316,7 +316,7 @@ task merge_bams{
 				# write instance ID into read groups
 				bams_with_altered_read_groups = []
 				for library_id, bam in zip(library_ids, bam_paths):
-					bam_with_altered_read_groups = instance_id + '/' + basename(bam)
+					bam_with_altered_read_groups = instance_id + '/' + library_id + '.' + basename(bam)
 					#subprocess.run(["java", "-Xmx2700m", "-jar", "${adna_screen_jar}", "ReadGroupRewrite", "-i", bam, "-o", bam_with_altered_read_groups, "-s", instance_id, "-l", library_id], check=True, stdout=stdout_merge, stderr=stderr_merge)
 					subprocess.run(["java", "-Xmx2700m", "-jar", "${picard_jar}", "AddOrReplaceReadGroups", 
 						"I=%s" % (bam,), 
