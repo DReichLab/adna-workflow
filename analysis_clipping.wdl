@@ -72,7 +72,7 @@ task clip_deamination{
 					plus_args.append('-t')
 					plus_args.append(plus_library)
 			
-			subprocess.run(["java", "-Xmx3500m", "-jar", "${adna_screen_jar}", "softclip", "-b", "-n", half_bases, "-i", bam, "-o", clipped_bam, "-x", minus_bases, "-y", plus_bases] + minus_args + plus_args, check=True)
+			subprocess.run(["java", "-Xmx3500m", "-jar", "${adna_screen_jar}", "softclip", "-b", "-n", "%d" % (half_bases,), "-i", bam, "-o", clipped_bam, "-x", "%d" % (minus_bases,), "-y", "%d" % (plus_bases,)] + minus_args + plus_args, check=True)
 			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True, check=True)
 			return clipped_sorted_bam
 			
