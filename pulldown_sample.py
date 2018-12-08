@@ -166,4 +166,4 @@ if __name__ == "__main__":
 		
 	
 	# merge pulldown results
-	merge_pulldowns(args.pulldown_label, pulldown_file_sets)
+	merge_pulldowns(args.pulldown_label, pulldown_file_sets, 3) # allow overlap for all UDG treatments

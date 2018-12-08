@@ -173,13 +173,13 @@ def pulldown(pulldown_parameter_filename, pulldown_executable):
 	
 	return PulldownResults(modified_individual_filename, snpout_filename, geno_filename)
 
-def merge_pulldowns(pulldown_label, pulldown_file_sets):
+def merge_pulldowns(pulldown_label, pulldown_file_sets, max_overlap):
 	geno_files = [pulldown_results.geno for pulldown_results in pulldown_file_sets]
 	snp_files = [pulldown_results.snp for pulldown_results in pulldown_file_sets]
 	ind_files = [pulldown_results.ind for pulldown_results in pulldown_file_sets]
 	
 	output_stem = "{}.combined".format(pulldown_label)
-	merge_geno_snp_ind(geno_files, snp_files, ind_files, output_stem)
+	merge_geno_snp_ind(geno_files, snp_files, ind_files, output_stem, max_overlap)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Prepare pulldown input files for a list of libraries and run pulldown.")
@@ -213,4 +213,4 @@ if __name__ == "__main__":
 		pool.join()
 		
 		# merge pulldown results
-		merge_pulldowns(args.pulldown_label, pulldown_file_sets)
+		merge_pulldowns(args.pulldown_label, pulldown_file_sets, 1) # libraries have only 1 UDG treatment
