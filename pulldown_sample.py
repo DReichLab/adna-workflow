@@ -77,7 +77,7 @@ def udg_for_library(library_id, minus_libraries, plus_libraries):
 	
 def generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_libraries, udg):
 	# dblist bam paths should be permanent
-	instances_with_this_udg = []
+	instances_with_this_udg = {}
 	with open("{}.{}.dblist".format(pulldown_label, udg), 'w') as db_file:
 		for bam_path in bam_paths:
 			read_groups_to_libraries = read_groups_and_libraries_from_bam(bam_path)
@@ -100,7 +100,7 @@ def generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_
 			if len(read_groups_matching_udg) > 0:
 				db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups_matching_udg))
 				db_file.write(db_line)
-				instances_with_this_udg.append(instance)
+				instances_with_this_udg[instance_id] = instance
 	return instances_with_this_udg
 
 def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, minus_libraries, plus_libraries):
