@@ -212,6 +212,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		to_concatenate = count_1240k_post.snp_target_stats
 	}
 	call pulldown_merged_samples{ input:
+		release_directory = release_directory,
 		bams = release_samples_nuclear.released_bams,
 		sex_by_instance_id = concatenate_count_1240k_post.concatenated,
 		sample_bam_list = sample_library_list
