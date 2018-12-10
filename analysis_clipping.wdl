@@ -36,7 +36,7 @@ task clip_deamination{
 	Array[String] udg_plus_libraries
 	File python_read_groups_from_bam
 	
-	Int processes = 6
+	Int processes = 8
 	
 	command{
 		set -e
@@ -93,7 +93,7 @@ task clip_deamination{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 300
+		runtime_minutes: 600
 		requested_memory_mb_per_core: 3600
 	}
 	output{
