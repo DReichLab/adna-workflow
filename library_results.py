@@ -7,26 +7,26 @@ from library_id import LibraryID
 # Map headers in Rebecca's sample spreadsheet to the library spreadsheet
 # key is sample spreadsheet column name, value is library spreadsheet column name
 header_mapping_sample = {
-	'sample_id' : 'Sample_ID',
-	'individual_id' : 'Individual_ID',
-	'shipment_id' : 'Shipment_ID',
-	'Skeletal codes' : 'Skeletal_Code',
-	'Skeletal element' : 'Skeletal_Element',
+	'Sample_ID' : 'Sample_ID',
+	'Individual_ID' : 'Individual_ID',
+	'Shipment_ID' : 'Shipment_ID',
+	'Skeletal_Code' : 'Skeletal_Code',
+	'Skeletal_Element' : 'Skeletal_Element',
 	'Collaborator' : 'Collaborator',
-	'Date Fix Flag' : 'Date_Fix_Flag',
-	'  Average of 95.4% date range in calBP (defined as 1950 CE)' : 'Average_BP_Date',
+	'Date_Fix_Flag' : 'Date_Fix_Flag',
+	'Average_BP_Date' : 'Average_BP_Date',
 	'Date' : 'Date',
-	'Culture' : 'Culture_Period',
-	'Location' : 'Locality',
+	'Culture_Period' : 'Culture_Period',
+	'Locality' : 'Locality',
 	'Country' : 'Country',
-	'  Lat.' : 'Latitude',
-	'  Long.' : 'Longitude',
-	'notes' : 'Notes',
-	'notes_2' : 'Notes_2',
+	'Latitude' : 'Latitude',
+	'Longitude' : 'Longitude',
+	'Notes' : 'Notes',
+	'Notes_2' : 'Notes_2',
 	#'14C_Status' : '14C_Status',
 	#'AMS_Ship_ID' : '14C Ship-ID',
 	#'AMS_Ship_Date' : '14C Ship Date',
-	'sampling_tech' : 'Sampling_Tech'
+	'Sampling_Techique' : 'Sampling_Tech'
 }
 
 def read_library_file(filename):
@@ -58,7 +58,7 @@ def read_sample_file(filename):
 		# read header line
 		header_line = f.readline()
 		headers = header_line.split('\t')
-		sample_id_index = headers.index('sample_id')
+		sample_id_index = headers.index('Sample_ID')
 		
 		for line in f:
 			fields = line.split('\t')
