@@ -57,15 +57,15 @@ workflow sample_merge_and_pulldown_with_analysis{
 		reference = genome_reference_string,
 		processes = 10
 	}
-	call release_samples as release_samples_nuclear { input:
-		release_directory = release_directory,
-		bams = merge_bams_nuclear.bams,
-		sample_library_list = sample_library_list,
-		reference = genome_reference_string
-	}
 	call remove_marked_duplicates as remove_marked_duplicates_nuclear{ input:
 		bams = merge_bams_nuclear.bams,
 		references = [genome_reference_string, mt_reference_string],
+	}
+	call release_samples as release_samples_nuclear { input:
+		release_directory = release_directory,
+		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
+		sample_library_list = sample_library_list,
+		reference = genome_reference_string
 	}
 	call analysis_clipping.clip_deamination as clip_nuclear { input:
 		adna_screen_jar = adna_screen_jar,
@@ -86,15 +86,15 @@ workflow sample_merge_and_pulldown_with_analysis{
 		reference = mt_reference_string,
 		processes = 2
 	}
-	call release_samples as release_samples_mt{ input:
-		release_directory = release_directory,
-		bams = merge_bams_mt.bams,
-		sample_library_list = sample_library_list,
-		reference = mt_reference_string
-	}
 	call remove_marked_duplicates as remove_marked_duplicates_mt{ input:
 		bams = merge_bams_mt.bams,
 		references = [genome_reference_string, mt_reference_string],
+	}
+	call release_samples as release_samples_mt{ input:
+		release_directory = release_directory,
+		bams = remove_marked_duplicates_mt.no_duplicates_bams,
+		sample_library_list = sample_library_list,
+		reference = mt_reference_string
 	}
 	call analysis_clipping.clip_deamination as clip_mt { input:
 		adna_screen_jar = adna_screen_jar,
