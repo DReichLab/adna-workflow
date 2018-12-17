@@ -86,21 +86,24 @@ def generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_
 			instance_id_with_reference = os.path.splitext(bam_filename)[0]
 			instance_id = instance_id_with_reference.rsplit('.', 1)[0]
 
-			instance = instances[instance_id]
-			if instance_id != instance.instance_id:
-				raise ValueError('instance id is not consistent')
-			
-			# only include read groups for libraries which match the UDG treatment
-			read_groups_matching_udg = []
-			for read_group in sorted(read_groups_to_libraries.keys()):
-				library_id = read_groups_to_libraries[read_group]
-				if udg_for_library(library_id, minus_libraries, plus_libraries) == udg:
-					read_groups_matching_udg.append(read_group)
+			# include only bams that have instances on the list
+			# we split the instances to avoid the read group duplication check
+			if instance_id in instances:
+				instance = instances[instance_id]
+				if instance_id != instance.instance_id:
+					raise ValueError('instance id is not consistent')
+				
+				# only include read groups for libraries which match the UDG treatment
+				read_groups_matching_udg = []
+				for read_group in sorted(read_groups_to_libraries.keys()):
+					library_id = read_groups_to_libraries[read_group]
+					if udg_for_library(library_id, minus_libraries, plus_libraries) == udg:
+						read_groups_matching_udg.append(read_group)
 
-			if len(read_groups_matching_udg) > 0:
-				db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups_matching_udg))
-				db_file.write(db_line)
-				instances_with_this_udg[instance_id] = instance
+				if len(read_groups_matching_udg) > 0:
+					db_line = "{0}\t{0}\t{1}\t{2}\n".format(instance_id, os.path.realpath(bam_path), ":".join(read_groups_matching_udg))
+					db_file.write(db_line)
+					instances_with_this_udg[instance_id] = instance
 	return instances_with_this_udg
 
 def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, minus_libraries, plus_libraries):

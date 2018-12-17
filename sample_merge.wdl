@@ -5,6 +5,7 @@ import "release_and_pulldown.wdl" as pulldown
 
 workflow sample_merge_and_pulldown_with_analysis{
 	File sample_library_list
+	String label
 	String release_directory
 	String genome_reference_string
 	String mt_reference_string
@@ -21,6 +22,10 @@ workflow sample_merge_and_pulldown_with_analysis{
 	File python_damage_two_bases
 	File python_angsd_results
 	File python_target
+	File python_pulldown
+	File python_merge_pulldown
+	File python_read_groups_from_bam
+	File python_release_libraries
 
 	Float missing_alignments_fraction
 	Int max_open_gaps
@@ -35,7 +40,6 @@ workflow sample_merge_and_pulldown_with_analysis{
 	File udg_plus_libraries_file
 	Array[String] udg_minus_libraries = read_lines(udg_minus_libraries_file)
 	Array[String] udg_plus_libraries = read_lines(udg_plus_libraries_file)
-	File python_read_groups_from_bam
 	
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rsrs{ input:
 		reference = mt_reference_rsrs_in
@@ -211,11 +215,32 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call analysis.concatenate as concatenate_count_1240k_post{ input:
 		to_concatenate = count_1240k_post.snp_target_stats
 	}
-	call pulldown_merged_samples{ input:
-		release_directory = release_directory,
-		bams = release_samples_nuclear.released_bams,
-		sex_by_instance_id = concatenate_count_1240k_post.concatenated,
-		sample_bam_list = sample_library_list
+	call split_pulldowns{ input:
+		sample_library_list = sample_library_list
+	}
+	scatter(split_sample_library_list in split_pulldowns.split_pulldown_sample_library_lists){
+		call pulldown_merged_samples{ input:
+			python_pulldown = python_pulldown,
+			python_merge_pulldown = python_merge_pulldown,
+			python_read_groups_from_bam = python_read_groups_from_bam,
+			python_release_libraries = python_release_libraries,
+			label = label,
+			release_directory = release_directory,
+			bams = release_samples_nuclear.released_bams,
+			sex_by_instance_id = concatenate_count_1240k_post.concatenated,
+			sample_bam_list = split_sample_library_list
+		}
+	}
+	call demultiplex_align_bams.collect_filenames{ input:
+		filename_arrays = pulldown_merged_samples.geno_ind_snp
+	}
+	call merge_pulldown_results{ input:
+		pulldown_results = collect_filenames.filenames,
+		python_pulldown = python_pulldown,
+		python_merge_pulldown = python_merge_pulldown,
+		python_read_groups_from_bam = python_read_groups_from_bam,
+		python_release_libraries = python_release_libraries,
+		label = label
 	}
 	call analysis_results{ input:
 		keyed_value_results = [
@@ -526,8 +551,32 @@ task release_samples{
 	}
 }
 
+# split a merge list into multiple split_pulldowns
+# This serves two purposes
+# 1. satisfy pulldown read group restrictions
+# 2. parallelization
+task split_pulldowns{
+	File sample_library_list
+	File python_pulldown_split_bam_list
+	
+	command{
+		python3 ${python_pulldown_split_bam_list} ${sample_library_list}
+	}
+	output{
+		Array[File] split_pulldown_sample_library_lists = glob("pulldown_instances*")
+	}
+	runtime{
+		runtime_minutes: 5
+		requested_memory_mb_per_core: 100
+	}
+}
+
 task pulldown_merged_samples{
 	File python_pulldown_sample
+	File python_pulldown
+	File python_merge_pulldown
+	File python_read_groups_from_bam
+	File python_release_libraries
 	File pulldown_executable
 	String label
 	String release_directory
@@ -540,8 +589,40 @@ task pulldown_merged_samples{
 	command{
 		python3 ${python_pulldown_sample} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_directory} ${sample_bam_list} ${sex_by_instance_id} ${sep=' ' bams}
 	}
+	output{
+		Array[File] geno_ind_snp = glob("${label}.combined.*")
+	}
 	runtime{
 		cpus: 2
 		requested_memory_mb_per_core: 8000
+	}
+}
+
+task merge_pulldown_results{
+	Array[File] pulldown_results
+	File python_pulldown
+	File python_merge_pulldown
+	File python_read_groups_from_bam
+	File python_release_libraries
+	String label
+	
+	command{
+		python3 <<CODE
+		import subprocess
+		from pathlib import Path
+		
+		input_string = "${sep=',' pulldown_results}"
+		input_files = input_string.split(',')
+		
+		input_stems = set()
+		input_stems_ordered = []
+		for f in input_files:
+			stem = Path(f).stem
+			if stem not in input_stems:
+				input_stems.add(stem)
+				input_stems_ordered.append(stem)
+		
+		subprocess.run(["${python_merge_pulldown}", '-m', '3', '-i'] + input_stems_ordered + ['-o', "${label}"], check=True)
+		CODE
 	}
 }
