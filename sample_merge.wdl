@@ -311,7 +311,7 @@ task prepare_bam_list{
 		File mt_list = "mt_list"
 	}
 	runtime{
-		runtime_minutes: 10
+		runtime_minutes: 20
 		requested_memory_mb_per_core: 100
 	}
 }
