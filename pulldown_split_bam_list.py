@@ -6,6 +6,7 @@ import sys
 # return a dictionary of instance_ids -> library id list
 def instances_to_libraries_from_file(filename):
 	instances = {}
+	instance_to_individual = {}
 	with open(filename) as f:
 		for line in f:
 			fields = line.split('\t')
@@ -13,7 +14,8 @@ def instances_to_libraries_from_file(filename):
 			individual_id = fields[1]
 			library_ids = fields[2:]
 			instances[instance_id] = library_ids
-	return instances
+			instance_to_individual[instance_id] = individual_id
+	return instances, instance_to_individual
 
 def split_pulldowns(instances_to_libraries):
 	# construct a list of instances that each library appears in
@@ -53,13 +55,13 @@ if __name__ == "__main__":
 	
 	args = parser.parse_args()
 	
-	instances_to_libraries = instances_to_libraries_from_file(args.sample_bam_list)
+	instances_to_libraries, instances_to_individual = instances_to_libraries_from_file(args.sample_bam_list)
 	pulldowns_instances = split_pulldowns(instances_to_libraries)
 	pulldown_index = 1
 	for pulldown_instances in pulldowns_instances:
 		filename = "pulldown_instances{:02d}".format(pulldown_index)
 		with open(filename, "w") as f:
 			for instance in pulldown_instances:
-				print(instance, file=f)
+				print("{}\t{}\t{}".format(instance, instances_to_individual[instance], '\t'.join(instances_to_libraries[instance]).strip()), file=f)
 		pulldown_index += 1
 	
