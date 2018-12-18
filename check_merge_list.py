@@ -37,3 +37,5 @@ if __name__ == "__main__":
 					print('Library {} appears for individuals {} and {}'.format(library, individual_id, libraries_to_individual[library]), file=sys.stderr)
 				else:
 					libraries_to_individual[library] = individual_id
+			if len(libraries) <= 1:
+				print('Why are we merging for {}? It only has one library {}'.format(instance_id, libraries[0]), file=sys.stderr)
