@@ -609,7 +609,7 @@ task merge_pulldown_results{
 	command{
 		python3 <<CODE
 		import subprocess
-		from pathlib import Path
+		import os
 		
 		input_string = "${sep=',' pulldown_results}"
 		input_files = input_string.split(',')
@@ -617,12 +617,12 @@ task merge_pulldown_results{
 		input_stems = set()
 		input_stems_ordered = []
 		for f in input_files:
-			stem = Path(f).stem
+			stem = os.path.splitext(f)[0]
 			if stem not in input_stems:
 				input_stems.add(stem)
 				input_stems_ordered.append(stem)
 		
-		subprocess.run(["${python_merge_pulldown}", '-m', '3', '-i'] + input_stems_ordered + ['-o', "${label}"], check=True)
+		subprocess.run(["python3", "${python_merge_pulldown}", '-m', '1', '-i'] + input_stems_ordered + ['-o', "${label}"], check=True)
 		CODE
 	}
 }
