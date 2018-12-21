@@ -7,7 +7,7 @@ from library_id import LibraryID
 # Map headers in Rebecca's sample spreadsheet to the library spreadsheet
 # key is sample spreadsheet column name, value is library spreadsheet column name
 header_mapping_sample = {
-	'Sample_ID' : 'Sample_ID',
+	'Sample-ID' : 'Sample_ID',
 	'Individual_ID' : 'Individual_ID',
 	'Shipment_ID' : 'Shipment_ID',
 	'Skeletal_Code' : 'Skeletal_Code',
