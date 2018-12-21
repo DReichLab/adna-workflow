@@ -58,7 +58,7 @@ def read_sample_file(filename):
 		# read header line
 		header_line = f.readline()
 		headers = header_line.split('\t')
-		sample_id_index = headers.index('Sample_ID')
+		sample_id_index = headers.index('Sample-ID')
 		
 		for line in f:
 			fields = line.split('\t')
