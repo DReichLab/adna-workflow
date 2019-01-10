@@ -52,16 +52,16 @@ def read_library_file(filename):
 				library_info[library_id] = fields
 	return headers, library_ids, library_info
 
-def read_sample_file(filename):
+def read_sample_file(filename, delimiter):
 	sample_info = {}
 	with open(filename) as f:
 		# read header line
 		header_line = f.readline()
-		headers = header_line.split('\t')
+		headers = header_line.split(delimiter)
 		sample_id_index = headers.index('Sample-ID')
 		
 		for line in f:
-			fields = line.split('\t')
+			fields = line.split(delimiter)
 			sample_id = fields[sample_id_index]
 			sample_info[sample_id] = fields
 			
@@ -286,6 +286,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Combine pipeline analysis results with Rebecca's library file.")
 	parser.add_argument('-l', "--library_file", help="Library file describing each library from Rebecca", required=True)
 	parser.add_argument('-s', "--sample_file", help="Sample file describing samples", required=True)
+	parser.add_argument('-x', "--delimiter", help="Sample file field delimiter", default='\t')
 	parser.add_argument('-r', "--reports", help="Pipeline report files", nargs='*')
 	parser.add_argument('-d', "--directory_pulldown", help="Directory containing logfile and dblist", nargs='*')
 	args = parser.parse_args()
@@ -293,7 +294,7 @@ if __name__ == "__main__":
 	# read library info into memory
 	library_headers, library_ids, library_info = read_library_file(args.library_file)
 	# read sample info into memory
-	sample_headers, sample_info = read_sample_file(args.sample_file)
+	sample_headers, sample_info = read_sample_file(args.sample_file, args.delimiter)
 	# add pipeline analysis reports into library entries
 	reports = args.reports if args.reports is not None else []
 	for report_filename in reports:
