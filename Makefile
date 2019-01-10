@@ -1,4 +1,6 @@
-all: imports.zip imports2.zip analysis.pdf demultiplex.pdf sample_merge.pdf
+all: imports.zip imports2.zip
+
+graphs: analysis.pdf demultiplex.pdf sample_merge.pdf
 
 imports.zip: demultiplex.wdl
 	zip imports.zip $^
