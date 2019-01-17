@@ -32,7 +32,7 @@ header_mapping_sample = {
 def read_library_file(filename):
 	with open(filename) as f:
 		# read header line
-		header_line = f.readline()
+		header_line = f.readline().strip()
 		headers = header_line.split('\t')
 		library_ids = []
 		library_info = {}
@@ -56,7 +56,7 @@ def read_sample_file(filename, delimiter):
 	sample_info = {}
 	with open(filename) as f:
 		# read header line
-		header_line = f.readline()
+		header_line = f.readline().strip()
 		headers = header_line.split(delimiter)
 		sample_id_index = headers.index('Sample-ID')
 		
