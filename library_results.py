@@ -8,15 +8,15 @@ from library_id import LibraryID
 # key is sample spreadsheet column name, value is library spreadsheet column name
 header_mapping_sample = {
 	'Sample-ID' : 'Sample_ID',
-	'Individual_ID' : 'Individual_ID',
-	'Shipment_ID' : 'Shipment_ID',
-	'Skeletal_Code' : 'Skeletal_Code',
-	'Skeletal_Element' : 'Skeletal_Element',
+	'Individual-ID' : 'Individual_ID',
+	'Shipment-ID' : 'Shipment_ID',
+	'Skeletal Code' : 'Skeletal_Code',
+	'Skeletal Element' : 'Skeletal_Element',
 	'Collaborator' : 'Collaborator',
-	'Date_Fix_Flag' : 'Date_Fix_Flag',
-	'Average_BP_Date' : 'Average_BP_Date',
+	'Date Fix Flag' : 'Date_Fix_Flag',
+	'Average BP Date' : 'Average_BP_Date',
 	'Date' : 'Date',
-	'Culture_Period' : 'Culture_Period',
+	'Population Label' : 'Culture_Period',
 	'Locality' : 'Locality',
 	'Country' : 'Country',
 	'Latitude' : 'Latitude',
@@ -26,7 +26,7 @@ header_mapping_sample = {
 	#'14C_Status' : '14C_Status',
 	#'AMS_Ship_ID' : '14C Ship-ID',
 	#'AMS_Ship_Date' : '14C Ship Date',
-	'Sampling_Techique' : 'Sampling_Tech'
+	'Sampling Tech' : 'Sampling_Tech'
 }
 
 def read_library_file(filename):
@@ -205,7 +205,6 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 			if library_id.startswith('S'): # is not '' and library_id is not 'Contl.Capture':
 				current_library = library_info[library_id]
 				# sample file data
-				'''
 				try:
 					sample_id = LibraryID(library_id).sample
 					for sample_header in header_mapping_sample:
@@ -218,7 +217,6 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 				except Exception as exception:
 					print(exception, file=sys.stderr)
 					#raise
-				'''
 				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
 					if '1240k' in experiment:
