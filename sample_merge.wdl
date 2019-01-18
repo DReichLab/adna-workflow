@@ -248,7 +248,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 			damage_mt.damage_all_samples_two_bases,
 			angsd_contamination.contamination,
 			concatenate_count_1240k_post.concatenated,
-			rsrs_coverage.coverages,
+			rsrs_coverage.coverage_statistics,
 			concatenate_contammix.concatenated,
 			summarize_haplogroups.haplogroups
 		]
@@ -465,14 +465,17 @@ task coverage_without_index_barcode_key{
 		stats_files = bam_stats_string.split(',')
 		
 		results = [cleaned_coverage(stats_file, "${coverage_field}", int(${reference_length}) ) for stats_file in stats_files]
-		for result in results:
-			if result is not None:
-				print("%s\tMT_coverage\t%f" % result)
+		with open('coverage_statistics') as f:
+			for result in results:
+				if result is not None:
+					print("%s\t%f" % result)
+					print("%s\tMT_coverage\t%f" % result, file=f)
 		
 		CODE
 	}
 	output{
 		File coverages = stdout()
+		File coverage_statistics = "coverage_statistics"
 	}
 	runtime{
 		runtime_minutes: 3
