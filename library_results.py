@@ -303,7 +303,7 @@ if __name__ == "__main__":
 		logfile_and_dblist(pulldown_directory, library_headers, library_info)
 	# print back out library info
 	# print header
-	print('\t'.join(library_headers), end='')
+	print('\t'.join(library_headers))
 	# print library data
 	for library_id in library_ids:
 		print('\t'.join(library_info[library_id]), end='')
