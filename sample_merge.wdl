@@ -465,7 +465,7 @@ task coverage_without_index_barcode_key{
 		stats_files = bam_stats_string.split(',')
 		
 		results = [cleaned_coverage(stats_file, "${coverage_field}", int(${reference_length}) ) for stats_file in stats_files]
-		with open('coverage_statistics') as f:
+		with open('coverage_statistics', 'w') as f:
 			for result in results:
 				if result is not None:
 					print("%s\t%f" % result)
