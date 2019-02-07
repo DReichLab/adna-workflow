@@ -12,7 +12,7 @@ from library_id import LibraryID
 # Shop's versioning strings look like v0030.2__2018_05_02
 class ShopVersion():
 	def __init__(self, version_directory):
-		m = re.match('(MT.)?v(\d+)\.(\d+)', version_directory)
+		m = re.match('(MT.)?v(\d+)\.(\d+)_', version_directory)
 		self.major = int(m.group(2))
 		self.minor = int(m.group(3))
 		self.directory = version_directory
@@ -37,7 +37,7 @@ def getShopBamPath(requestedID, parent_directory, bam_root):
 	if os.path.exists(path):
 		# we expect to see a version directory
 		with os.scandir(path) as top_directory:
-			version_directories = [ShopVersion(x.name) for x in top_directory if x.is_dir() and (x.name.startswith('v') or x.name.startswith('MT.v'))]
+			version_directories = [ShopVersion(x.name) for x in top_directory if x.is_dir() and ShopVersion.isValidVersionString(x.name) and (x.name.startswith('v') or x.name.startswith('MT.v'))]
 			sorted_version_directories = sorted(version_directories, key=attrgetter('major', 'minor'))
 			# find the most recent version
 			for version_directory in reversed(sorted_version_directories):
