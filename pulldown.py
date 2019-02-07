@@ -25,6 +25,8 @@ readbam:          BASE/readbam
 majmode:          NO
 printcount:       NO
 udgmode: UDG
+minlen: 30
+maxlen: 123
 '''
 
 non_damage_restricted_options = 'pmdscore:         NO'
@@ -190,6 +192,9 @@ if __name__ == "__main__":
 	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
 	#parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =10)
 	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries")
+	
+	parser.add_argument("--minimum_length", help="minimum length of read to include in pulldown", type=int, default=30)
+	parser.add_argument("--maximum_length", help="maximum length of read to include in pulldown", type=int, default=123)
 	
 	parser.add_argument("bam_list", help="Each line contains the parameters to build a library bam for release. This includes the library ID, the individual ID, experiment, read group description (sequencing run name with experiment type and udg treatment), experiment, and (bam, sequencing run date) pairs ")
 	parser.add_argument("report", help="report is used for looking up sex")
