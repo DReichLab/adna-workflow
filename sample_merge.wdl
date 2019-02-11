@@ -228,6 +228,8 @@ workflow sample_merge_and_pulldown_with_analysis{
 			release_directory = release_directory,
 			bams = release_samples_nuclear.released_bams,
 			sex_by_instance_id = concatenate_count_1240k_post.concatenated,
+			udg_minus_libraries_file = udg_minus_libraries_file,
+			udg_plus_libraries_file = udg_plus_libraries_file,
 			sample_bam_list = split_sample_library_list
 		}
 	}
@@ -587,10 +589,13 @@ task pulldown_merged_samples{
 	File sex_by_instance_id
 	Array[File] bams
 	
+	File udg_minus_libraries_file
+	File udg_plus_libraries_file
+	
 	File sample_bam_list
 	
 	command{
-		python3 ${python_pulldown_sample} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_directory} ${sample_bam_list} ${sex_by_instance_id} ${sep=' ' bams}
+		python3 ${python_pulldown_sample} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_directory} --minus_libraries ${udg_minus_libraries_file} --plus_libraries ${udg_plus_libraries_file} ${sample_bam_list} ${sex_by_instance_id} ${sep=' ' bams}
 	}
 	output{
 		Array[File] geno_ind_snp = glob("${label}.combined.*")
