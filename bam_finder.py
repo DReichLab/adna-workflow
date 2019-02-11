@@ -154,7 +154,12 @@ def readAnnoFile(anno_filename, requestedIDDict, bam_root):
 						
 	return anno_bam_paths, read_groups_by_id
 
-def getBamPath(requestedID, shop_parent_directory, bam_root, reference):
+library_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__CAPTURE/B-per_library_versions'
+sample_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__CAPTURE/C-per_sample_versions'
+MT_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions'
+default_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
+
+def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19'):
 	shop_bam_path = getShopBamPath(requestedID, shop_parent_directory, bam_root)
 	pipeline_bam_path = find_pipeline_bam(requestedID, reference)
 	
@@ -168,11 +173,6 @@ def getBamPath(requestedID, shop_parent_directory, bam_root, reference):
 		return pipeline_bam_path
 	else:
 		return ''
-
-library_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__CAPTURE/B-per_library_versions'
-sample_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__CAPTURE/C-per_sample_versions'
-MT_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions'
-default_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Try to find the bam associated with ID(s) in Shop's files", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
