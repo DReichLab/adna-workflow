@@ -146,7 +146,7 @@ if __name__ == "__main__":
 	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
 	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries")
 	parser.add_argument("--minus_libraries", help="file with list of UDG minus libraries")
-	parser.add_argument("--plus_libraries", help="file with list of UDG minus libraries")
+	parser.add_argument("--plus_libraries", help="file with list of UDG plus libraries")
 	
 	parser.add_argument("sample_bam_list", help="Each line contains the instance id and its list of component bams")
 	parser.add_argument("sex", help="sex by instance id")
@@ -166,7 +166,6 @@ if __name__ == "__main__":
 	pool.close()
 	pool.join()
 	pulldown_file_sets = [result.get() for result in results] # check for exceptions
-		
 	
 	# merge pulldown results
 	merge_pulldowns(args.pulldown_label, pulldown_file_sets, 3) # allow overlap for all UDG treatments
