@@ -295,6 +295,7 @@ task bcl2fastq{
 		bcl2fastq \
 			-R ${blc_input_directory} \
 			-o ./ \
+			--writing-threads 1 \
 			--create-fastq-for-index-reads \
 			--sample-sheet empty
 	}
