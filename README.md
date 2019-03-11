@@ -21,11 +21,11 @@ Workflows are setup to run on the *scratch* (temporary) filesystem, then copy pe
 
 - demultiplex.wdl - This takes an Illumina sequencer output directory as input and outputs a series of bams named by the index and barcode. This is run once per sequencing run. 
 
- These bams follow the naming pattern [i5 index]\_[i7 index]\_[p5 barcode]\_[p7 barcode], and are stored on the permanent filesystem. 
+    These bams follow the naming pattern [i5 index]\_[i7 index]\_[p5 barcode]\_[p7 barcode], and are stored on the permanent filesystem. 
 
- Paired-end reads are merged into single-end reads, requiring some minimum overlap and allowing for some mismatch depending on base quality scores. Adapters are trimmed during this while merging. 
+    Paired-end reads are merged into single-end reads, requiring some minimum overlap and allowing for some mismatch depending on base quality scores. Adapters are trimmed during this while merging. 
 
- There are two sets of bams, one aligned to the whole human genome reference hg19, and one aligned to the mitochondrial Reconstructed Sapiens Reference Sequence (RSRS). Bams are filtered to include only reads aligning to the reference. 
+    There are two sets of bams, one aligned to the whole human genome reference hg19, and one aligned to the mitochondrial Reconstructed Sapiens Reference Sequence (RSRS). Bams are filtered to include only reads aligning to the reference. 
 
 - analysis.wdl - This calculates a number of metrics for each bam, both on the Reich Lab set of ~1240k nuclear target data and MT data. It builds bams for each sample based on prior sequencing runs.
 
