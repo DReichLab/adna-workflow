@@ -332,9 +332,9 @@ task bcl2fastq{
 		]
 	}
 	runtime{
-		cpus: 1
+		cpus: 4
 		runtime_minutes: 240
-		requested_memory_mb_per_core: 6000
+		requested_memory_mb_per_core: 1500
 	}
 }
 
