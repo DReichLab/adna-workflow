@@ -295,10 +295,6 @@ task bcl2fastq{
 		bcl2fastq \
 			-R ${blc_input_directory} \
 			-o ./ \
-			--loading-threads 1 \
-			--demultiplexing-threads 1 \
-			--processing-threads 1 \
-			--writing-threads 1 \
 			--create-fastq-for-index-reads \
 			--sample-sheet empty
 	}
@@ -332,9 +328,9 @@ task bcl2fastq{
 		]
 	}
 	runtime{
-		cpus: 4
-		runtime_minutes: 240
-		requested_memory_mb_per_core: 1500
+		cpus: 10
+		runtime_minutes: 120
+		requested_memory_mb_per_core: 1000
 	}
 }
 
