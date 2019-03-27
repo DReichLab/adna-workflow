@@ -300,6 +300,7 @@ task bcl2fastq{
 			--writing-threads 3 \
 			--create-fastq-for-index-reads \
 			--sample-sheet empty
+		gunzip -t *.fastq.gz
 	}
 	
 	output{
