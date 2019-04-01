@@ -117,12 +117,12 @@ def isPossibleBAM(bam_candidate):
 	 return os.path.exists(bam_candidate) and os.path.isfile(bam_candidate) and Path(bam_candidate).suffix == '.bam'
  
 # find a bam in pipeline results
-def find_pipeline_bam(library_id, reference):
+def find_pipeline_bam(library_id, reference, experiment):
 	pipeline_default_dir = '/n/groups/reich/matt/pipeline/released_libraries'
 	path = Path(pipeline_default_dir) / library_id
 	if path.exists() and path.is_dir():
 		with os.scandir(path) as directory:
-			candidates = [Path(x) for x in directory if x.name.startswith(library_id) and x.name.endswith('.bam') and reference in x.name and '1240k' in x.name]
+			candidates = [Path(x) for x in directory if x.name.startswith(library_id) and x.name.endswith('.bam') and reference in x.name and experiment in x.name]
 			
 			if len(candidates) == 1: # there should be exactly one bam matching criteria TODO versions
 				return candidates[0]
@@ -159,9 +159,9 @@ sample_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancien
 MT_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions'
 default_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 
-def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19'):
+def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19', experiment='1240k'):
 	shop_bam_path = getShopBamPath(requestedID, shop_parent_directory, bam_root)
-	pipeline_bam_path = find_pipeline_bam(requestedID, reference)
+	pipeline_bam_path = find_pipeline_bam(requestedID, reference, experiment)
 	
 	if shop_bam_path != '' and pipeline_bam_path != '':
 		#raise ValueError('multiple bams for {}'.format(requestedID))
@@ -183,6 +183,7 @@ if __name__ == "__main__":
 	parser.add_argument("-b", "--bam_root", help="Bam filename root to look for", default=default_bam_root)
 	parser.add_argument("-l", "--library_filter", help="Restrict file inputs to Reich Lab library ID format, for example 'S0123.E1.L2'", action='store_true')
 	parser.add_argument("-r", "--reference", help="For example: hg19, rsrs", default='hg19')
+	parser.add_argument("-e", "--experiment", help="Examples: 1240k, BigYoruba" default='1240k')
 	parser.add_argument("requested_ids", help="Individual IDs to process from command line", nargs='*')
 	args = parser.parse_args()
 
@@ -213,7 +214,7 @@ if __name__ == "__main__":
 	for requestedID in requestedIDs:
 		# remove trailing _all, _d, _published
 		requestedID_shortened = requestedID.split('_')[0]
-		bam_paths[requestedID] = getBamPath(requestedID_shortened, parent_directory, args.bam_root, args.reference)
+		bam_paths[requestedID] = getBamPath(requestedID_shortened, parent_directory, args.bam_root, args.reference, args.experiment)
 	
 	anno_bam_paths = {}
 	read_groups_by_id = {}
