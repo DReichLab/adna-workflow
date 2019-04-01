@@ -183,7 +183,7 @@ if __name__ == "__main__":
 	parser.add_argument("-b", "--bam_root", help="Bam filename root to look for", default=default_bam_root)
 	parser.add_argument("-l", "--library_filter", help="Restrict file inputs to Reich Lab library ID format, for example 'S0123.E1.L2'", action='store_true')
 	parser.add_argument("-r", "--reference", help="For example: hg19, rsrs", default='hg19')
-	parser.add_argument("-e", "--experiment", help="Examples: 1240k, BigYoruba" default='1240k')
+	parser.add_argument("-e", "--experiment", help="Examples: 1240k, BigYoruba", default='1240k')
 	parser.add_argument("requested_ids", help="Individual IDs to process from command line", nargs='*')
 	args = parser.parse_args()
 
