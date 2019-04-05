@@ -34,6 +34,13 @@ class TestPreseq(unittest.TestCase):
 		estimate = estimator.unique_reads_to_empirical_targets(575319.5)
 		self.assertAlmostEqual(expected, estimate)
 		
+	def test_empirical_estimator_ceiling(self):
+		estimator = EmpiricalTargetEstimator(1.1, 0.9, -1)
+		# 0.05 fraction -> 0.0524
+		expected = 57531.95
+		estimate = estimator.unique_reads_to_empirical_targets(57531.95)
+		self.assertAlmostEqual(expected, estimate)
+		
 	def test_empirical_estimator_custom(self):
 		estimator = EmpiricalTargetEstimator(1.1, 0.9, -1)
 		expected = 396772.068965517

@@ -193,6 +193,8 @@ class EmpiricalTargetEstimator:
 		estimated_hit_fraction = max(float(unique_reads) / self.total_autosome_targets, 1e-9)
 		corrected_hit_faction = 1 / (self.a + self.b * (estimated_hit_fraction ** self.power))
 		corrected_hit_estimate = corrected_hit_faction * self.total_autosome_targets
+		# the number of unique targets is constrained by the number of unique reads
+		corrected_hit_estimate = min(unique_reads, corrected_hit_estimate)
 		return corrected_hit_estimate
 	
 def read_preseq_file(filename):
