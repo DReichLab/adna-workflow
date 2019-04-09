@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import re
 from multiprocessing import Pool
 from pulldown import create_pulldown_parameter_file, pulldown, merge_pulldowns
 from read_groups_from_bam import read_groups_and_libraries_from_bam
@@ -21,7 +22,7 @@ def create_individual_file(filename, instances, sex_by_instance_id):
 		for instance_id, instance in instances.items():
 			if instance_id != instance.instance_id:
 				raise ValueError('instance id is not consistent')
-			individual_file.write("{0}\t{1}\t{0}\n".format(instance_id, sex_by_instance_id[instance_id]))
+			individual_file.write("{0}\t{1}\t{0}\n".format(instance_id, sex_by_instance_id.get(instance_id, 'U')))
 			count += 1
 	return count
 
@@ -37,7 +38,7 @@ def instances_from_file(filename):
 	instances = {}
 	with open(filename) as f:
 		for line in f:
-			fields = line.split('\t')
+			fields = re.split('\t|\n', line)
 			instance_id = fields[0]
 			individual_id = fields[1]
 			instance = Instance(instance_id)
@@ -47,16 +48,17 @@ def instances_from_file(filename):
 # Read an adna keyed value aggregated statistics file by line to find sex
 def sex_from_file(filename):
 	sex_by_instance_id = {}
-	with open(filename) as f:
-		for line in f:
-			fields = line.split('\t')
-			instance_id = fields[0]
-			keys = fields[1::2]
-			values = fields[2::2]
-			sex_index = keys.index('1240k_post_sex')
-			sex = values[sex_index]
-			
-			sex_by_instance_id[instance_id] = sex.strip()
+	if filename is not None:
+		with open(filename) as f:
+			for line in f:
+				fields = re.split('\t|\n', line)
+				instance_id = fields[0]
+				keys = fields[1::2]
+				values = fields[2::2]
+				sex_index = keys.index('1240k_post_sex')
+				sex = values[sex_index]
+				
+				sex_by_instance_id[instance_id] = sex.strip()
 	return sex_by_instance_id
 
 # based on lists of minus and plus libraries, determine UDG treatment
@@ -144,12 +146,11 @@ if __name__ == "__main__":
 	
 	parser.add_argument('-p', "--pulldown_executable", help="executable to run pulldown")
 	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
-	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries")
 	parser.add_argument("--minus_libraries", help="file with list of UDG minus libraries")
 	parser.add_argument("--plus_libraries", help="file with list of UDG plus libraries")
+	parser.add_argument("--sex", help="filename for sex by instance id, in adna key-value pair with samples by line")
 	
 	parser.add_argument("sample_bam_list", help="Each line contains the instance id and its list of component bams")
-	parser.add_argument("sex", help="sex by instance id")
 	parser.add_argument("bams", help="bam files for pulldown, labeled beginning with instance id", nargs='+')
 	
 	args = parser.parse_args()

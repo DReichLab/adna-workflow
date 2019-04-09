@@ -3,6 +3,7 @@ from os.path import basename
 import subprocess
 import os
 import argparse
+import re
 
 def merge_bam(instance_id, library_ids, experiments, bam_paths, reference, picard_jar):
 	instance_id_filename = "%s.%s.bam" % (instance_id, reference)
@@ -35,9 +36,9 @@ def merge_bam(instance_id, library_ids, experiments, bam_paths, reference, picar
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Merge component library bams for a sample ")
 	parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =1)
-	parser.add_argument('-r', "--reference", help="size of thread pool", default='hg19')
+	parser.add_argument('-r', "--reference", help="", default='hg19')
+	parser.add_argument('-a', "--append", help="append to instance ids", default='')
 	parser.add_argument("picard_jar", help="jar file for the Broad Institute Picard toolset, used to merge bams and deduplicate")
-	parser.add_argument("instance_id", help="")
 	parser.add_argument("bam_list", help="component libraries with experiment and paths")
 	
 	args = parser.parse_args()
@@ -45,15 +46,27 @@ if __name__ == "__main__":
 	pool = Pool(processes=args.num_threads)
 	results = []
 	with open(args.bam_list) as f:
-		library_ids = []
-		experiments = []
-		bam_paths = []
-		for line in f:
-			fields = line.split()
-			library_ids.append(fields[0])
-			experiments.append(fields[1])
-			bam_paths.append(fields[2])
-		results.append(pool.apply_async(merge_bam, args=(args.instance_id, library_ids, experiments, bam_paths, args.reference, args.picard_jar)))
+		for instance_line in f:
+			instance_id = instance_line.strip()
+			augmented_instance_id = instance_id + args.append
+			if instance_id[0] != 'I':
+				raise ValueError('{} is invalid individual'.format(instance_id))
+			blank = False
+			library_ids = []
+			experiments = []
+			bam_paths = []
+			while not blank:
+				line = f.readline()
+				if len(line.strip()) == 0:
+					blank = True
+				fields = re.split('\t|\n', line)
+				if len(fields) >= 3:
+					bam_path = fields[2]
+					if len(bam_path) > 4:
+						library_ids.append(fields[0])
+						experiments.append(fields[1])
+						bam_paths.append(fields[2])
+			results.append(pool.apply_async(merge_bam, args=(augmented_instance_id, library_ids, experiments, bam_paths, args.reference, args.picard_jar)))
 	pool.close()
 	pool.join()
 	for result in results:
