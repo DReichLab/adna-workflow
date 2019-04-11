@@ -551,7 +551,7 @@ task chromosome_target{
 	}
 	runtime{
 		cpus: 1
-		runtime_minutes: 120
+		runtime_minutes: 180
 		requested_memory_mb_per_core: 3000
 	}
 }
