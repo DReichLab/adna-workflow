@@ -5,7 +5,7 @@ from multiprocessing import Pool
 # This should be made obsolete by loops in WDL/Cromwell
 
 def statistics_for_bam(fullpath_bam, adna_jar_filename, targets, minimum_mapping_quality):
-	filename_only = basename(bam)
+	filename_only = basename(fullpath_bam)
 	histogram = filename_only + ".histogram"
 	statistics = filename_only + ".stats"
 	with open(statistics, "w") as statistics_file:
