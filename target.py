@@ -9,7 +9,7 @@ def statistics_for_bam(fullpath_bam, adna_jar_filename, targets, minimum_mapping
 	histogram = filename_only + ".histogram"
 	statistics = filename_only + ".stats"
 	with open(statistics, "w") as statistics_file:
-		subprocess.run(["java", "-Xmx2500m", "-jar", adna_jar_filename, "SAMStats", "-f", bam, "-t", targets, "-l", histogram, "-q", minimum_mapping_quality], stdout=statistics_file, check=True)
+		subprocess.run(["java", "-Xmx2500m", "-jar", adna_jar_filename, "SAMStats", "-f", fullpath_bam, "-t", targets, "-l", histogram, "-q", str(minimum_mapping_quality)], stdout=statistics_file, check=True)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
