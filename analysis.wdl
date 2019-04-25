@@ -944,7 +944,7 @@ task preseq{
 			
 			# bed locations only
 			filtered_filename = sample_id + ".filtered.bam"
-			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} FilterSAM -b -i %s -o %s -c ${deamination_bases_to_clip} -m ${minimum_mapping_quality} -q ${minimum_base_quality} -p ${targets_bed}" % (bam, filtered_filename), shell=True)
+			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} FilterSAM -b -i %s -o %s -n ${deamination_bases_to_clip} -m ${minimum_mapping_quality} -q ${minimum_base_quality} -p ${targets_bed}" % (bam, filtered_filename), shell=True)
 			# sort
 			sorted_filename = sample_id + ".sorted.bam"
 			subprocess.check_output("java -Xmx4500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (filtered_filename, sorted_filename), shell=True)
