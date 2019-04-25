@@ -281,7 +281,7 @@ task prepare_reference{
 	}
 	runtime{
 		cpus: 4
-		runtime_minutes: 120
+		runtime_minutes: ceil(5 + 40 * size(reference, 'G'))
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -371,7 +371,7 @@ task barcode_count_check{
 		File barcode_count_statistics = "barcodeCount.stats"
 	}
 	runtime{
-		runtime_minutes: 100
+		runtime_minutes: 5 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -400,7 +400,7 @@ task merge_and_trim_lane{
 		File read_group = "read_group"
 	}
 	runtime{
-		runtime_minutes: 200
+		runtime_minutes: 10 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
 		requested_memory_mb_per_core: 4000
 	}
 }
@@ -465,7 +465,7 @@ task align{
 	}
 	runtime{
 		cpus: "${threads}"
-		runtime_minutes: 300
+		runtime_minutes: ceil(size(fastq_to_align, 'M'))
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -555,7 +555,7 @@ task demultiplex{
 	}
 	runtime{
 		cpus: 1
-		runtime_minutes: 360
+		runtime_minutes: 720
 		requested_memory_mb_per_core: 8000
 	}
 }
