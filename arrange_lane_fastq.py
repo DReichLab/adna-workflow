@@ -26,22 +26,33 @@ if __name__ == "__main__":
 	
 	files_by_lane = OrderedDict()
 	for fullpath in args.fastq:
-		# fullpaths are expected to look like this Undetermined_S0_L001_I1_001.fastq
-		m = re.match('Undetermined_S0_L(\d+)_([IR]\d)_001.fastq', Path(fullpath).name)
-		lane_number = int(m.group(1))
-		read_type = m.group(2)
-		#print('{}\t{:d}\t{}'.format(fullpath, lane_number, read_type))
-		
+		try:
+			# Broad non-demultiplexed fastq files look like:
+			# 1_HY352CCXY.1.1.fastq.gz
+			# 1_HY352CCXY.1.2.fastq.gz
+			# 1_HY352CCXY.1.barcode_1.fastq.gz
+			# 1_HY352CCXY.1.barcode_2.fastq.gz
+			m = re.match('(\d+)_([a-zA-Z0-9]+).(\d).([a-zA-Z0-9_]+).fastq', Path(fullpath).name)
+			flowcell = m.group(2)
+			lane_number = int(m.group(3))
+			read_type = m.group(4)
+			#print('{}\t{:d}\t{}\t{}'.format(fullpath, lane_number, read_type, flowcell))
+		except: # fullpaths from the output of bcl2fastq for NextSeq are expected to look like this Undetermined_S0_L001_I1_001.fastq
+			m = re.match('Undetermined_S0_L(\d+)_([IR]\d)_001.fastq', Path(fullpath).name)
+			lane_number = int(m.group(1))
+			read_type = m.group(2)
+			#print('{}\t{:d}\t{}'.format(fullpath, lane_number, read_type))
+			
 		if lane_number not in files_by_lane:
 			files_by_lane[lane_number] = LaneFiles()
 			
-		if read_type == 'I1':
+		if read_type in ['I1', 'barcode_1']:
 			files_by_lane[lane_number].I1 = fullpath
-		elif read_type == 'I2':
+		elif read_type in ['I2', 'barcode_2']:
 			files_by_lane[lane_number].I2 = fullpath
-		elif read_type == 'R1':
+		elif read_type in ['R1', '1']:
 			files_by_lane[lane_number].R1 = fullpath
-		elif read_type == 'R2':
+		elif read_type in ['R2', '2']:
 			files_by_lane[lane_number].R2 = fullpath
 		else:
 			raise ValueError('Unhandled read type {}'.format(read_type))
