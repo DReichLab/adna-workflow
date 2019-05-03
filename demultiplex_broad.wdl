@@ -256,10 +256,10 @@ task discover_lane_name_from_filename_broad{
 	
 	command{
 		python3 <<CODE
-			from pathlib import Path
-			with open('lane_name', 'w') as f:
-				s = '${filename}'
-				print(s[0], file=f)
+		from pathlib import Path
+		with open('lane_name', 'w') as f:
+			s = '${filename}'
+			print(s[0], file=f)
 		CODE
 	}
 	output{
