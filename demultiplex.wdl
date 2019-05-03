@@ -364,8 +364,11 @@ task barcode_count_check{
 	File barcodeSets
 	Array[File] read_files_by_lane
 	
+	Boolean reverse_complement_i5 = false
+	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
+	
 	command{
-		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
+		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${reverse_complement_i5_string} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
 	}
 	output{
 		File barcode_count_statistics = "barcodeCount.stats"
@@ -389,9 +392,11 @@ task merge_and_trim_lane{
 	Int? minimum_length
 	Int? number_output_files
 	String? positive_oligo
+	Boolean reverse_complement_i5 = false
+	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
 	
 	command{
-		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${reverse_complement_i5_string} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
 	}
 	
 	output{
