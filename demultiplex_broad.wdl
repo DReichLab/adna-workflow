@@ -258,8 +258,8 @@ task discover_lane_name_from_filename_broad{
 		python3 <<CODE
 		from pathlib import Path
 		with open('lane_name', 'w') as f:
-			s = '${filename}'
-			print(s[0], file=f)
+			fastq_filename = Path('${filename}').name
+			print(fastq_filename[0], file=f)
 		CODE
 	}
 	output{
