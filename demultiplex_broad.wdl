@@ -245,6 +245,10 @@ task intake_fastq{
 	output{
 		Array[Array[File]] read_files_by_lane = read_tsv('files_by_lane')
 	}
+	runtime{
+		runtime_minutes: 2
+		requested_memory_mb_per_core: 100
+	}
 }
 
 task discover_lane_name_from_filename_broad{
@@ -260,5 +264,9 @@ task discover_lane_name_from_filename_broad{
 	}
 	output{
 		String lane = read_string('lane_name')
+	}
+	runtime{
+		runtime_minutes: 2
+		requested_memory_mb_per_core: 100
 	}
 }
