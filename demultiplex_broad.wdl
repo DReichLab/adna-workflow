@@ -68,8 +68,7 @@ workflow demultiplex_align_bams{
 			i5_indices = i5_indices,
 			i7_indices = i7_indices,
 			barcodeSets = barcodeSets,
-			read_files_by_lane = lane,
-			reverse_complement_i5 = true
+			read_files_by_lane = lane
 		}
 	}
 	call demultiplex_master.aggregate_statistics as aggregate_barcode_count_statistics{ input :
@@ -88,8 +87,7 @@ workflow demultiplex_align_bams{
 			read_files_by_lane = lane,
 			label = discover_lane_name_from_filename.lane,
 			barcode_count_statistics = aggregate_barcode_count_statistics.statistics,
-			index_barcode_keys = index_barcode_keys,
-			reverse_complement_i5 = true
+			index_barcode_keys = index_barcode_keys
 		}
 	}
 	call demultiplex_master.collect_read_group_info{ input:
