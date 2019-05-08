@@ -534,7 +534,7 @@ task release_samples{
 				instance_id = os.path.basename(bam).split('.')[0]
 				individual_id = instance_to_individual[instance_id]
 				bam_directory = Path("${release_directory}") / individual_id
-				bam_directory.mkdir(exist_ok=True)
+				bam_directory.mkdir(mode=0o750, exist_ok=True)
 				# copy file
 				bam_destination = bam_directory / (instance_id + ".${reference}.bam")
 				if bam_destination.exists():
