@@ -577,7 +577,7 @@ task filter_aligned_only{
 	#java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned
 	command{
 		set -e
-		mkdir filtered_sorted
+		mkdir -p filtered_sorted
 		python3<<CODE
 		from multiprocessing import Pool
 		from os.path import basename
