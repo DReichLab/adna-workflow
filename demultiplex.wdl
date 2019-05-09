@@ -405,7 +405,7 @@ task merge_and_trim_lane{
 		File read_group = "read_group"
 	}
 	runtime{
-		runtime_minutes: 10 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
+		runtime_minutes: 11 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
 		requested_memory_mb_per_core: 4000
 	}
 }
