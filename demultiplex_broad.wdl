@@ -155,7 +155,7 @@ workflow demultiplex_align_bams{
 	call demultiplex_master.filter_aligned_only as filter_aligned_only_rsrs{ input:
 		picard_jar = picard_jar,
 		bams = demultiplex_rsrs.demultiplexed_bam,
-		minutes = 20
+		minutes = 50
 	}
 	
 	call demultiplex_master.index_pairs_without_barcodes{ input:
