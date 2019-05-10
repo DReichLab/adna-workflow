@@ -1,7 +1,7 @@
 import "demultiplex.wdl" as demultiplex_align_bams
 import "analysis.wdl" as analysis
 
-workflow preseq_standalone{
+workflow adna_analysis{
 	File nuclear_bam_lists_to_merge
 	File mt_bam_lists_to_merge
 	File demultiplex_statistics_file_list
