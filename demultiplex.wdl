@@ -335,7 +335,7 @@ task bcl2fastq{
 	}
 	runtime{
 		cpus: 10
-		runtime_minutes: 120
+		runtime_minutes: 180
 		requested_memory_mb_per_core: 1000
 	}
 }
@@ -405,7 +405,7 @@ task merge_and_trim_lane{
 		File read_group = "read_group"
 	}
 	runtime{
-		runtime_minutes: 11 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
+		runtime_minutes: 12 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
 		requested_memory_mb_per_core: 4000
 	}
 }
