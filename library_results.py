@@ -217,6 +217,7 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 							current_library[library_headers.index(mapped_header)] = value
 				except Exception as exception:
 					print(exception, file=sys.stderr)
+					print('missing: {}'.format(sample_id), file=sys.stderr)
 					#raise
 				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
@@ -307,5 +308,5 @@ if __name__ == "__main__":
 	print('\t'.join(library_headers))
 	# print library data
 	for library_id in library_ids:
-		print('\t'.join(library_info[library_id]), end='')
+		print('\t'.join(library_info[library_id]))
 	
