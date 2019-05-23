@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import argparse
 from library_id import LibraryID
+import re
 
 # Map headers in Rebecca's sample spreadsheet to the library spreadsheet
 # key is sample spreadsheet column name, value is library spreadsheet column name
@@ -32,14 +33,14 @@ header_mapping_sample = {
 def read_library_file(filename):
 	with open(filename) as f:
 		# read header line
-		header_line = f.readline().strip()
-		headers = header_line.split('\t')
+		header_line = f.readline()
+		headers = re.split('\t|\n', header_line)
 		library_ids = []
 		library_info = {}
 		id_index = headers.index('Library_ID')
 		
 		for line in f:
-			fields = line.split('\t')
+			fields = re.split('\t|\n', line)
 			library_id = fields[id_index]
 			
 			if len(fields) != len(headers):
