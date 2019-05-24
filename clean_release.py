@@ -24,7 +24,7 @@ if __name__ == "__main__":
 			library_parameters = [LibraryParameters(line) for line in f]
 	
 		for library in library_parameters:
-			source = library.get_release_library_path(args.parent)
+			source = '{}/{}'.format(library.get_release_library_path(args.parent), library.get_release_library_name())
 			print(source)
 			if os.path.exists(source):
 				shutil.move(source, args.directory)
