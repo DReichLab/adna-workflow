@@ -397,7 +397,7 @@ task contammix{
 	}
 	runtime{
 		cpus: if bam_size < 10000 then 1 else threads
-		runtime_minutes: if bam_size < 10000 then 30 else 200
+		runtime_minutes: if bam_size < 10000 then 30 else 120
 		requested_memory_mb_per_core: if bam_size < 10000 then 3000 else 1000
 	}
 }
