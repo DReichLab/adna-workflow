@@ -7,7 +7,9 @@ import re
 
 # Map headers in Rebecca's sample spreadsheet to the library spreadsheet
 # key is sample spreadsheet column name, value is library spreadsheet column name
-header_mapping_sample = {
+header_mapping_sample = {} # Rebecca removed these columns from the v38 library spreadsheet
+'''
+{
 	'Sample-ID' : 'Sample_ID',
 	'Individual-ID' : 'Individual_ID',
 	'Shipment-ID' : 'Shipment_ID',
@@ -29,6 +31,7 @@ header_mapping_sample = {
 	#'AMS_Ship_Date' : '14C Ship Date',
 	'Sampling Tech' : 'Sampling_Tech'
 }
+'''
 
 def read_library_file(filename):
 	with open(filename) as f:
@@ -218,7 +221,6 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 				except Exception as exception:
 					print(exception, file=sys.stderr)
 					print('missing: {}'.format(sample_id), file=sys.stderr)
-					#raise
 				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
 					if '1240k' in experiment:
