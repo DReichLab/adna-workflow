@@ -164,9 +164,9 @@ sample_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancien
 MT_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions'
 default_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 
-def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19', experiment='1240k'):
+def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19', experiment='1240k', version_policy=ONLY):
 	shop_bam_path = getShopBamPath(requestedID, shop_parent_directory, bam_root)
-	pipeline_bam_path = find_pipeline_bam(requestedID, reference, experiment)
+	pipeline_bam_path = find_pipeline_bam(requestedID, reference, experiment, version_policy=version_policy)
 	
 	if shop_bam_path != '' and pipeline_bam_path != '':
 		#raise ValueError('multiple bams for {}'.format(requestedID))
@@ -220,7 +220,7 @@ if __name__ == "__main__":
 	for requestedID in requestedIDs:
 		# remove trailing _all, _d, _published
 		requestedID_shortened = requestedID.split('_')[0]
-		bam_paths[requestedID] = getBamPath(requestedID_shortened, parent_directory, args.bam_root, args.reference, args.experiment)
+		bam_paths[requestedID] = getBamPath(requestedID_shortened, parent_directory, args.bam_root, args.reference, args.experiment, version_policy=args.version_policy)
 	
 	anno_bam_paths = {}
 	read_groups_by_id = {}
