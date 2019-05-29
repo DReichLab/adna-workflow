@@ -9,6 +9,9 @@ from functools import reduce
 
 from library_id import LibraryID
 
+ONLY = 'only'
+LATEST = 'latest'
+
 # Shop's versioning strings look like v0030.2__2018_05_02
 class ShopVersion():
 	def __init__(self, version_directory):
@@ -117,15 +120,17 @@ def isPossibleBAM(bam_candidate):
 	 return os.path.exists(bam_candidate) and os.path.isfile(bam_candidate) and Path(bam_candidate).suffix == '.bam'
  
 # find a bam in pipeline results
-def find_pipeline_bam(library_id, reference, experiment):
-	pipeline_default_dir = '/n/groups/reich/matt/pipeline/released_libraries'
-	path = Path(pipeline_default_dir) / library_id
+def find_pipeline_bam(library_id, reference, experiment, version_policy=ONLY, pipeline_parent_bam_dir = '/n/groups/reich/matt/pipeline/released_libraries'):
+	path = Path(pipeline_parent_bam_dir) / library_id
 	if path.exists() and path.is_dir():
 		with os.scandir(path) as directory:
 			candidates = [Path(x) for x in directory if x.name.startswith(library_id) and x.name.endswith('.bam') and reference in x.name and experiment in x.name]
 			
-			if len(candidates) == 1: # there should be exactly one bam matching criteria TODO versions
+			if len(candidates) == 1:
 				return candidates[0]
+			elif version_policy == LATEST:
+				latest = max(candidates, key=lambda p: int(p.name.split('.')[-2][1:])) # filename ends with 'v2.bam', parse out 2 from v2
+				return latest
 	return ''
  
 def readAnnoFile(anno_filename, requestedIDDict, bam_root):
@@ -184,6 +189,7 @@ if __name__ == "__main__":
 	parser.add_argument("-l", "--library_filter", help="Restrict file inputs to Reich Lab library ID format, for example 'S0123.E1.L2'", action='store_true')
 	parser.add_argument("-r", "--reference", help="For example: hg19, rsrs", default='hg19')
 	parser.add_argument("-e", "--experiment", help="Examples: 1240k, BigYoruba", default='1240k')
+	parser.add_argument("--version_policy", choices=[ONLY, LATEST], default=ONLY)
 	parser.add_argument("requested_ids", help="Individual IDs to process from command line", nargs='*')
 	args = parser.parse_args()
 

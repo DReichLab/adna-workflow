@@ -1,5 +1,5 @@
 import unittest
-from bam_finder import ShopVersion, getBamPath, library_default_dir, default_bam_root, MT_default_dir, bamInThisDirectory, getShopBamPath
+from bam_finder import ShopVersion, getBamPath, library_default_dir, default_bam_root, MT_default_dir, bamInThisDirectory, getShopBamPath, find_pipeline_bam
 
 class TestShopVersion(unittest.TestCase):
 	
@@ -59,6 +59,31 @@ class TestShopVersion(unittest.TestCase):
 		# we do not want the BigYoruba version
 		found = str(getShopBamPath('S6441.E1.L2', library_default_dir, default_bam_root))
 		self.assertEqual(expected, found)
+	
+	# versions
+	def testOnlyBAM_default(self):
+		expected = 'S10123.E1.L1/S10123.E1.L1.1240k_plus.hg19.v1.bam'
+		found = find_pipeline_bam('S10123.E1.L1', 'hg19', '1240k', pipeline_parent_bam_dir='bam_finder_test')
+		self.assertTrue(str(found).endswith(expected))
+	
+	def testOnlyBAM(self):
+		expected = 'S10123.E1.L1/S10123.E1.L1.1240k_plus.hg19.v1.bam'
+		found = find_pipeline_bam('S10123.E1.L1', 'hg19', '1240k', version_policy='only', pipeline_parent_bam_dir='bam_finder_test')
+		self.assertTrue(str(found).endswith(expected))
+			
+	def testOnlyBAMOfMany(self):
+		found = find_pipeline_bam('S10124.E1.L1', 'hg19', '1240k', version_policy='only', pipeline_parent_bam_dir='bam_finder_test')
+		self.assertEqual('', found)
+		
+	def testLatestBAMOne(self):
+		expected = 'S10123.E1.L1/S10123.E1.L1.1240k_plus.hg19.v1.bam'
+		found = find_pipeline_bam('S10123.E1.L1', 'hg19', '1240k', version_policy='latest', pipeline_parent_bam_dir='bam_finder_test')
+		self.assertTrue(str(found).endswith(expected))
+		
+	def testLatestBAMMany(self):
+		expected = 'S10124.E1.L1/S10124.E1.L1.1240k_plus.hg19.v2.bam'
+		found = find_pipeline_bam('S10124.E1.L1', 'hg19', '1240k', version_policy='latest', pipeline_parent_bam_dir='bam_finder_test')
+		self.assertTrue(str(found).endswith(expected))
 		
 if __name__ == '__main__':
 	unittest.main()
