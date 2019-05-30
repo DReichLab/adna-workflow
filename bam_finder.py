@@ -131,6 +131,8 @@ def find_pipeline_bam(library_id, reference, experiment, version_policy=ONLY, pi
 			elif version_policy == LATEST:
 				latest = max(candidates, key=lambda p: int(p.name.split('.')[-2][1:])) # filename ends with 'v2.bam', parse out 2 from v2
 				return latest
+			elif version_policy == ONLY:
+				raise ValueError('There are {:d} versions, not one'.format(len(candidates)))
 	return ''
  
 def readAnnoFile(anno_filename, requestedIDDict, bam_root):

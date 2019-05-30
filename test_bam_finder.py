@@ -72,8 +72,7 @@ class TestShopVersion(unittest.TestCase):
 		self.assertTrue(str(found).endswith(expected))
 			
 	def testOnlyBAMOfMany(self):
-		found = find_pipeline_bam('S10124.E1.L1', 'hg19', '1240k', version_policy='only', pipeline_parent_bam_dir='bam_finder_test')
-		self.assertEqual('', found)
+		self.assertRaises(ValueError, find_pipeline_bam, 'S10124.E1.L1', 'hg19', '1240k', 'only', 'bam_finder_test')
 		
 	def testLatestBAMOne(self):
 		expected = 'S10123.E1.L1/S10123.E1.L1.1240k_plus.hg19.v1.bam'
