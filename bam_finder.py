@@ -124,6 +124,7 @@ def find_pipeline_bam(library_id, reference, experiment, version_policy=ONLY, pi
 	path = Path(pipeline_parent_bam_dir) / library_id
 	if path.exists() and path.is_dir():
 		with os.scandir(path) as directory:
+			#print('{}\t{}\t{}\t{}'.format(library_id, reference, experiment, version_policy))
 			candidates = [Path(x) for x in directory if x.name.startswith(library_id) and x.name.endswith('.bam') and reference in x.name and experiment in x.name]
 			
 			if len(candidates) == 1:
@@ -131,7 +132,7 @@ def find_pipeline_bam(library_id, reference, experiment, version_policy=ONLY, pi
 			elif version_policy == LATEST:
 				latest = max(candidates, key=lambda p: int(p.name.split('.')[-2][1:])) # filename ends with 'v2.bam', parse out 2 from v2
 				return latest
-			elif version_policy == ONLY:
+			elif len(candidates) > 1 and version_policy == ONLY:
 				raise ValueError('There are {:d} versions, not one'.format(len(candidates)))
 	return ''
  
