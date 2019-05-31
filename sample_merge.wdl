@@ -267,13 +267,16 @@ task prepare_bam_list{
 	String genome_reference_string
 	String mt_reference_string
 	
+	Boolean latest_library = false
+	String version_policy = if latest_library then "latest" else "only"
+	
 	command{
 		python3 <<CODE
 		import subprocess
 		import sys
 		
 		def bam_path_from_library_id(library_id, reference):
-			result = subprocess.run(['python3', '${python_bam_finder}', '--reference', reference, library_id], check=True, stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+			result = subprocess.run(['python3', '${python_bam_finder}', '--reference', reference, '--version_policy', '${version_policy}', library_id], check=True, stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
 			return result
 		
 		with open("${library_id_file}", 'r') as f, open('nuclear_list', 'w') as nuclear_filelist, open('mt_list', 'w') as mt_filelist:
