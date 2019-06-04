@@ -93,6 +93,21 @@ class LibraryParameters:
 		
 		if len(self.bam_filenames) != len(self.bam_date_strings):
 			raise ValueError('Each bam needs a date string')
+		
+	def __repr__(self):
+		parameters = [self.index_barcode_key,
+				self.library_id,
+				self.individual_id,
+				self.read_group_description,
+				self.experiment,
+				self.udg,
+				self.reference,
+				str(self.version),
+				self.wetlab_notes]
+		interleaved = self.bam_filenames + self.bam_date_strings
+		interleaved[::2] = self.bam_filenames
+		interleaved[1::2] = self.bam_date_strings
+		return '\t'.join(parameters + interleaved)
 	
 	def get_release_library_name(self):
 		release_library_name = "{0}.{1}.{2}.v{3:d}.bam".format(self.library_id, self.experiment, self.reference, self.version)
