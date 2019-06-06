@@ -598,7 +598,7 @@ task pulldown_merged_samples{
 	File sample_bam_list
 	
 	command{
-		python3 ${python_pulldown_sample} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_directory} --minus_libraries ${udg_minus_libraries_file} --plus_libraries ${udg_plus_libraries_file} ${sample_bam_list} ${sex_by_instance_id} ${sep=' ' bams}
+		python3 ${python_pulldown_sample} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --minus_libraries ${udg_minus_libraries_file} --plus_libraries ${udg_plus_libraries_file} --sex ${sex_by_instance_id} ${sample_bam_list} ${sep=' ' bams}
 	}
 	output{
 		Array[File] geno_ind_snp = glob("${label}.combined.*")
