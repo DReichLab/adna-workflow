@@ -534,7 +534,7 @@ task release_samples{
 			for bam in bams:
 				source_file = Path(bam)
 				# create a directory for the individual if it does not exist yet
-				instance_id = os.path.basename(bam).split('.')[0]
+				instance_id = source_file.stem
 				individual_id = instance_to_individual[instance_id]
 				bam_directory = Path("${release_directory}") / individual_id
 				bam_directory.mkdir(mode=0o750, exist_ok=True)
