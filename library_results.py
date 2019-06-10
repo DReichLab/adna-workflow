@@ -195,14 +195,14 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 	with open(pipeline_report_filename) as f:
 		f.readline() # first line is read count
 		header_line = f.readline() # second line is header fields
-		headers = header_line.split('\t')
+		headers = re.split('\t|\n', header_line)
 		report_library_id_index = headers.index('library_id')
 		experiment_index = headers.index('experiment')
 		
 		# each line is one library
 		# iterate through report libraries and update corresponding library info
 		for line in f:
-			fields = line.split('\t')
+			fields = re.split('\t|\n', line)
 			
 			library_id = fields[report_library_id_index]
 			experiment = fields[experiment_index]
@@ -310,7 +310,11 @@ if __name__ == "__main__":
 	# add pipeline analysis reports into library entries
 	reports = args.reports if args.reports is not None else []
 	for report_filename in reports:
-		read_pipeline_analysis_report(report_filename, library_headers, library_info, sample_headers, sample_info)
+		try:
+			read_pipeline_analysis_report(report_filename, library_headers, library_info, sample_headers, sample_info)
+		except Exception as error:
+			print('{} report problem'.format(report_filename), file=sys.stderr)
+			raise error
 		
 	pulldown_directories = args.directory_pulldown if args.directory_pulldown is not None else []
 	for pulldown_directory in pulldown_directories:
