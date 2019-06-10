@@ -231,14 +231,18 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 # read a pulldown log file and return a map of ids to SNPs
 def pulldown_snp_stats(filename):
 	library_targets = {}
+	library_mean_depths = {}
 	with open(filename) as f:
 		for line in f:
 			if 'coverage' in line:
+				# example: S16791.Y1.E1.L1      S16791.Y1.E1.L1 mean depth:     0.065404 coverage: 76537
 				fields = line.split()
 				library_id = fields[0]
 				targets = int(fields[-1])
+				depth = float(fields[-3])
 				library_targets[library_id] = targets
-	return library_targets
+				library_mean_depths[library_id] = depth
+	return library_targets, library_mean_depths
 
 # run this from release directory where pulldown directories are subdirectories
 def logfile_and_dblist(name, library_headers, library_info):
@@ -249,7 +253,7 @@ def logfile_and_dblist(name, library_headers, library_info):
 		logfile_fullpath = parent_path.resolve() / logfile
 		print(logfile_fullpath, file=sys.stderr)
 		if logfile_fullpath.is_file() and  logfile_fullpath.exists():
-			library_targets = pulldown_snp_stats(logfile_fullpath)
+			library_targets, library_mean_depths = pulldown_snp_stats(logfile_fullpath)
 			
 			logfile_index = library_headers.index('Pulldown_Logfile_Location')
 			
@@ -279,6 +283,12 @@ def logfile_and_dblist(name, library_headers, library_info):
 								current_library[library_headers.index('Nuclear_Unique_SNPS_Hit')] = '{:d}'.format(targets)
 							except:
 								print('{} not in library_targets'.format(library_id), file=sys.stderr)
+							try:
+								coverage = library_mean_depths[library_id]
+								current_library[library_headers.index('Nuclear_Coverage_Targeted_Positions')] = '{:d}'.format(targets)
+							except:
+								print('{} not in library_mean_depths'.format(library_id), file=sys.stderr)
+								
 							#current_library[library_headers.index('1240K fraction of unique targets hit')] = '{:.3f}'.format(targets / )
 						else:
 							print('{} not in libraries'.format(library_id), file=sys.stderr)
