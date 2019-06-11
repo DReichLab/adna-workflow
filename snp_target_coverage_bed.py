@@ -31,8 +31,10 @@ if __name__ == '__main__':
 	y_read_count = 0
 
 	key = os.path.basename(autosome_filename)
-	while key.count('.') > 0:
-		key = os.path.splitext(key)[0] # filename without extension
+	if key.find('.bam') >= 0:
+		key = key[0:key.find('.bam')]
+	elif key.find('.sam') >= 0:
+		key = key[0:key.find('.sam')]
 
 	with open(autosome_filename) as f:
 		line = next(f)

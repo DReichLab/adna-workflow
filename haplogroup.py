@@ -2,6 +2,7 @@
 
 import os
 import sys
+from pathlib import Path
 
 # iterate over passed files
 filenames = sys.argv[1: len(sys.argv)]
@@ -24,7 +25,9 @@ for filename in filenames:
 
 		dataFields = line.split("\t")
 
-		key = os.path.splitext(os.path.basename(dataFields[sampleIndex]))[0] # filename without extension
+		key = Path(dataFields[sampleIndex]).name 
+		if key.endswith('.bam'):
+			key = Path(key).stem # filename without extension
 		haplogroup = dataFields[haplogroupIndex]
 		overallRank = float(dataFields[rankIndex])
 		notFoundPolys = dataFields[notFoundPolysIndex]

@@ -450,7 +450,12 @@ task coverage_without_index_barcode_key{
 		# adna SamStats assumes that the identifier is an index-barcode key 
 		# trim trailing _ characters that are added when processing the filename as a key
 		def cleaned_coverage(stats_file, coverage_field, reference_length):
-			sample_id_from_filename = basename(stats_file).split('.')[0]
+			sample_id_from_filename = basename(stats_file)
+			if sample_id_from_filename.find('.bam') >= 0:
+				sample_id_from_filename = sample_id_from_filename[0:sample_id_from_filename.find('.bam')]
+			elif sample_id_from_filename.find('.sam') >= 0:
+				sample_id_from_filename = sample_id_from_filename[0:sample_id_from_filename.find('.sam')]
+			
 			with open(stats_file) as f:
 				f.readline() # skip first line with read total
 				for line in f:
