@@ -77,7 +77,7 @@ def replace_field(current_library, library_headers, report_entry_values, report_
 	if value != '..':
 		current_library[to_replace_index] = str(value)
 		
-def replace_capture_fields(current_library, library_headers, report_entry_values, report_headers):
+def replace_capture_fields(current_library, library_headers, report_entry_values, report_headers, field_failures=True):
 	# key is column name in Rebecca's library spreadsheet, value is field name from pipeline report
 	header_mapping_1240k = {
 		'mtDNA_Raw_Sequences' : 'raw',
@@ -105,7 +105,13 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 	}
 
 	for library_header_to_replace, report_field_replacing in header_mapping_1240k.items():
-		replace_field(current_library, library_headers, report_entry_values, report_headers, library_header_to_replace, report_field_replacing)
+		try:
+			replace_field(current_library, library_headers, report_entry_values, report_headers, library_header_to_replace, report_field_replacing)
+		except Exception as e:
+			if field_failures:
+				raise e
+			else:
+				pass
 	
 	try:
 		damage_rsrs_ct1 = float(report_entry_values[report_headers.index('damage_rsrs_ct1')])
@@ -158,7 +164,7 @@ def replace_capture_fields(current_library, library_headers, report_entry_values
 		pass
 	'1240K Y chromsome haplogroup'
 
-def replace_shotgun_fields(current_library, library_headers, report_entry_values, report_headers):
+def replace_shotgun_fields(current_library, library_headers, report_entry_values, report_headers, field_failures=True):
 	header_mapping_shotgun = {
 		'Shotgun_Raw_Sequences' : 'raw',
 		'Shotgun_Sequences_Passing_Filters' : 'merged',
@@ -167,7 +173,13 @@ def replace_shotgun_fields(current_library, library_headers, report_entry_values
 	}
 	
 	for library_header_to_replace, report_field_replacing in header_mapping_shotgun.items():
-		replace_field(current_library, library_headers, report_entry_values, report_headers, library_header_to_replace, report_field_replacing)
+		try:
+			replace_field(current_library, library_headers, report_entry_values, report_headers, library_header_to_replace, report_field_replacing)
+		except Exception as e:
+			if field_failures:
+				raise e
+			else:
+				pass
 
 	try:
 		autosome_pre = int(report_entry_values[report_headers.index('autosome_pre')])
@@ -191,7 +203,7 @@ def replace_shotgun_fields(current_library, library_headers, report_entry_values
 		pass
 
 # combine Rebecca's library data with results of pipeline analysis
-def read_pipeline_analysis_report(pipeline_report_filename, library_headers, library_info, sample_headers, sample_info):
+def read_pipeline_analysis_report(pipeline_report_filename, library_headers, library_info, sample_headers, sample_info, field_failures):
 	with open(pipeline_report_filename) as f:
 		f.readline() # first line is read count
 		header_line = f.readline() # second line is header fields
@@ -224,9 +236,9 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
 					if '1240k' in experiment:
-						replace_capture_fields(current_library, library_headers, fields, headers)
+						replace_capture_fields(current_library, library_headers, fields, headers, field_failures)
 					elif 'Raw' in experiment:
-						replace_shotgun_fields(current_library, library_headers, fields, headers)
+						replace_shotgun_fields(current_library, library_headers, fields, headers, field_failures)
 						
 # read a pulldown log file and return a map of ids to SNPs
 def pulldown_snp_stats(filename):
@@ -299,6 +311,7 @@ if __name__ == "__main__":
 	parser.add_argument('-l', "--library_file", help="Library file describing each library from Rebecca", required=True)
 	parser.add_argument('-s', "--sample_file", help="Sample file describing samples", required=True)
 	parser.add_argument('-x', "--delimiter", help="Sample file field delimiter", default='\t')
+	parser.add_argument('-f', "--field_failures", help="Do not ignore library field failures, fail on encountering missing fields", action='store_true')
 	parser.add_argument('-r', "--reports", help="Pipeline report files", nargs='*')
 	parser.add_argument('-d', "--directory_pulldown", help="Directory containing logfile and dblist", nargs='*')
 	args = parser.parse_args()
@@ -311,7 +324,7 @@ if __name__ == "__main__":
 	reports = args.reports if args.reports is not None else []
 	for report_filename in reports:
 		try:
-			read_pipeline_analysis_report(report_filename, library_headers, library_info, sample_headers, sample_info)
+			read_pipeline_analysis_report(report_filename, library_headers, library_info, sample_headers, sample_info, args.field_failures)
 		except Exception as error:
 			print('{} report problem'.format(report_filename), file=sys.stderr)
 			raise error
