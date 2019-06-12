@@ -126,7 +126,7 @@ def library_id_in_pulldown(library_id, names, pulldown_dir_root):
 				for line in f:
 					if library_id in line:
 						logfile = '{2}/{0}/{0}.{1}.normal.parameters.stdout'.format(name, udg, pulldown_dir_root)
-						bamfile = find_pipeline_bam(library_id, 'hg19')
+						bamfile = find_pipeline_bam(library_id, 'hg19', '1240k', version_policy='latest')
 						return logfile, bamfile
 	return None, None
 
@@ -196,7 +196,9 @@ if __name__ == "__main__":
 							instance.x_contam_z = library_info[library_id][library_headers.index('Nuclear_ANGSD_Z')]
 							instance.sex = library_info[library_id][library_headers.index('Nuclear_Sex')]
 							
-							instance.coverage = float(library_info[library_id][library_headers.index('Nuclear_Coverage_Targeted_Positions')])
+							coverage_string = library_info[library_id][library_headers.index('Nuclear_Coverage_Targeted_Positions')]
+							if coverage_string != '':
+								instance.coverage = float(coverage_string)
 							autosome_snps_string = library_info[library_id][library_headers.index('Nuclear_Unique_SNPS_Hit')]
 							if autosome_snps_string != '':
 								instance.autosome_snps = int(autosome_snps_string)
