@@ -221,10 +221,13 @@ if __name__ == "__main__":
 		for merge_list in args.merge_lists:
 			with open(merge_list) as f:
 				for line in f:
-					fields = re.split('\t|\n', line)
+					fields = re.split('\t|\n', line.rstrip())
 					instance_id = fields[0]
 					individual_id = fields[1]
 					libraries = fields[2:]
+					if '' in libraries:
+						print(line, file=sys.stderr)
+						raise ValueError('empty library')
 					
 					instance = InstanceAnnoEntry(instance_id)
 					instance.library_ids = libraries
