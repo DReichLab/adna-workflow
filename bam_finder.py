@@ -184,7 +184,7 @@ def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=
 		return ''
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Try to find the bam associated with ID(s) in Shop's files", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+	parser = argparse.ArgumentParser(description="Try to find the bam associated with ID(s)", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	
 	parser.add_argument("-a", "--anno", help="Use anno file for bam hints and read groups")
 	parser.add_argument("-f", "--filename", help="File containing IDs to lookup")
