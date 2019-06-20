@@ -368,13 +368,13 @@ task barcode_count_check{
 	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
 	
 	command{
-		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${reverse_complement_i5_string} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} > barcodeCount.stats
+		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} > barcodeCount.stats
 	}
 	output{
 		File barcode_count_statistics = "barcodeCount.stats"
 	}
 	runtime{
-		runtime_minutes: 5 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
+		runtime_minutes: 5 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) ) 
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -390,13 +390,13 @@ task merge_and_trim_lane{
 	File index_barcode_keys
 	
 	Int? minimum_length
-	Int number_output_files = ceil((size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G')) / 0.6)
+	Int number_output_files = ceil((size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0)) / 0.6)
 	String? positive_oligo
 	Boolean reverse_complement_i5 = false
 	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
 	
 	command{
-		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${reverse_complement_i5_string} ${read_files_by_lane[0]} ${read_files_by_lane[1]} ${read_files_by_lane[2]} ${read_files_by_lane[3]} ${label} > ${label}.stats
+		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
 	}
 	
 	output{
@@ -405,7 +405,7 @@ task merge_and_trim_lane{
 		File read_group = "read_group"
 	}
 	runtime{
-		runtime_minutes: 12 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G'))
+		runtime_minutes: 12 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) )
 		requested_memory_mb_per_core: 4000
 	}
 }
