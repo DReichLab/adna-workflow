@@ -492,6 +492,7 @@ task damage_loop{
 	Int minimum_base_quality
 	
 	Int processes = 10
+	Int maximum_reads_for_damage = 5000000
 	
 	command{
 		set -e
@@ -500,13 +501,20 @@ task damage_loop{
 		from os.path import basename, splitext
 		import subprocess
 		
+		def num_reads_in_bam(bam_filename)
+			result = subprocess.run(['samtools', 'view', '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
+			return int(result)
+		
 		def damage_for_bam(bam):
 			sample_id_filename = basename(bam)
 			sample_id_filename_no_extension, extension = splitext(sample_id_filename)
 			
 			damage_filename = sample_id_filename_no_extension + ".damage"
 			
-			subprocess.check_output("samtools view %s | python3 ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > %s" %(bam, damage_filename), shell=True)
+			num_reads = num_reads_in_bam(bam)
+			subsample_option = "" if num_reads <= maximum_reads_for_damage else "-s %f" % (maximum_reads_for_damage / num_reads)
+			
+			subprocess.check_output("samtools view %s %s | python3 ${pmdtools} -d --requiremapq=${minimum_mapping_quality} --requirebaseq=${minimum_base_quality} > %s" %(subsample_option, bam, damage_filename), shell=True)
 			damage_result = subprocess.check_output("python3 ${python_damage_two_bases} ${damage_label} %s" % (damage_filename,), shell=True)
 			return damage_result.strip()
 			
