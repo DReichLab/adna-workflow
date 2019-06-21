@@ -236,9 +236,10 @@ workflow demultiplex_align_bams{
 task intake_fastq{
 	String fastq_directory
 	File python_arrange_lane_fastq
+	Boolean has_index_reads = true
 	
 	command{
-		python3 ${python_arrange_lane_fastq} ${fastq_directory + "/*.fastq.gz"} > files_by_lane
+		python3 ${python_arrange_lane_fastq} ${if has_index_reads then "" else "--no_index_reads"} ${fastq_directory + "/*.fastq.gz"} > files_by_lane
 	}
 	output{
 		Array[Array[File]] read_files_by_lane = read_tsv('files_by_lane')
