@@ -366,9 +366,11 @@ task barcode_count_check{
 	
 	Boolean reverse_complement_i5 = false
 	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
+	String? fixed_i5
+	String? fixed_i7
 	
 	command{
-		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} > barcodeCount.stats
+		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} > barcodeCount.stats
 	}
 	output{
 		File barcode_count_statistics = "barcodeCount.stats"
@@ -394,9 +396,11 @@ task merge_and_trim_lane{
 	String? positive_oligo
 	Boolean reverse_complement_i5 = false
 	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
+	String? fixed_i5
+	String? fixed_i7
 	
 	command{
-		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
+		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
 	}
 	
 	output{
