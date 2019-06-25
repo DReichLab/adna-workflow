@@ -4,6 +4,7 @@ workflow prepare_all_references{
 	File reference_in
 	File mt_reference_rsrs_in
 	File mt_reference_rcrs_in
+	File reference_shotgun_in
 
 	call demultiplex_align_bams.prepare_reference as prepare_reference_nuclear{ input:
 		reference = reference_in
@@ -13,5 +14,8 @@ workflow prepare_all_references{
 	}
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rcrs{ input:
 		reference = mt_reference_rcrs_in
+	}
+	call demultiplex_align_bams.prepare_reference as prepare_reference_shotgun{ input:
+		reference = reference_shotgun_in
 	}
 }
