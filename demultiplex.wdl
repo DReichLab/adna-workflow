@@ -574,7 +574,7 @@ task filter_aligned_only{
 	File picard_jar
 	Array[File] bams
 	Int processes = 5
-	Int minutes = 150
+	Int minutes = 600
 	
 	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
 	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
