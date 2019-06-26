@@ -36,7 +36,7 @@ task clip_deamination{
 	Array[String] udg_plus_libraries
 	File python_read_groups_from_bam
 	
-	Int processes = 8
+	Int processes = 12
 	
 	command{
 		set -e
@@ -72,7 +72,8 @@ task clip_deamination{
 					plus_args.append('-t')
 					plus_args.append(plus_library)
 			
-			subprocess.run(["java", "-Xmx3500m", "-jar", "${adna_screen_jar}", "softclip", "-b", "-n", "%d" % (half_bases,), "-i", bam, "-o", clipped_bam, "-x", "%d" % (minus_bases,), "-y", "%d" % (plus_bases,)] + minus_args + plus_args, check=True)
+			with open(clipped_bam + '.stderr', 'w') as clipping_stderr:
+				subprocess.run(["java", "-Xmx3500m", "-jar", "${adna_screen_jar}", "softclip", "-b", "-n", "%d" % (half_bases,), "-i", bam, "-o", clipped_bam, "-x", "%d" % (minus_bases,), "-y", "%d" % (plus_bases,)] + minus_args + plus_args, stderr=clipping_stderr, check=True)
 			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (clipped_bam, clipped_sorted_bam), shell=True)
 			return clipped_sorted_bam
 			
@@ -93,7 +94,7 @@ task clip_deamination{
 	}
 	runtime{
 		cpus: processes
-		runtime_minutes: 600
+		runtime_minutes: 720
 		requested_memory_mb_per_core: 3600
 	}
 	output{
