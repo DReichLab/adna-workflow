@@ -475,7 +475,7 @@ task align{
 	runtime{
 		cpus: "${threads}"
 		runtime_minutes: ceil(1.5 * size(fastq_to_align, 'M'))
-		requested_memory_mb_per_core: 1200
+		requested_memory_mb_per_core: 1000
 	}
 }
 
