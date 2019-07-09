@@ -28,8 +28,10 @@ def merge_bam(instance_id, library_ids, experiments, bam_paths, reference, picar
 			bams_with_altered_read_groups.append(bam_with_altered_read_groups)
 		# merge
 		merge_file_list = 'I=' + ' I='.join(bams_with_altered_read_groups)
-		# TODO output should be captured per instance
-	command = "java -Xmx2500m -jar %s MergeSamFiles %s O=%s SORT_ORDER=coordinate >> stdout_merge 2>> stderr_merge" % (picard_jar, merge_file_list, instance_id_filename)
+	# output should be captured per instance in subdirectory
+	instance_stdout_merge = instance_id + '/stdout_merge'
+	instance_stderr_merge = instance_id + '/stderr_merge'
+	command = "java -Xmx2500m -jar %s MergeSamFiles %s O=%s SORT_ORDER=coordinate >> %s 2>> %s" % (picard_jar, merge_file_list, instance_id_filename, instance_stdout_merge, instance_stderr_merge)
 	#print('combine bam lists ' + command)
 	subprocess.check_output(command, shell=True)
 		
