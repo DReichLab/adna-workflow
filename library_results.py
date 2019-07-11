@@ -297,7 +297,7 @@ def logfile_and_dblist(name, library_headers, library_info):
 								print('{} not in library_targets'.format(library_id), file=sys.stderr)
 							try:
 								coverage = library_mean_depths[library_id]
-								current_library[library_headers.index('Nuclear_Coverage_Targeted_Positions')] = '{:d}'.format(targets)
+								current_library[library_headers.index('Nuclear_Coverage_Targeted_Positions')] = '{:d}'.format(coverage)
 							except:
 								print('{} not in library_mean_depths'.format(library_id), file=sys.stderr)
 								
