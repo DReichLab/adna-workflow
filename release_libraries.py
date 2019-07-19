@@ -74,7 +74,9 @@ def copy_release_library(library_parameters, destination_parent_directory, relea
 def index_library(library_parameters, release_parent_directory, release_library_name):
 	if release_parent_directory != None:
 		release_library_path = library_parameters.get_release_library_path(release_parent_directory)
-		subprocess.run(['samtools', 'index', release_library_name], check=True, cwd=release_library_path)
+		# indexing empty files fails
+		if bam_has_reads('{}/{}'.format(release_library_path, release_library_name)):
+			subprocess.run(['samtools', 'index', release_library_name], check=True, cwd=release_library_path)
 	
 class LibraryParameters:
 	def __init__(self, line):
