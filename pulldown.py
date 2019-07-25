@@ -56,7 +56,8 @@ def sex_from_report(report_filename):
 			fields = line.split('\t')
 			try:
 				index_barcode_key_field = fields[index_barcode_key_index]
-				sex = fields[sex_index]
+				if len(fields[sex_index]) > 0:
+					sex = fields[sex_index]
 				sex_by_index_barcode_key[index_barcode_key_field] = sex
 			except:
 				pass
