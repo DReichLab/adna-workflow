@@ -6,7 +6,9 @@ import argparse
 import shutil
 from pathlib import Path
 from multiprocessing import Pool
+from duplicates_tags import bam_has_XD_tag
 
+# Check to see if a bam has any reads
 def bam_has_reads(bam_filename):
 	result = subprocess.run(['samtools', 'view', '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
 	return int(result) > 0
@@ -31,9 +33,13 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 	# add read groups for each library component
 	count = 0
 	library_component_bams = []
+	component_bam_missing_duplicate_tag = False
 	for i in range(len(library_parameters.bam_filenames)):
 		demultiplexed_bam_filename = library_parameters.bam_filenames[i]
+		# only bams with reads need to be merged
 		if bam_has_reads(demultiplexed_bam_filename):
+			if not bam_has_XD_tag(demultiplexed_bam_filename):
+				component_bam_missing_duplicate_tag = True
 			count += 1
 			bam_date_string = library_parameters.bam_date_strings[i]
 			output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
@@ -51,8 +57,19 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 			library_with_duplicates_filename = "{0}.{1}.{2}.duplicates.bam".format(library_id, experiment, reference)
 			subprocess.run("java -Xmx5500m -jar {} MergeSamFiles I={} O={} SORT_ORDER=coordinate".format(picard_jar, ' I='.join(library_component_bams), library_with_duplicates_filename), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
 			
+			# if any component bam is missing the XD tag, we cannot use the tag to deduplicate properly with barcodes
+			# We treat this conservatively by removing all barcode information and deduplicating based on position and length
+			if component_bam_missing_duplicate_tag:
+				library_with_duplicates_tag_rewritten_filename = "{0}.{1}.{2}.duplicates.tagxd.bam".format(library_id, experiment, reference)
+				subprocess.run(['java', '-Xmx5500m', '-jar', adna_jar_filename, 'DuplicatesTagRewrite', 
+					'-i', library_with_duplicates_filename
+					'-o', library_with_duplicates_tag_rewritten_filename], check=True)
+				to_deduplicate_filename = library_with_duplicates_tag_rewritten_filename
+			else:
+				to_deduplicate_filename = library_with_duplicates_filename
+			
 			# deduplicate
-			subprocess.run("java -Xmx5500m -jar {0} MarkDuplicates I={1} O={2} M={2}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000".format(picard_jar, library_with_duplicates_filename, library_filename), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
+			subprocess.run("java -Xmx5500m -jar {0} MarkDuplicates I={1} O={2} M={2}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000".format(picard_jar, to_deduplicate_filename, library_filename), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
 		else: # There are no reads, so use an empty bam. First bam should exist and be empty, so return a copy of that
 			shutil.copy(library_parameters.bam_filenames[0], working_directory + '/' + library_filename)
 		
