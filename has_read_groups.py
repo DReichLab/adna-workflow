@@ -5,7 +5,7 @@ import argparse
 def bam_has_read_groups(filename):
 	has_read_groups = False
 	tag_contents = None
-	samfile = pysam.AlignmentFile(args.bam, "rb")
+	samfile = pysam.AlignmentFile(filename, "rb")
 	try:
 		read_groups = samfile.header['RG']
 		if len(read_groups) > 0:

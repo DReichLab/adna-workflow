@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 from multiprocessing import Pool
 from duplicates_tags import bam_has_XD_tag
+from has_read_groups import bam_has_read_groups
 
 # Check to see if a bam has any reads
 def bam_has_reads(bam_filename):
@@ -35,16 +36,23 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 	library_component_bams = []
 	component_bam_missing_duplicate_tag = False
 	for i in range(len(library_parameters.bam_filenames)):
-		demultiplexed_bam_filename = library_parameters.bam_filenames[i]
+		component_bam_filename = library_parameters.bam_filenames[i]
 		# only bams with reads need to be merged
-		if bam_has_reads(demultiplexed_bam_filename):
-			if not bam_has_XD_tag(demultiplexed_bam_filename):
+		if bam_has_reads(component_bam_filename):
+			if not bam_has_XD_tag(component_bam_filename):
 				component_bam_missing_duplicate_tag = True
 			count += 1
-			bam_date_string = library_parameters.bam_date_strings[i]
 			output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
-			label = "{}_{}".format(library_parameters.read_group_description, library_id)
-			add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
+			# Demultiplexed, but unreleased bams need read groups added
+			if not bam_has_read_groups(component_bam_filename):
+				bam_date_string = library_parameters.bam_date_strings[i]
+				
+				label = "{}_{}".format(library_parameters.read_group_description, library_id)
+				add_read_groups(adna_jar_filename, component_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
+			# Previously released libraries already have read groups, and do not need them added
+			# Simply include these in the merge
+			else:
+				os.symlink(component_bam_filename, '{}/{}'.format(working_directory, output_bam_filename))
 			library_component_bams.append(output_bam_filename)
 	
 	# use stderr by library
@@ -62,7 +70,7 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 			if component_bam_missing_duplicate_tag:
 				library_with_duplicates_tag_rewritten_filename = "{0}.{1}.{2}.duplicates.tagxd.bam".format(library_id, experiment, reference)
 				subprocess.run(['java', '-Xmx5500m', '-jar', adna_jar_filename, 'DuplicatesTagRewrite', 
-					'-i', library_with_duplicates_filename
+					'-i', library_with_duplicates_filename,
 					'-o', library_with_duplicates_tag_rewritten_filename], check=True)
 				to_deduplicate_filename = library_with_duplicates_tag_rewritten_filename
 			else:

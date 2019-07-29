@@ -4,7 +4,7 @@ import argparse
 # test first read to see whether it has an XD tag
 def bam_has_XD_tag(filename):
 	tag_contents = None
-	samfile = pysam.AlignmentFile(args.bam, "rb")
+	samfile = pysam.AlignmentFile(filename, "rb")
 	for read in samfile:
 		if read.has_tag('XD'):
 			tag_contents = read.get_tag('XD')
