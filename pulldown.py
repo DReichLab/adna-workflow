@@ -10,10 +10,16 @@ from read_groups_from_bam import read_groups_from_bam
 from release_libraries import LibraryParameters
 from merge_pulldown import merge_geno_snp_ind
 
+SNP_SETS = {
+	'1240k' : '1240kSNP.snp',
+	'BigYoruba' : 'bigYRI_v3__excluding__1240k_v3.snp',
+	'BigYoruba+1240k' : 'bigyoruba_1240k.snp'
+}
+
 # Nick's pulldown program has an input file 
 pulldown_parameters_base = '''BASE: /n/groups/reich/matt/pipeline/static
 indivname:      PULLDOWN_STRING.ind
-snpname:        BASE/1240kSNP.snp
+snpname:        BASE/SNP_SET
 indivoutname:     PULLDOWN_STRING.out.prelim.ind   
 snpoutname:       PULLDOWN_STRING.out.snp
 genotypeoutname:  PULLDOWN_STRING.out.geno
@@ -87,8 +93,8 @@ def rewrite_individual_file(input_filename, output_filename, to_append):
 NORMAL = 'normal'
 DAMAGE_RESTRICTED = 'damage_restricted'
 pulldown_damage_options = {NORMAL : non_damage_restricted_options, DAMAGE_RESTRICTED : damage_restricted_options}
-def create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type):
-	pulldown_parameters = pulldown_parameters_base.replace('LABEL', pulldown_label).replace('UDG', udg_type).replace('PULLDOWN_STRING', pulldown_base_filename) + pulldown_damage_options[damage_type]
+def create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type, snp_set_filename):
+	pulldown_parameters = pulldown_parameters_base.replace('LABEL', pulldown_label).replace('SNP_SET', snp_set_filename).replace('UDG', udg_type).replace('PULLDOWN_STRING', pulldown_base_filename) + pulldown_damage_options[damage_type]
 	pulldown_parameter_filename_nopath = "{}.parameters".format(pulldown_base_filename)
 	with open("{}".format(pulldown_parameter_filename_nopath), 'w') as pulldown_parameter_file:
 		pulldown_parameter_file.write(pulldown_parameters)
@@ -140,7 +146,8 @@ def prepare_pulldown(library_parameters, args):
 		# Generate individual files
 		count = create_individual_file(pulldown_base_filename + ".ind", library_parameters, udg_type, sex_by_index_barcode_key, exclude_library_list)
 		# build parameter files
-		pulldown_parameter_filename_nopath = create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type)
+		snp_set_filename = SNP_SETS[args.snp_set]
+		pulldown_parameter_filename_nopath = create_pulldown_parameter_file(pulldown_label, pulldown_base_filename, udg_type, damage_type, snp_set_filename)
 		if count > 0:
 			parameter_file_outputs.append(pulldown_parameter_filename_nopath)
 	
@@ -189,11 +196,11 @@ if __name__ == "__main__":
 	
 	# pulldown is optional
 	# 1240k(+) libraries require pulldown. MT libraries do not. 
-	parser.add_argument('-p', "--pulldown_executable", help="executable to run pulldown")
-	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames")
-	#parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =10)
-	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries")
+	parser.add_argument('-p', "--pulldown_executable", help="executable to run pulldown", required=True)
+	parser.add_argument('-l', "--pulldown_label", help="label for pulldown filenames", required=True)
+	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries", required=True)
 	
+	parser.add_argument('--snp_set', choices=['1240k', 'BigYoruba', 'BigYoruba+1240k'], help="SNP set to use for pulldown", default='1240k')
 	parser.add_argument("--minimum_length", help="minimum length of read to include in pulldown", type=int, default=30)
 	parser.add_argument("--maximum_length", help="maximum length of read to include in pulldown", type=int, default=123)
 	
@@ -205,7 +212,7 @@ if __name__ == "__main__":
 	# read list of files
 	with open(bam_list_filename) as f:
 		unfiltered_library_parameters = [LibraryParameters(line) for line in f]
-		library_parameters = [par for par in unfiltered_library_parameters if ('1240' in par.experiment)]
+		library_parameters = [par for par in unfiltered_library_parameters if (args.snp_set in par.experiment)]
 	
 	# prepare pulldown input files
 	if args.pulldown_label is not None:
