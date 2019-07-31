@@ -78,11 +78,12 @@ task pulldown{
 	
 	String release_parent_directory
 	String label
+	String? snp_set
 	
 	File unused
 	
 	command{
-		python3 ${python_pulldown} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_parent_directory} ${bamlist} ${report}
+		python3 ${python_pulldown} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --release_directory ${release_parent_directory} ${"--snp_set " + snp_set} ${bamlist} ${report}
 	}
 	output{
 		File pulldown_ind = "${label}.combined.ind"
