@@ -71,7 +71,7 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 				library_with_duplicates_tag_rewritten_filename = "{0}.{1}.{2}.duplicates.tagxd.bam".format(library_id, experiment, reference)
 				subprocess.run(['java', '-Xmx5500m', '-jar', adna_jar_filename, 'DuplicatesTagRewrite', 
 					'-i', library_with_duplicates_filename,
-					'-o', library_with_duplicates_tag_rewritten_filename], check=True)
+					'-o', library_with_duplicates_tag_rewritten_filename], check=True, cwd=working_directory)
 				to_deduplicate_filename = library_with_duplicates_tag_rewritten_filename
 			else:
 				to_deduplicate_filename = library_with_duplicates_filename
