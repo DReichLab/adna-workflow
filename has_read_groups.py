@@ -5,7 +5,7 @@ def bam_has_read_groups(filename):
 	has_read_groups, has_real_library_name = read_group_checks(filename)
 	return has_read_groups
 
-def read_group_checks(filename, library_length=2):
+def read_group_checks(filename):
 	has_read_groups = False
 	has_real_library_name = False
 	tag_contents = None
