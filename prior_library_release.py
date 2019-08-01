@@ -18,8 +18,11 @@ if __name__ == "__main__":
 		existingBAM = getBamPath(x.library_id, experiment=experiment, reference=x.reference, version_policy='latest')
 		bam = str(existingBAM)
 		if len(bam) > 0:
-			match = re.search('v([0-9]+).bam', bam)
-			new_version = int(match.group(1)) + 1
+			try: # this will match a new pipeline bam
+				match = re.search('v([0-9]+).bam', bam)
+				new_version = int(match.group(1)) + 1
+			except: # if the existing version is Shop's
+				new_version = 1
 			#print('{}\t{}\t{:d}'.format(x.library_id, bam, new_version))
 			x.version = new_version
 			x.bam_filenames.append(str(existingBAM))
