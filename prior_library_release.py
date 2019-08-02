@@ -1,5 +1,5 @@
 from release_libraries import LibraryParameters
-from bam_finder import getBamPath
+from bam_finder import getBamPath, library_default_dir, MT_default_dir
 import argparse
 import re
 
@@ -15,7 +15,8 @@ if __name__ == "__main__":
 		experiment = x.experiment
 		if '1240k' in experiment:
 			experiment = '1240k'
-		existingBAM = getBamPath(x.library_id, experiment=experiment, reference=x.reference, version_policy='latest')
+		search_directory = MT_default_dir if x.reference == 'rsrs' else library_default_dir
+		existingBAM = getBamPath(x.library_id, experiment=experiment, reference=x.reference, version_policy='latest', shop_parent_directory=search_directory)
 		bam = str(existingBAM)
 		if len(bam) > 0:
 			try: # this will match a new pipeline bam
