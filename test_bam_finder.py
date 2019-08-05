@@ -9,6 +9,7 @@ class TestShopVersion(unittest.TestCase):
 		version = ShopVersion(version_string)
 		self.assertEqual(30, version.major)
 		self.assertEqual(2, version.minor)
+		self.assertEqual('20180502', version.date_string)
 		
 	def testValidMT(self):
 		version_string = 'MT.v0002.0__2018_03_08'
@@ -16,9 +17,15 @@ class TestShopVersion(unittest.TestCase):
 		version = ShopVersion(version_string)
 		self.assertEqual(2, version.major)
 		self.assertEqual(0, version.minor)
-		
+		self.assertEqual('20180308', version.date_string)
+
 	def testInvalid(self):
 		self.assertFalse(ShopVersion.isValidVersionString('merged'))
+
+	def testMTDirectoryVersion(self):
+		path = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions/S1137.E1.L4/MT.v0001.5__2016_06_27/merged/aln.sort.mapped.rmdupse_adna_v2.md.bam'
+		version = ShopVersion(path)
+		self.assertEqual('20160627', version.date_string)
 
 	# this is the shop MT
 	def testShopBamInDirectory(self):

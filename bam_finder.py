@@ -15,10 +15,16 @@ LATEST = 'latest'
 # Shop's versioning strings look like v0030.2__2018_05_02
 class ShopVersion():
 	def __init__(self, version_directory):
-		m = re.match('(MT.)?v(\d+)\.(\d+)_', version_directory)
+		#m = re.match('(MT.)?v(\d+)\.(\d+)_', version_directory)
+		m = re.search('(MT.)?v(\d+)\.(\d+)__(\d+)_(\d+)_(\d+)', version_directory)
 		self.major = int(m.group(2))
 		self.minor = int(m.group(3))
 		self.directory = version_directory
+
+		year = int(m.group(4))
+		month = int(m.group(5))
+		day = int(m.group(6))
+		self.date_string = '{:04d}{:02d}{:02d}'.format(year, month, day)
 		
 	def __str__(self):
 		return self.directory
@@ -168,6 +174,7 @@ sample_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancien
 MT_default_dir = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions'
 default_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 
+# TODO parent directory should have to match reference for proper lookup of Shop's bams
 def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19', experiment='1240k', version_policy=ONLY):
 	shop_bam_path = getShopBamPath(requestedID, shop_parent_directory, bam_root)
 	pipeline_bam_path = find_pipeline_bam(requestedID, reference, experiment, version_policy=version_policy)
