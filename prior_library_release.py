@@ -19,7 +19,7 @@ if __name__ == "__main__":
 		search_directory = MT_default_dir if x.reference == 'rsrs' else library_default_dir
 		existingBAM = getBamPath(x.library_id, experiment=experiment, reference=x.reference, version_policy='latest', shop_parent_directory=search_directory)
 		bam = str(existingBAM)
-		print(bam)
+		#print(bam)
 		if len(bam) > 0:
 			try: # this will match a new pipeline bam
 				match = re.search('v([0-9]+).bam', bam)

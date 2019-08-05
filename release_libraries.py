@@ -7,7 +7,8 @@ import shutil
 from pathlib import Path
 from multiprocessing import Pool
 from duplicates_tags import bam_has_XD_tag
-from has_read_groups import bam_has_read_groups
+from has_read_groups import read_group_checks
+from bam_finder import ShopVersion
 
 # Check to see if a bam has any reads
 def bam_has_reads(bam_filename):
@@ -44,9 +45,15 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 			count += 1
 			output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
 			# Demultiplexed, but unreleased bams need read groups added
-			if not bam_has_read_groups(component_bam_filename):
+			has_read_groups, has_real_library_name, date_string = read_group_checks(component_bam_filename)
+			if not has_read_groups:
 				bam_date_string = library_parameters.bam_date_strings[i]
-				
+				label = "{}_{}".format(library_parameters.read_group_description, library_id)
+				add_read_groups(adna_jar_filename, component_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
+			# Shop's bams need read groups rewritten
+			elif not has_real_library_name:
+				shop_version = ShopVersion(component_bam_filename)
+				bam_date_string = shop_version.date_string
 				label = "{}_{}".format(library_parameters.read_group_description, library_id)
 				add_read_groups(adna_jar_filename, component_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory)
 			# Previously released libraries already have read groups, and do not need them added
