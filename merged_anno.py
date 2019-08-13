@@ -151,6 +151,7 @@ if __name__ == "__main__":
 	parser.add_argument('-s', "--sample_file", help="Sample file describing samples", required=True)
 	parser.add_argument('-x', "--delimiter", help="Sample file field delimiter", default='\t')
 	parser.add_argument('-z', "--merge_analysis", help="File containing tab-delimited merge analysis")
+	parser.add_argument('-e', "--experiment", help="File containing tab-delimited merge analysis", default='1240k')
 	args = parser.parse_args()
 	
 	# read library info into memory
@@ -174,7 +175,7 @@ if __name__ == "__main__":
 					fields = re.split('\t|\n', line)
 					library_id = fields[headers.index('library_id')]
 					experiment = fields[headers.index('experiment')]
-					if '1240k' in experiment and 'Contl' not in library_id:
+					if args.experiment in experiment and 'Contl' not in library_id:
 						if library_id in released_library_list:
 							#raise ValueError('duplicate library: {}'.format(library_id))
 							print('duplicate library: {}'.format(library_id), file=sys.stderr)
