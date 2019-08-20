@@ -207,7 +207,7 @@ def replace_shotgun_fields(current_library, library_headers, report_entry_values
 		pass
 
 # combine Rebecca's library data with results of pipeline analysis
-def read_pipeline_analysis_report(pipeline_report_filename, library_headers, library_info, sample_headers, sample_info, field_failures):
+def read_pipeline_analysis_report(pipeline_report_filename, library_headers, library_info, sample_headers, sample_info, field_failures, desired_experiment):
 	with open(pipeline_report_filename) as f:
 		f.readline() # first line is read count
 		header_line = f.readline() # second line is header fields
@@ -239,7 +239,7 @@ def read_pipeline_analysis_report(pipeline_report_filename, library_headers, lib
 					print('missing: {}'.format(sample_id), file=sys.stderr)
 				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
-					if '1240k' in experiment:
+					if desired_experiment in experiment:
 						replace_capture_fields(current_library, library_headers, fields, headers, field_failures)
 					elif 'Raw' in experiment:
 						replace_shotgun_fields(current_library, library_headers, fields, headers, field_failures)
@@ -318,6 +318,7 @@ if __name__ == "__main__":
 	parser.add_argument('-f', "--field_failures", help="Do not ignore library field failures, fail on encountering missing fields", action='store_true')
 	parser.add_argument('-r', "--reports", help="Pipeline report files", nargs='*')
 	parser.add_argument('-d', "--directory_pulldown", help="Directory containing logfile and dblist", nargs='*')
+	parser.add_argument('-e', "--experiment", help="File containing tab-delimited merge analysis", default='1240k')
 	args = parser.parse_args()
 	
 	# read library info into memory
@@ -328,7 +329,7 @@ if __name__ == "__main__":
 	reports = args.reports if args.reports is not None else []
 	for report_filename in reports:
 		try:
-			read_pipeline_analysis_report(report_filename, library_headers, library_info, sample_headers, sample_info, args.field_failures)
+			read_pipeline_analysis_report(report_filename, library_headers, library_info, sample_headers, sample_info, args.field_failures, args.experiment)
 		except Exception as error:
 			print('{} report problem'.format(report_filename), file=sys.stderr)
 			raise error
