@@ -9,7 +9,7 @@ def instances_to_libraries_from_file(filename):
 	instance_to_individual = {}
 	with open(filename) as f:
 		for line in f:
-			fields = line.split('\t')
+			fields = line.split()
 			instance_id = fields[0]
 			individual_id = fields[1]
 			library_ids = fields[2:]
