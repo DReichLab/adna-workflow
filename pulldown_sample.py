@@ -3,7 +3,7 @@ import sys
 import os
 import re
 from multiprocessing import Pool
-from pulldown import create_pulldown_parameter_file, pulldown, merge_pulldowns
+from pulldown import create_pulldown_parameter_file, pulldown, merge_pulldowns, SNP_SETS
 from read_groups_from_bam import read_groups_and_libraries_from_bam
 
 # return a set of the library ids in the given file
@@ -108,7 +108,7 @@ def generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_
 					instances_with_this_udg[instance_id] = instance
 	return instances_with_this_udg
 
-def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, minus_libraries, plus_libraries):
+def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, minus_libraries, plus_libraries, snp_set_filename):
 	# generate one dblist file per UDG treatment
 	instances_by_udg = {}
 	instances_by_udg[HALF] = generate_dblist(pulldown_label, instances, bam_paths, minus_libraries, plus_libraries, HALF)
@@ -128,7 +128,7 @@ def prepare_pulldown(pulldown_label, instances, sex_by_instance_id, bam_paths, m
 	for (udg_type, damage_type) in parameter_indices:
 		pulldown_base_filename = "{}.{}.{}".format(pulldown_label, udg_type, damage_type)
 		count = create_individual_file("{}.ind".format(pulldown_base_filename), instances_by_udg[udg_type], sex_by_instance_id)
-		pulldown_parameter_filename_nopath = create_pulldown_parameter_file('{}.{}'.format(pulldown_label, udg_type), pulldown_base_filename, udg_type, damage_type)
+		pulldown_parameter_filename_nopath = create_pulldown_parameter_file('{}.{}'.format(pulldown_label, udg_type), pulldown_base_filename, udg_type, damage_type, snp_set_filename)
 		if count > 0:
 			parameter_file_outputs.append(pulldown_parameter_filename_nopath)
 	return parameter_file_outputs
@@ -150,6 +150,8 @@ if __name__ == "__main__":
 	parser.add_argument("--plus_libraries", help="file with list of UDG plus libraries")
 	parser.add_argument("--sex", help="filename for sex by instance id, in adna key-value pair with samples by line")
 	
+	parser.add_argument('--snp_set', choices=['1240k', 'BigYoruba', 'BigYoruba+1240k'], help="SNP set to use for pulldown", default='1240k')
+	
 	parser.add_argument("sample_bam_list", help="Each line contains the instance id and its list of component bams")
 	parser.add_argument("bams", help="bam files for pulldown, labeled beginning with instance id", nargs='+')
 	
@@ -159,7 +161,8 @@ if __name__ == "__main__":
 	sex_by_instance_id = sex_from_file(args.sex)
 	minus_libraries = read_library_ids(args.minus_libraries)
 	plus_libraries = read_library_ids(args.plus_libraries)
-	parameter_files = prepare_pulldown(args.pulldown_label, instances, sex_by_instance_id, args.bams, minus_libraries, plus_libraries)
+	snp_set_filename = SNP_SETS[args.snp_set]
+	parameter_files = prepare_pulldown(args.pulldown_label, instances, sex_by_instance_id, args.bams, minus_libraries, plus_libraries, snp_set_filename)
 	
 	# run pulldown
 	pool = Pool(processes=2)

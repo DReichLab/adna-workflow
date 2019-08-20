@@ -36,7 +36,7 @@ def merge_bam(instance_id, library_ids, experiments, bam_paths, reference, picar
 	subprocess.check_output(command, shell=True)
 		
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Merge component library bams for a sample ")
+	parser = argparse.ArgumentParser(description="Merge component library bams for a sample. Rewrite read groups on a per-library basis.")
 	parser.add_argument('-n', "--num_threads", help="size of thread pool", type=int, default =1)
 	parser.add_argument('-r', "--reference", help="", default='hg19')
 	parser.add_argument('-a', "--append", help="append to instance ids", default='')

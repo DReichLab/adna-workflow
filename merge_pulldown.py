@@ -140,7 +140,7 @@ if __name__ == "__main__":
 	
 	parser.add_argument('-i', "--input_stems", help="List of stems, with each stem having three files, for example: a0.{geno,snp,ind} or b0.b1.{geno,snp,ind}.", nargs='+', required=True)
 	parser.add_argument('-o', "--output_stem", help="Stem for output files: output.{geno,snp,ind}.", default='out')
-	parser.add_argument('-m', "--max_overlap", help="Number of results files an individual can appear in. For UDG half+minus, this should be 2. If an individual should only appear in one result set, this should be 1.", type=int, default=1)
+	parser.add_argument('-m', "--max_overlap", help="Number of results files an individual can appear in. For UDG half+minus, this should be 2. Merged results are the first non-empty value, or empty. If an individual should only appear in one result set, this should be 1.", type=int, default=1)
 	args = parser.parse_args()
 
 	geno_filenames = ["{}.geno".format(stem) for stem in args.input_stems]

@@ -201,6 +201,7 @@ if __name__ == "__main__":
 	parser.add_argument('-r', "--release_directory", help="parent directory to read released libraries", required=True)
 	
 	parser.add_argument('--snp_set', choices=['1240k', 'BigYoruba', 'BigYoruba+1240k'], help="SNP set to use for pulldown", default='1240k')
+	# TODO hook up these arguments correctly
 	parser.add_argument("--minimum_length", help="minimum length of read to include in pulldown", type=int, default=30)
 	parser.add_argument("--maximum_length", help="maximum length of read to include in pulldown", type=int, default=123)
 	
