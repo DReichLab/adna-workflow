@@ -33,7 +33,7 @@ header_mapping_sample = {} # Rebecca removed these columns from the v38 library 
 }
 '''
 
-def read_library_file(filename):
+def read_library_file(filename, allow_duplicates=False):
 	with open(filename) as f:
 		# read header line
 		header_line = f.readline()
@@ -47,9 +47,9 @@ def read_library_file(filename):
 			library_id = fields[id_index]
 			
 			if len(fields) != len(headers):
-				raise ValueError('mismatch between headers and fields')
+				raise ValueError('mismatch between headers ({:d}) and fields ({:d})\n{}'.format(len(headers), len(fields), line))
 			
-			if library_id in library_info:
+			if library_id in library_info and not allow_duplicates:
 				raise ValueError('{} appears more than once in library file'.format(library_id))
 			else:
 				library_ids.append(library_id)
