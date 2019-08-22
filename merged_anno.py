@@ -151,11 +151,13 @@ if __name__ == "__main__":
 	parser.add_argument('-s', "--sample_file", help="Sample file describing samples", required=True)
 	parser.add_argument('-x', "--delimiter", help="Sample file field delimiter", default='\t')
 	parser.add_argument('-z', "--merge_analysis", help="File containing tab-delimited merge analysis")
-	parser.add_argument('-e', "--experiment", help="File containing tab-delimited merge analysis", default='1240k')
+	parser.add_argument('-e', "--experiment", help="experiment to filter for", default='1240k')
+	parser.add_argument('-d', "--allow_duplicate_libraries", help="Allow duplicate entries in library file. Use last entry to fill out anno file.", action='store_true')
 	args = parser.parse_args()
 	
 	# read library info into memory
-	library_headers, library_ids, library_info = read_library_file(args.library_file)
+	allow_duplicate_libraries = args.allow_duplicate_libraries
+	library_headers, library_ids, library_info = read_library_file(args.library_file, allow_duplicate_libraries)
 	# read sample info into memory
 	sample_headers, sample_info = read_sample_file(args.sample_file, args.delimiter)
 	
