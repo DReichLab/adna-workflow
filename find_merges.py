@@ -35,6 +35,7 @@ def readAnnoFile(anno_filename):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Augment the bam list for a release with a prior existing version of the library")
 	parser.add_argument("-a", "--anno", help="Use anno file for bam hints and read groups", required=True)
+	parser.add_argument("-l", "--label", help="Label to apply to instance names", required=True)
 	parser.add_argument("libraries", help="Use anno file for bam hints and read groups", nargs='+')
 	args = parser.parse_args()
 	
@@ -56,6 +57,6 @@ if __name__ == "__main__":
 					libraries_by_master_id[master_id_number].append(str(library_id))
 				master_ids[master_id_number] = len(libraries_by_master_id[master_id_number])
 				
-	for master_id, count in master_ids.items():
+	for master_id_number, count in master_ids.items():
 		if count > 1:
-			print('I{}_v40\t{}'.format(master_id, '\t'.join(libraries_by_master_id[master_id])))
+			print('I{:04d}_{}\t{}'.format(master_id_number, args.label, '\t'.join(libraries_by_master_id[master_id_number])))
