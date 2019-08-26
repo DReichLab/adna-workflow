@@ -14,9 +14,13 @@ LATEST = 'latest'
 
 # Shop's versioning strings look like v0030.2__2018_05_02
 class ShopVersion():
-	def __init__(self, version_directory):
-		#m = re.match('(MT.)?v(\d+)\.(\d+)_', version_directory)
-		m = re.search('(MT.)?v(\d+)\.(\d+)__(\d+)_(\d+)_(\d+)', version_directory)
+	# The letter option is for strings with a letter directly after the version: v0029.5b
+	def __init__(self, version_directory, allow_letter=False):
+		if not allow_letter:
+			m = re.search('(MT.)?v(\d+)\.(\d+)__(\d+)_(\d+)_(\d+)', version_directory)
+		else:
+			m = re.search('(MT.)?v(\d+)\.(\d+)[a-z]?__(\d+)_(\d+)_(\d+)', version_directory)
+		
 		self.major = int(m.group(2))
 		self.minor = int(m.group(3))
 		self.directory = version_directory
@@ -29,24 +33,28 @@ class ShopVersion():
 	def __str__(self):
 		return self.directory
 	
-	def isValidVersionString(string):
+	def isValidVersionString(string, allow_letter=False):
 		try:
-			version = ShopVersion(string)
+			version = ShopVersion(string, allow_letter=allow_letter)
 			return True
 		except:
 			return False
 
 # given an ID string, return a bam path
 # This looks for a subdirectory of the parent_directory (either Shop's library or sample directories)
-def getShopBamPath(requestedID, parent_directory, bam_root):
+def getShopBamPath(requestedID, parent_directory, bam_root, experiment='1240k'):
 	pathname = Path(str(requestedID))
 	parent_path = Path(parent_directory)
+	
+	# Currently the only reason to allow a letter in the Shop version string is because of BigYoruba experiments.
+	# If we allow this, check explicitly for bigyoruba in the version string
+	allow_letter_in_version = (experiment == 'BigYoruba')
 	
 	path = parent_path / pathname
 	if os.path.exists(path):
 		# we expect to see a version directory
 		with os.scandir(path) as top_directory:
-			version_directories = [ShopVersion(x.name) for x in top_directory if x.is_dir() and ShopVersion.isValidVersionString(x.name) and (x.name.startswith('v') or x.name.startswith('MT.v'))]
+			version_directories = [ShopVersion(x.name, allow_letter_in_version) for x in top_directory if x.is_dir() and (ShopVersion.isValidVersionString(x.name) or (ShopVersion.isValidVersionString(x.name, allow_letter_in_version) and ('bigyoruba' in x.name)) )and (x.name.startswith('v') or x.name.startswith('MT.v'))]
 			sorted_version_directories = sorted(version_directories, key=attrgetter('major', 'minor'))
 			# find the most recent version
 			for version_directory in reversed(sorted_version_directories):

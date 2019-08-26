@@ -27,6 +27,18 @@ class TestShopVersion(unittest.TestCase):
 		version = ShopVersion(path)
 		self.assertEqual('20160627', version.date_string)
 
+	def testValidBigYorubaString(self):
+		version_string = 'v0029.5b__2018_02_27__bigyoruba'
+		# processing without allowing letter should fail
+		self.assertFalse(ShopVersion.isValidVersionString(version_string))
+		self.assertFalse(ShopVersion.isValidVersionString(version_string, False))
+		# processing allowing letter should succeed
+		self.assertTrue(ShopVersion.isValidVersionString(version_string, True))
+		
+	def testValidAllowLetter(self):
+		version_string = 'v0030.2__2018_05_02'
+		self.assertTrue(ShopVersion.isValidVersionString(version_string, True))
+
 	# this is the shop MT
 	def testShopBamInDirectory(self):
 		path = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__MT/B-per_library_versions/S8861.E1.L1/MT.v0030.1__2018_08_08/merged/'
@@ -90,6 +102,12 @@ class TestShopVersion(unittest.TestCase):
 		expected = 'S10124.E1.L1/S10124.E1.L1.1240k_plus.hg19.v2.bam'
 		found = find_pipeline_bam('S10124.E1.L1', 'hg19', '1240k', version_policy='latest', pipeline_parent_bam_dir='bam_finder_test')
 		self.assertTrue(str(found).endswith(expected))
+
+	def testBigYorubaExpected(self):
+		self.maxDiff = None
+		expected = '/n/data1/hms/genetics/reich/1000Genomes/amh_samples/ancientMergeSets__CAPTURE/B-per_library_versions/S2230.L1/v0029.5b__2018_02_27__bigyoruba/merged/aln.sort.mapped.rmdupse_adna_v2.md.bam'
+		found = getShopBamPath('S2230.L1', library_default_dir, default_bam_root, experiment='BigYoruba')
+		self.assertEqual(expected, found)
 		
 if __name__ == '__main__':
 	unittest.main()
