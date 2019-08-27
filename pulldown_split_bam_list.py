@@ -17,7 +17,7 @@ def instances_to_libraries_from_file(filename):
 			instance_to_individual[instance_id] = individual_id
 	return instances, instance_to_individual
 
-def split_pulldowns(instances_to_libraries):
+def split_pulldowns(instances_to_libraries, minimum_splits=1):
 	# construct a list of instances that each library appears in
 	library_id_to_instance = {}
 	for instance_id in instances_to_libraries:
@@ -30,6 +30,7 @@ def split_pulldowns(instances_to_libraries):
 	
 	# To pass read group checks, we need each read group to appear at most once in each pulldown
 	num_pulldowns = max([len(library_id_to_instance[library_id]) for library_id in library_id_to_instance])
+	num_pulldowns = max(num_pulldowns, minimum_splits)
 	# setup enough blank lists to accomodate the most frequent library
 	# we could also increase this for parallelization
 	pulldown_instances = []
@@ -51,12 +52,12 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Prepare pulldown input files for by-sample pulldown batch.")
 	
 	parser.add_argument("sample_bam_list", help="Each line contains the instance id and its list of component libraries")
-	#parser.add_argument("bams", help="bam files for pulldown, labeled beginning with instance id", nargs='+')
+	parser.add_argument('-m', '--minimum_splits', help="minimum number of separate pulldowns", type=int, default='1')
 	
 	args = parser.parse_args()
 	
 	instances_to_libraries, instances_to_individual = instances_to_libraries_from_file(args.sample_bam_list)
-	pulldowns_instances = split_pulldowns(instances_to_libraries)
+	pulldowns_instances = split_pulldowns(instances_to_libraries, args.minimum_splits)
 	pulldown_index = 1
 	for pulldown_instances in pulldowns_instances:
 		filename = "pulldown_instances{:02d}".format(pulldown_index)
