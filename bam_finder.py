@@ -184,7 +184,7 @@ default_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
 
 # TODO parent directory should have to match reference for proper lookup of Shop's bams
 def getBamPath(requestedID, shop_parent_directory=library_default_dir, bam_root=default_bam_root, reference='hg19', experiment='1240k', version_policy=ONLY):
-	shop_bam_path = getShopBamPath(requestedID, shop_parent_directory, bam_root)
+	shop_bam_path = getShopBamPath(requestedID, shop_parent_directory, bam_root, experiment=experiment)
 	pipeline_bam_path = find_pipeline_bam(requestedID, reference, experiment, version_policy=version_policy)
 	
 	if shop_bam_path != '' and pipeline_bam_path != '':
