@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from operator import attrgetter
 from functools import reduce
+import shutil
 
 from library_id import LibraryID
 
@@ -210,6 +211,7 @@ if __name__ == "__main__":
 	parser.add_argument("-e", "--experiment", help="Examples: 1240k, BigYoruba", default='1240k')
 	parser.add_argument("--version_policy", choices=[ONLY, LATEST], default=LATEST, help='Policy for pipeline bams. Only will raise exception if there is more than one version.')
 	parser.add_argument("requested_ids", help="Individual IDs to process from command line", nargs='*')
+	parser.add_argument("-c", "--copy", action='store_true', help="Copy file to current directory")
 	args = parser.parse_args()
 
 	requestedIDs = []
@@ -263,3 +265,5 @@ if __name__ == "__main__":
 		else:
 			#print('{0}\t{0}\t{1}\t{2}'.format(requestedID, bam_paths.get(requestedID, ''), read_groups_by_id.get(requestedID, '')))
 			print('{}'.format(bam_paths.get(requestedID))) 
+			if args.copy:
+				shutil.copy(bam_paths.get(requestedID), '.')
