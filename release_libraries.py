@@ -102,6 +102,7 @@ def copy_release_library(library_parameters, destination_parent_directory, relea
 			os.chmod(created, 0o440)
 		else:
 			sys.stderr.write('{} already exists\n'.format(source_file))
+			raise FileExistsError(source_file)
 
 def index_library(library_parameters, release_parent_directory, release_library_name):
 	if release_parent_directory != None:
