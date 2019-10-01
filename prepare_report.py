@@ -20,6 +20,7 @@ headersToReport = [
 	'sample_sheet_p7_barcode',
 				   'raw', 
 				   'merged', 
+				   'oligo', 
 				   'endogenous_pre',
 				   'autosome_pre', 'autosome_pre-coverageLength', 
 				   'autosome_post', 'autosome_post-coverageLength',
