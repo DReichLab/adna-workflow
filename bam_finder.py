@@ -160,8 +160,14 @@ def readAnnoFile(anno_filename, requestedIDDict, bam_root):
 		num_headers = len(headers)
 		# find header indices, and map them to correct IDs
 		instance_id_index = headers.index('Instance ID')
-		anno_bam_index = headers.index('pulldown: 3rd column of nickdb (bam)')
-		read_groups_index = headers.index('pulldown: 5th column of nickdb (diploid source)')
+		try:
+			anno_bam_index = headers.index('pulldown: 3rd column of nickdb (bam)')
+		except:
+			anno_bam_index = headers.index('Data: autosomal bam')
+		try:
+			read_groups_index = headers.index('pulldown: 5th column of nickdb (diploid source)')
+		except:
+			read_groups_index = headers.index('Data: autosomal readgroups or hetfa or ranfa')
 
 		for line in anno_file:
 			fields = line.split('\t')
