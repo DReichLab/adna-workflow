@@ -292,17 +292,15 @@ task bcl2fastq{
 	command{
 		set -e
 		touch empty
-		mkdir -p /tmp/bcl2fastq
 		bcl2fastq \
 			-R ${blc_input_directory} \
-			-o /tmp/bcl2fastq \
+			-o . \
 			--loading-threads 3 \
 			--processing-threads 7 \
 			--writing-threads 3 \
 			--create-fastq-for-index-reads \
 			--sample-sheet empty
-		gunzip -t /tmp/bcl2fastq/*.fastq.gz
-		mv /tmp/bcl2fastq/*.fastq.gz .
+		gunzip -t *.fastq.gz
 	}
 	
 	output{
