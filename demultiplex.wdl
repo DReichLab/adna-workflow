@@ -367,6 +367,8 @@ task barcode_count_check{
 	String? fixed_i5
 	String? fixed_i7
 	
+	Int minutes = 5 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) )
+	
 	command{
 		java -Xmx1700m -jar ${adna_screen_jar} BarcodeCount --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} > barcodeCount.stats
 	}
@@ -374,8 +376,9 @@ task barcode_count_check{
 		File barcode_count_statistics = "barcodeCount.stats"
 	}
 	runtime{
-		runtime_minutes: 5 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) ) 
+		runtime_minutes: minutes
 		requested_memory_mb_per_core: 2000
+		queue: if minutes > 720 then "medium" else "short"
 	}
 }
 
@@ -396,10 +399,11 @@ task merge_and_trim_lane{
 	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
 	String? fixed_i5
 	String? fixed_i7
-	Int minutes = 12 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) )
+	Int threads = 3
+	Int minutes = 8 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) )
 	
 	command{
-		java -Xmx3500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
+		java -Xmx5500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
 	}
 	
 	output{
@@ -409,7 +413,7 @@ task merge_and_trim_lane{
 	}
 	runtime{
 		runtime_minutes: minutes
-		requested_memory_mb_per_core: 4000
+		requested_memory_mb_per_core: 2000
 		queue: if minutes > 720 then "medium" else "short"
 	}
 }
@@ -555,6 +559,8 @@ task demultiplex{
 	File? index_barcode_keys
 	File? barcodes
 	
+	Int minutes = 720
+	
 	command{
 		java -Xmx7500m -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
 	}
@@ -564,8 +570,9 @@ task demultiplex{
 	}
 	runtime{
 		cpus: 1
-		runtime_minutes: 720
+		runtime_minutes: minutes
 		requested_memory_mb_per_core: 8000
+		queue: if minutes > 720 then "medium" else "short"
 	}
 }
 
