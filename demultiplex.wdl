@@ -403,7 +403,7 @@ task merge_and_trim_lane{
 	Int minutes = 8 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) )
 	
 	command{
-		java -Xmx5500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
+		java -Xmx5500m -jar ${adna_screen_jar} IndexAndBarcodeScreener ${"--threads " + threads} ${"-n " + number_output_files} ${"--positive-oligo " + positive_oligo} ${"-l " + minimum_length} --i5-indices ${i5_indices} --i7-indices ${i7_indices} --barcodes ${barcodeSets} --barcode-count ${barcode_count_statistics} --index-barcode-keys ${index_barcode_keys} ${"--fixed-i5 " + fixed_i5} ${"--fixed-i7 " + fixed_i7} ${reverse_complement_i5_string} ${sep=' ' read_files_by_lane} ${label} > ${label}.stats
 	}
 	
 	output{
