@@ -412,6 +412,7 @@ task merge_and_trim_lane{
 		File read_group = "read_group"
 	}
 	runtime{
+		cpus: "${threads}"
 		runtime_minutes: minutes
 		requested_memory_mb_per_core: 2000
 		queue: if minutes > 720 then "medium" else "short"
