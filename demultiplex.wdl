@@ -399,7 +399,7 @@ task merge_and_trim_lane{
 	String reverse_complement_i5_string = if reverse_complement_i5 then "--reverse-complement-i5" else ""
 	String? fixed_i5
 	String? fixed_i7
-	Int threads = 3
+	Int threads = 4
 	Int minutes = 8 * ceil(size(read_files_by_lane[0], 'G') + size(read_files_by_lane[1], 'G') + (if (length(read_files_by_lane) > 2) then size(read_files_by_lane[2], 'G') + size(read_files_by_lane[3], 'G') else 0.0) )
 	
 	command{
