@@ -66,17 +66,13 @@ workflow demultiplex_align_bams{
 		statistics_by_group=barcode_count_check.barcode_count_statistics
 	}
 	scatter(lane in bcl2fastq.read_files_by_lane){
-		call discover_lane_name_from_filename{ input:
-			python_lane_name = python_lane_name,
-			filename = lane[0]
-		}
 		call merge_and_trim_lane { input : 
 			adna_screen_jar = adna_screen_jar,
 			i5_indices = i5_indices,
 			i7_indices = i7_indices,
 			barcodeSets = barcodeSets,
 			read_files_by_lane = lane,
-			label = discover_lane_name_from_filename.lane,
+			label = "merged",
 			barcode_count_statistics = aggregate_barcode_count_statistics.statistics,
 			index_barcode_keys = index_barcode_keys
 		}
@@ -335,22 +331,6 @@ task bcl2fastq{
 		cpus: 10
 		runtime_minutes: 180
 		requested_memory_mb_per_core: 1000
-	}
-}
-
-task discover_lane_name_from_filename{
-	String filename
-	File python_lane_name
-	
-	command{
-		python3 ${python_lane_name} ${filename} > lane_name
-	}
-	output{
-		String lane = read_string("./lane_name")
-	}
-	runtime{
-		runtime_minutes: 2
-		requested_memory_mb_per_core: 10
 	}
 }
 
