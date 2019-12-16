@@ -42,12 +42,14 @@ def read_library_file(filename, allow_duplicates=False):
 		library_info = {}
 		id_index = headers.index('Library_ID')
 		
+		count = 0
 		for line in f:
+			count += 1
 			fields = re.split('\t|\n', line)
 			library_id = fields[id_index]
 			
 			if len(fields) != len(headers):
-				raise ValueError('mismatch between headers ({:d}) and fields ({:d})\n{}'.format(len(headers), len(fields), line))
+				raise ValueError('mismatch between headers ({:d}) and fields ({:d}) at line {:d} \n{}'.format(len(headers), len(fields), count, line))
 			
 			if library_id in library_info and not allow_duplicates:
 				raise ValueError('{} appears more than once in library file'.format(library_id))
