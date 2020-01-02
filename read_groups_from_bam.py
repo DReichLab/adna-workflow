@@ -44,7 +44,7 @@ def read_groups_and_libraries_from_bam(bam_filename):
 	return results
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Prepare pulldown input files for by-sample pulldown batch.")
+	parser = argparse.ArgumentParser(description="Show the read groups in a bam.")
 
 	parser.add_argument('-l', "--libraries", help="report libraries instead of read groups", action='store_true')
 	parser.add_argument('-b', "--both", help="report read groups and libraries", action='store_true')
