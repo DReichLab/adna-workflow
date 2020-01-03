@@ -16,6 +16,7 @@ def picard_read_group(picard_jar, bam, output_bam, library, platform, flowcell, 
 				 'RGPL={}'.format(platform),
 				 'RGPU={}'.format(flowcell),
 				 'RGSM={}'.format(sample),
+				 'VALIDATION_STRINGENCY=LENIENT',
 				 ], check=True)
 
 if __name__ == "__main__":
