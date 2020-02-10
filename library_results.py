@@ -66,12 +66,14 @@ def read_sample_file(filename, delimiter):
 		headers = header_line.split(delimiter)
 		sample_id_index = headers.index('Sample-ID')
 		
+		count = 0
 		for line in f:
 			fields = line.split(delimiter)
+			count += 1
 			try:
 				sample_id = fields[sample_id_index]
 			except:
-				print(line, file=sys.stderr)
+				print('{:d}: {}'.format(count, line), file=sys.stderr)
 				raise ValueError('failed parsing')
 			sample_info[sample_id] = fields
 			
