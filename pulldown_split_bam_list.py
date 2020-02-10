@@ -1,10 +1,11 @@
 import argparse
 import sys
 
-# File format is [individual_id] [instance id] [library list]
-# libraries are ignored because we are reusing the file that specifies merges
-# return a dictionary of instance_ids -> library id list
-def instances_to_libraries_from_file(filename):
+# File format is [instance id] [individual_id] [library list]
+# return dictionaries of:
+# 1. instance_ids -> library id list and 
+# 2. instance_ids -> individuals
+def instances_maps(filename):
 	instances = {}
 	instance_to_individual = {}
 	with open(filename) as f:
@@ -15,6 +16,12 @@ def instances_to_libraries_from_file(filename):
 			library_ids = fields[2:]
 			instances[instance_id] = library_ids
 			instance_to_individual[instance_id] = individual_id
+			# check that libraries list does not contain duplicates
+			duplicates_check = {}
+			for library_id in library_ids:
+				if library_id in duplicates_check:
+					raise ValueError('Duplicate library {} for instance id {}'.format(library_id, instance_id))
+				duplicates_check[library_id] = 1
 	return instances, instance_to_individual
 
 def split_pulldowns(instances_to_libraries, minimum_splits=1):
@@ -56,7 +63,7 @@ if __name__ == "__main__":
 	
 	args = parser.parse_args()
 	
-	instances_to_libraries, instances_to_individual = instances_to_libraries_from_file(args.sample_bam_list)
+	instances_to_libraries, instances_to_individual = instances_maps(args.sample_bam_list)
 	pulldowns_instances = split_pulldowns(instances_to_libraries, args.minimum_splits)
 	pulldown_index = 1
 	for pulldown_instances in pulldowns_instances:
