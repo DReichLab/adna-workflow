@@ -11,9 +11,12 @@ from has_read_groups import read_group_checks
 from bam_finder import ShopVersion
 
 # Check to see if a bam has any reads
-def bam_has_reads(bam_filename):
-	result = subprocess.run(['samtools', 'view', '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
+def bam_has_aligned_reads(bam_filename):
+	result = subprocess.run(['samtools', 'view', '-F', 4, '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
 	return int(result) > 0
+
+def aligned_reads_only(input_bam, output_bam):
+	subprocess.run(['samtools', 'view', '-h', '-b', '-F', 4, '-o', output_bam, input_bam], check=True)
 
 def add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, individual, working_directory, jvm_mem_string, leniency):
 	command_read_groups = ["java", jvm_mem_string, "-jar", adna_jar_filename,
@@ -39,18 +42,20 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 	count = 0
 	library_component_bams = []
 	component_bam_missing_duplicate_tag = False
-	for i in range(len(library_parameters.bam_filenames)):
-		component_bam_filename = library_parameters.bam_filenames[i]
+	for input_bam_filename, bam_date_string in zip(library_parameters.bam_filenames, library_parameters.bam_date_strings):
 		# only bams with reads need to be merged
-		if bam_has_reads(component_bam_filename):
-			if not bam_has_XD_tag(component_bam_filename):
+		if bam_has_aligned_reads(input_bam_filename):
+			if not bam_has_XD_tag(input_bam_filename):
 				component_bam_missing_duplicate_tag = True
 			count += 1
+			# filter aligned reads only
+			component_bam_filename = '{}/{}_{:d}.bam'.format(working_directory, input_bam_filename, count)
+			aligned_reads_only(input_bam_filename, component_bam_filename)
+			
 			output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
 			# Demultiplexed, but unreleased bams need read groups added
 			has_read_groups, has_real_library_name, date_string = read_group_checks(component_bam_filename)
 			if not has_read_groups:
-				bam_date_string = library_parameters.bam_date_strings[i]
 				label = "{}_{}".format(library_parameters.read_group_description, library_id)
 				add_read_groups(adna_jar_filename, component_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory, jvm_mem_string, leniency)
 			# Shop's bams need read groups rewritten
@@ -89,9 +94,9 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 				to_deduplicate_filename = library_with_duplicates_filename
 			
 			# deduplicate
-			subprocess.run("java {0} -jar {1} MarkDuplicates I={2} O={3} M={3}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000 {4}".format(jvm_mem_string, picard_jar, to_deduplicate_filename, library_filename, leniency_string), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
-		else: # There are no reads, so use an empty bam. First bam should exist and be empty, so return a copy of that
-			shutil.copy(library_parameters.bam_filenames[0], working_directory + '/' + library_filename)
+			subprocess.run("java {0} -jar {1} MarkDuplicates I={2} O={3} M={3}.dedup_stats REMOVE_DUPLICATES=true BARCODE_TAG=XD ADD_PG_TAG_TO_READS=false MAX_FILE_HANDLES=1000 COMPRESSION_LEVEL=9 {4}".format(jvm_mem_string, picard_jar, to_deduplicate_filename, library_filename, leniency_string), shell=True, check=True, cwd=working_directory, stdout=stdout_build, stderr=stderr_build)
+		else: # There are no reads, so use an empty bam. First bam should exist and be empty, so return a copy of that, ensuring aligned reads only
+			aligned_reads_only(library_parameters.bam_filenames[0], working_directory + '/' + library_filename)
 		
 	return library_filename
 
@@ -113,7 +118,7 @@ def index_library(library_parameters, release_parent_directory, release_library_
 	if release_parent_directory != None:
 		release_library_path = library_parameters.get_release_library_path(release_parent_directory)
 		# indexing empty files fails
-		if bam_has_reads('{}/{}'.format(release_library_path, release_library_name)):
+		if bam_has_aligned_reads('{}/{}'.format(release_library_path, release_library_name)):
 			subprocess.run(['samtools', 'index', release_library_name], check=True, cwd=release_library_path)
 	
 class LibraryParameters:

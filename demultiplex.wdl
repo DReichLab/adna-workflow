@@ -36,7 +36,7 @@ workflow demultiplex_align_bams{
 	
 	String output_path_parent
 	String output_path = output_path_parent + "/" + date + "_" + dataset_label
-	String output_path_nuclear_aligned_filtered = output_path + "/nuclear_aligned_filtered"
+	String output_path_nuclear_aligned_unfiltered = output_path + "/nuclear_aligned_unfiltered"
 	String output_path_rsrs_aligned_filtered = output_path + "/rsrs_aligned_filtered"
 	
 	call prepare_reference as prepare_reference_nuclear{ input:
@@ -128,7 +128,7 @@ workflow demultiplex_align_bams{
 		samples_to_demultiplex = samples_to_demultiplex,
 		index_barcode_keys = index_barcode_keys
 	}
-	call filter_aligned_only as filter_aligned_only_nuclear { input:
+	call sort as sort_nuclear { input:
 		picard_jar = picard_jar,
 		bams = demultiplex_nuclear.demultiplexed_bam,
 	}
@@ -174,9 +174,9 @@ workflow demultiplex_align_bams{
 	}
 	
 	# output
-	call copy_output as copy_nuclear_aligned_filtered{ input:
-		files = filter_aligned_only_nuclear.filtered,
-		output_path = output_path_nuclear_aligned_filtered
+	call copy_output as copy_nuclear_aligned{ input:
+		files = sort_nuclear.sorted,
+		output_path = output_path_nuclear_aligned_unfiltered
 	}
 	call copy_output as copy_rsrs_aligned_filtered{ input:
 		files = filter_aligned_only_rsrs.filtered,
@@ -207,11 +207,11 @@ workflow demultiplex_align_bams{
 	call update_database_with_demultiplexed{ input:
 		date_string = date,
 		name = dataset_label,
-		unused = (copy_nuclear_aligned_filtered.copied + copy_rsrs_aligned_filtered.copied + copy_and_rename_demultiplex_nuclear_statistics.copied + copy_and_rename_demultiplex_mt_statistics.copied + copy_misc_output_files.copied + copy_and_rename_lane_statistics.copied)
+		unused = (copy_nuclear_aligned.copied + copy_rsrs_aligned_filtered.copied + copy_and_rename_demultiplex_nuclear_statistics.copied + copy_and_rename_demultiplex_mt_statistics.copied + copy_misc_output_files.copied + copy_and_rename_lane_statistics.copied)
 	}
 	
 	output{
-		Array[File] nuclear_bams = filter_aligned_only_nuclear.filtered
+		Array[File] nuclear_bams = sort_nuclear.sorted
 		Array[File] rsrs_bams = filter_aligned_only_rsrs.filtered
 		File kmer_analysis_report = kmer_analysis.analysis
 		File aggregated_statistics = aggregate_lane_statistics.statistics
@@ -543,30 +543,26 @@ task demultiplex{
 	Int minutes = 720
 	
 	command{
-		java -Xmx7500m -jar ${adna_screen_jar} DemultiplexSAM -b -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
+		java -Xmx7500m -jar ${adna_screen_jar} DemultiplexSAM -b --async -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
 		File statistics = "postalignment_statistics"
 	}
 	runtime{
-		cpus: 1
+		cpus: 3
 		runtime_minutes: minutes
-		requested_memory_mb_per_core: 8000
+		requested_memory_mb_per_core: 2700
 		queue: if minutes > 720 then "medium" else "short"
 	}
 }
 
-# filter out unaligned reads, then sort
 task filter_aligned_only{
 	File picard_jar
 	Array[File] bams
-	Int processes = 5
+	Int processes = 6
 	Int minutes = 600
 	
-	# picard complains "MAPQ should be 0 for unmapped read." while trying to filter unmapped reads
-	#java -jar ${picard_jar} SortSam I=${bam} O=sorted_queryname.bam SORT_ORDER=queryname
-	#java -jar ${picard_jar} FilterSamReads I=sorted_queryname.bam O=${filename} FILTER=includeAligned
 	command{
 		set -e
 		mkdir -p filtered_sorted
@@ -578,7 +574,7 @@ task filter_aligned_only{
 		def filter_bam_aligned_only(bam):
 			output_filename = basename(bam)
 			subprocess.check_output("samtools view -h -b -F 4 -o %s %s" % (output_filename, bam), shell=True)
-			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate" % (output_filename, "filtered_sorted/" + output_filename), shell=True)
+			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate COMPRESSION_LEVEL=9" % (output_filename, "filtered_sorted/" + output_filename), shell=True)
 		
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
@@ -591,6 +587,42 @@ task filter_aligned_only{
 	}
 	output{
 		Array[File] filtered = glob("filtered_sorted/*.bam")
+	}
+	runtime{
+		cpus: processes
+		runtime_minutes: minutes
+		requested_memory_mb_per_core: 4000
+	}
+}
+
+task sort{
+	File picard_jar
+	Array[File] bams
+	Int processes = 6
+	Int minutes = 600
+	
+	command{
+		set -e
+		python3<<CODE
+		from multiprocessing import Pool
+		from os.path import basename
+		import subprocess
+		
+		def sort_bam(bam):
+			output_filename = basename(bam)
+			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} SortSam I=%s O=%s SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT COMPRESSION_LEVEL=9" % (bam, output_filename), shell=True)
+		
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+		
+		pool = Pool(processes=${processes})
+		[pool.apply_async(sort_bam, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
+		CODE
+	}
+	output{
+		Array[File] sorted = glob("*.bam")
 	}
 	runtime{
 		cpus: processes
