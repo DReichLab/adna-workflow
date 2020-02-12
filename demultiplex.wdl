@@ -36,8 +36,10 @@ workflow demultiplex_align_bams{
 	
 	String output_path_parent
 	String output_path = output_path_parent + "/" + date + "_" + dataset_label
-	String output_path_nuclear_aligned_unfiltered = output_path + "/nuclear_aligned_unfiltered"
-	String output_path_rsrs_aligned_filtered = output_path + "/rsrs_aligned_filtered"
+	String nuclear_demultiplex_subdirectory = "nuclear_aligned_unfiltered"
+	String mt_demultiplex_subdirectory = "rsrs_aligned_filtered"
+	String output_path_nuclear_aligned_unfiltered = output_path + "/" + nuclear_demultiplex_subdirectory
+	String output_path_rsrs_aligned_filtered = output_path + "/" + mt_demultiplex_subdirectory
 	
 	call prepare_reference as prepare_reference_nuclear{ input:
 		reference = reference_in
@@ -759,6 +761,8 @@ task update_database_with_demultiplexed{
 	String date_string
 	String name
 	Int django_analysis_run_id
+	String nuclear_demultiplex_subdirectory
+	String mt_demultiplex_subdirectory
 	
 	Boolean start = true
 	String start_string = if start then "--start_analysis" else ""
@@ -768,7 +772,7 @@ task update_database_with_demultiplexed{
 	Int unused
 	
 	command{
-		ssh -t mym11@orchestra-legacy.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name} --analysis_run ${django_analysis_run_id} ${start_string} ${flowcell_option_string}
+		ssh -t mym11@orchestra-legacy.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name} --analysis_run ${django_analysis_run_id} --nuclear_subdirectory ${nuclear_demultiplex_subdirectory} --mt_subdirectory ${mt_demultiplex_subdirectory} ${start_string} ${flowcell_option_string}
 	}
 	runtime{
 		runtime_minutes: 20
