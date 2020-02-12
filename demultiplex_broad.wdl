@@ -41,8 +41,11 @@ workflow demultiplex_align_bams{
 	
 	String output_path_parent
 	String output_path = output_path_parent + "/" + date + "_" + dataset_label
-	String output_path_nuclear_aligned_filtered = output_path + "/nuclear_aligned_filtered"
-	String output_path_rsrs_aligned_filtered = output_path + "/rsrs_aligned_filtered"
+	# duplicated from demultiplex.wdl because I cannot figure out how to reuse
+	String nuclear_demultiplex_subdirectory = "nuclear_aligned_unfiltered"
+	String mt_demultiplex_subdirectory = "rsrs_aligned_filtered"
+	String output_path_nuclear_aligned_unfiltered = output_path + "/" + nuclear_demultiplex_subdirectory
+	String output_path_rsrs_aligned_filtered = output_path + "/" + mt_demultiplex_subdirectory
 	
 	call demultiplex_master.prepare_reference as prepare_reference_nuclear{ input:
 		reference = reference_in
@@ -138,7 +141,7 @@ workflow demultiplex_align_bams{
 		samples_to_demultiplex = samples_to_demultiplex,
 		index_barcode_keys = index_barcode_keys
 	}
-	call demultiplex_master.filter_aligned_only as filter_aligned_only_nuclear { input:
+	call demultiplex_master.sort as sort_nuclear { input:
 		picard_jar = picard_jar,
 		bams = demultiplex_nuclear.demultiplexed_bam,
 	}
@@ -184,9 +187,9 @@ workflow demultiplex_align_bams{
 	}
 	
 	# output
-	call demultiplex_master.copy_output as copy_nuclear_aligned_filtered{ input:
-		files = filter_aligned_only_nuclear.filtered,
-		output_path = output_path_nuclear_aligned_filtered
+	call demultiplex_master.copy_output as copy_nuclear_aligned_unfiltered{ input:
+		files = sort_nuclear.sorted,
+		output_path = output_path_nuclear_aligned_unfiltered
 	}
 	call demultiplex_master.copy_output as copy_rsrs_aligned_filtered{ input:
 		files = filter_aligned_only_rsrs.filtered,
@@ -217,12 +220,14 @@ workflow demultiplex_align_bams{
 	call demultiplex_master.update_database_with_demultiplexed{ input:
 		date_string = date,
 		name = dataset_label,
+		nuclear_demultiplex_subdirectory = nuclear_demultiplex_subdirectory,
+		mt_demultiplex_subdirectory = mt_demultiplex_subdirectory,
 		flowcell_by_lane = true,
-		unused = (copy_nuclear_aligned_filtered.copied + copy_rsrs_aligned_filtered.copied + copy_and_rename_demultiplex_nuclear_statistics.copied + copy_and_rename_demultiplex_mt_statistics.copied + copy_misc_output_files.copied + copy_and_rename_lane_statistics.copied)
+		unused = (copy_nuclear_aligned_unfiltered.copied + copy_rsrs_aligned_filtered.copied + copy_and_rename_demultiplex_nuclear_statistics.copied + copy_and_rename_demultiplex_mt_statistics.copied + copy_misc_output_files.copied + copy_and_rename_lane_statistics.copied)
 	}
 	
 	output{
-		Array[File] nuclear_bams = filter_aligned_only_nuclear.filtered
+		Array[File] nuclear_bams = sort_nuclear.sorted
 		Array[File] rsrs_bams = filter_aligned_only_rsrs.filtered
 		File kmer_analysis_report = kmer_analysis.analysis
 		File aggregated_statistics = aggregate_lane_statistics.statistics
