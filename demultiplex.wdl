@@ -209,6 +209,8 @@ workflow demultiplex_align_bams{
 	call update_database_with_demultiplexed{ input:
 		date_string = date,
 		name = dataset_label,
+		nuclear_demultiplex_subdirectory = nuclear_demultiplex_subdirectory,
+		mt_demultiplex_subdirectory = mt_demultiplex_subdirectory,
 		unused = (copy_nuclear_aligned.copied + copy_rsrs_aligned_filtered.copied + copy_and_rename_demultiplex_nuclear_statistics.copied + copy_and_rename_demultiplex_mt_statistics.copied + copy_misc_output_files.copied + copy_and_rename_lane_statistics.copied)
 	}
 	
