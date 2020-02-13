@@ -419,22 +419,25 @@ task combine_bams_into_libraries{
 			Path(temp_dir).mkdir(exist_ok=True) # make a temporary directory
 			count = 0 # ensure filenames are unique by using count
 			filtered_bam_filenames = []
-			for bam in bam_filenames:
-				count += 1
-				filtered_bam_filename = '%s/%d_%s' % (temp_dir, count, basename(bam))
-				subprocess.run(['samtools', 'view', '-h', '-b', '-F', 4, '-o', filtered_bam_filename, bam], check=True)
-				filtered_bam_filenames += [filtered_bam_filename]
+			with open('%s/stdout_build' % (temp_dir,), 'w') as stdout_build, \
+				open('%s/stderr_build' % (temp_dir,), 'w') as stderr_build:
+				for bam in bam_filenames:
+					count += 1
+					filtered_bam_filename = '%s/%d_%s' % (temp_dir, count, basename(bam))
+					subprocess.run(['samtools', 'view', '-h', '-b', '-F', '4', '-o', filtered_bam_filename, bam], check=True, stdout=stdout_build, stderr=stderr_build)
+					filtered_bam_filenames += [filtered_bam_filename]
 			
-			merge_file_list = 'I=' + ' I='.join(filtered_bam_filenames)
-			command = "java -Xmx2000m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate COMPRESSION_LEVEL=9" % (merge_file_list, sample_id_filename)
-			#print('combine bam lists ' + command)
-			subprocess.check_output(command, shell=True)
+				merge_file_list = 'I=' + ' I='.join(filtered_bam_filenames)
+				command = "java -Xmx2000m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate COMPRESSION_LEVEL=9" % (merge_file_list, sample_id_filename)
+				#print('combine bam lists ' + command)
+				subprocess.check_output(command, shell=True)
 		
 		with open("${bam_lists}") as f:
 			bam_filenames_for_library = [line.split() for line in f]
 			pool = Pool(processes=${processes})
-			[pool.apply_async(merge_bam, args=(bam_filenames,)) for bam_filenames in bam_filenames_for_library]
+			results = [pool.apply_async(merge_bam, args=(bam_filenames,)) for bam_filenames in bam_filenames_for_library]
 			pool.close()
+			[result.get() for result in results] # check for errors
 			pool.join()
 		CODE
 	}

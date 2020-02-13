@@ -12,11 +12,11 @@ from bam_finder import ShopVersion
 
 # Check to see if a bam has any reads
 def bam_has_aligned_reads(bam_filename):
-	result = subprocess.run(['samtools', 'view', '-F', 4, '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
+	result = subprocess.run(['samtools', 'view', '-F', '4', '-c', bam_filename], check=True, universal_newlines=True, stdout=subprocess.PIPE).stdout.strip()
 	return int(result) > 0
 
 def aligned_reads_only(input_bam, output_bam):
-	subprocess.run(['samtools', 'view', '-h', '-b', '-F', 4, '-o', output_bam, input_bam], check=True)
+	subprocess.run(['samtools', 'view', '-h', '-b', '-F', '4', '-o', output_bam, input_bam], check=True)
 
 def add_read_groups(adna_jar_filename, demultiplexed_bam_filename, output_bam_filename, bam_date_string, label, library_id, individual, working_directory, jvm_mem_string, leniency):
 	command_read_groups = ["java", jvm_mem_string, "-jar", adna_jar_filename,
