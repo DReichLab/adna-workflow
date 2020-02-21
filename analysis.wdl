@@ -482,8 +482,9 @@ task duplicates{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(deduplicate_bam, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(deduplicate_bam, args=(bam,)) for bam in bams]
 		pool.close()
+		[result.get() for result in results] # check for errors
 		pool.join()
 		CODE
 	}
@@ -646,8 +647,9 @@ task snp_target_bed{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(count_SNPs, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(count_SNPs, args=(bam,)) for bam in bams]
 		pool.close()
+		[result.get() for result in results] # check for errors
 		pool.join()
 		CODE
 	}
@@ -710,8 +712,9 @@ task target_depth_bed{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(calculate_SNP_depths, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(calculate_SNP_depths, args=(bam,)) for bam in bams]
 		pool.close()
+		[result.get() for result in results] # check for errors
 		pool.join()
 		CODE
 	}
@@ -792,8 +795,9 @@ task haplogrep{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(haplogrep_run, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(haplogrep_run, args=(bam,)) for bam in bams]
 		pool.close()
+		[result.get() for result in results] # check for errors
 		pool.join()
 		CODE
 	}
