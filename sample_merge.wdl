@@ -111,6 +111,18 @@ workflow sample_merge_and_pulldown_with_analysis{
 		udg_plus_libraries = udg_plus_libraries,
 		python_read_groups_from_bam = python_read_groups_from_bam
 	}
+	call analysis_clipping.clip_deamination as clip_mt_hard { input:
+		adna_screen_jar = adna_screen_jar,
+		picard_jar = picard_jar,
+		bams = remove_marked_duplicates_mt.no_duplicates_bams,
+		deamination_bases_to_clip_half = deamination_bases_to_clip_half,
+		deamination_bases_to_clip_minus = deamination_bases_to_clip_minus,
+		deamination_bases_to_clip_plus = deamination_bases_to_clip_plus,
+		udg_minus_libraries = udg_minus_libraries,
+		udg_plus_libraries = udg_plus_libraries,
+		python_read_groups_from_bam = python_read_groups_from_bam,
+		hard_clip = true
+	}
 	
 	call analysis.damage_loop as damage_nuclear{ input :
 		pmdtools = pmdtools,
@@ -178,7 +190,7 @@ workflow sample_merge_and_pulldown_with_analysis{
 		reference_length = 16569,
 		coverage_field = "MT_post-coverageLength"
 	}
-	scatter(bam in clip_mt.clipped_bams){
+	scatter(bam in clip_mt_hard.clipped_bams){
 		call analysis_clipping.contammix{ input:
 			bam = bam,
 			picard_jar = picard_jar,
