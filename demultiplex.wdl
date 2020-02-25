@@ -774,7 +774,7 @@ task update_database_with_demultiplexed{
 	Int unused
 	
 	command{
-		ssh -t mym11@orchestra-legacy.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name} --analysis_run ${django_analysis_run_id} --nuclear_subdirectory ${nuclear_demultiplex_subdirectory} --mt_subdirectory ${mt_demultiplex_subdirectory} ${start_string} ${flowcell_option_string}
+		ssh app-wsgi-prod01.rc.hms.harvard.edu /opt/rc/python/3.8.1/bin/python3 ${django_manage_for_command} load_demultiplexed --date_string ${date_string} --name ${name} --analysis_run ${django_analysis_run_id} --nuclear_subdirectory ${nuclear_demultiplex_subdirectory} --mt_subdirectory ${mt_demultiplex_subdirectory} ${start_string} ${flowcell_option_string}
 	}
 	runtime{
 		runtime_minutes: 20

@@ -564,7 +564,7 @@ task signal_preliminary_report_ready{
 	Int unused
 	
 	command{
-		ssh -t mym11@orchestra-legacy.med.harvard.edu ssh rc-app-shared01.orchestra /opt/python-3.4.2/bin/python ${django_manage_for_command} preliminary_report_ready --date_string ${date_string} --name ${name}
+		ssh app-wsgi-prod01.rc.hms.harvard.edu /opt/rc/python/3.8.1/bin/python3 ${django_manage_for_command} preliminary_report_ready --date_string ${date_string} --name ${name}
 	}
 	runtime{
 		runtime_minutes: 20
