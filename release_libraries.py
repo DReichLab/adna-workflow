@@ -42,19 +42,20 @@ def build_release_library(adna_jar_filename, picard_jar, working_directory, libr
 	count = 0
 	library_component_bams = []
 	component_bam_missing_duplicate_tag = False
-	for input_bam_filename, bam_date_string in zip(library_parameters.bam_filenames, library_parameters.bam_date_strings):
+	for input_bam, bam_date_string in zip(library_parameters.bam_filenames, library_parameters.bam_date_strings):
 		# only bams with reads need to be merged
-		if bam_has_aligned_reads(input_bam_filename):
-			if not bam_has_XD_tag(input_bam_filename):
+		if bam_has_aligned_reads(input_bam):
+			if not bam_has_XD_tag(input_bam):
 				component_bam_missing_duplicate_tag = True
 			count += 1
 			# filter aligned reads only
-			component_bam_filename = '{}/{}_{:d}.bam'.format(working_directory, input_bam_filename, count)
-			aligned_reads_only(input_bam_filename, component_bam_filename)
+			component_bam_filename = '{}_{:d}.bam'.format(Path(input_bam).stem, count)
+			component_bam_path = '{}/{}'.format(working_directory, component_bam_filename)
+			aligned_reads_only(input_bam, component_bam_path)
 			
 			output_bam_filename = "{0}_{1:d}.{2}.{3}.bam".format(library_id, count, experiment, reference)
 			# Demultiplexed, but unreleased bams need read groups added
-			has_read_groups, has_real_library_name, date_string = read_group_checks(component_bam_filename)
+			has_read_groups, has_real_library_name, date_string = read_group_checks(component_bam_path)
 			if not has_read_groups:
 				label = "{}_{}".format(library_parameters.read_group_description, library_id)
 				add_read_groups(adna_jar_filename, component_bam_filename, output_bam_filename, bam_date_string, label, library_id, library_parameters.individual_id, working_directory, jvm_mem_string, leniency)
