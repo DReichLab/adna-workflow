@@ -39,4 +39,4 @@ if __name__ == "__main__":
 					if (now - modified) < allowed_age: 
 						shutil.move(source, args.directory)
 					else:
-						print('{} is older than requested age', file=sys.stderr)
+						print('{} is older than requested age'.format(source), file=sys.stderr)
