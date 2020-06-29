@@ -593,7 +593,7 @@ task filter_aligned_only{
 		Array[File] filtered = glob("filtered_sorted/*.bam")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: minutes
 		requested_memory_mb_per_core: 4000
 	}
@@ -629,7 +629,7 @@ task sort{
 		Array[File] sorted = glob("*.bam")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: minutes
 		requested_memory_mb_per_core: 4000
 	}
@@ -707,7 +707,7 @@ task common_unknown_barcodes{
 		File unknown_barcodes = "unknown_barcodes"
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams_without_known_barcodes) < processes then length(bams_without_known_barcodes) else processes
 		runtime_minutes: 60
 		requested_memory_mb_per_core: 4000
 	}
