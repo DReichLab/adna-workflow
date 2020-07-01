@@ -941,6 +941,9 @@ task preseq{
 	File picard_jar
 	File python_depth_histogram
 	File python_preseq_process
+	File python_histogram_counts
+	
+	Int subsampling_iterations = 10
 	
 	Int processes = 8
 	Float model_a
@@ -985,15 +988,46 @@ task preseq{
 			subprocess.check_output("java -Xmx4500m -jar ${adna_screen_jar} DuplicatesHistogram -i %s > %s" % (sorted_filename, unique_reads_histogram_filename), shell=True)
 			unique_read_count, total_count = count_unique_reads(unique_reads_histogram_filename)
 			
-			read_ratio = (raw_count / total_count) if total_count > 0 else float('inf')
-			step = int(total_count / 4)
-			extrapolation_max = int((total_count * 5) if read_ratio > 0 else 0)
 			preseq_table_filename = sample_id + ".preseq_table"
-			if (unique_read_count > 0) and ((total_count  / unique_read_count) < 100):
-				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename), shell=True)
-			else: # avoid running preseq for low complexity samples
-				subprocess.run("touch %s" % (preseq_table_filename), shell=True)
+			read_ratio = (raw_count / total_count) if total_count > 0 else float('inf')
+			perform_subsampling = (unique_read_count > 0) and ((unique_read_count / total_count) < 0.20)
+			perform_extrapolation = (unique_read_count > 0) and ((unique_read_count / total_count) > 0.01)
 			
+			if perform_subsampling:
+				# For low (but not super low) complexity libraries, we want a marginal uniqueness estimate
+				# We compute this using a subsampling approach to guarantee an estimate for libraries where preseq fails
+				subsampling_table = sample_id + ".low.preseq_table"
+				top_step = 5 if perform_extrapolation else 7
+				for subsample_step in range(0, top_step):
+					fraction_retained = 0.01 * (2 ** subsample_step)
+					subprocess.run("python3 ${python_histogram_counts} %s -f %f -n %d >> %s" % (unique_reads_histogram_filename, fraction_retained, ${subsampling_iterations}, subsampling_table), shell=True)
+			if perform_extrapolation:
+				# This is extrapolation estimate for what we get from more sequencing
+				# First step should be after contents of interpolation preseq table
+				preseq_table_filename_extrapolation = sample_id + ".high.preseq_table"
+				step = int(total_count / 4)
+				extrapolation_max = int((total_count * 5) if read_ratio > 0 else 0)
+				subprocess.run("preseq lc_extrap -H %s -s %d -e %d > %s" % (unique_reads_histogram_filename, step, extrapolation_max, preseq_table_filename_extrapolation), shell=True)
+				
+			if unique_read_count > 0:
+				# combine low and high coverage preseq tables into one
+				with open(preseq_table_filename, 'w') as combined_table:
+					header = 'TOTAL_READS\tEXPECTED_DISTINCT\tLOWER_0.95CI\tUPPER_0.95CI'
+					zeros = '0\t0\t0\t0'
+					print(header, file=combined_table)
+					print(zeros, file=combined_table)
+					if perform_subsampling:
+						with open(subsampling_table) as low_table:
+							for line in low_table:
+								print(line, end='', file=combined_table)
+					if perform_extrapolation:
+						with open(preseq_table_filename_extrapolation) as high_table:
+							high_table.readline() # skip header
+							high_table.readline() # skip zeros
+							for line in high_table:
+								print(line, end='', file=combined_table)
+			else:
+				subprocess.run("touch %s" % (preseq_table_filename), shell=True)
 			
 			targets_histogram_filename = sample_id + ".targets_histogram"
 			subprocess.check_output("samtools depth -b ${targets_bed} -q ${minimum_base_quality} -Q ${minimum_mapping_quality} %s | python3 ${python_depth_histogram} > %s" % (sorted_filename, targets_histogram_filename), shell=True)
@@ -1018,8 +1052,8 @@ task preseq{
 		File results = "preseq_results"
 	}
 	runtime{
-		cpus: processes
-		runtime_minutes: 200
+		cpus: if length(bams) < processes then length(bams) else processes
+		runtime_minutes: 400
 		requested_memory_mb_per_core: 5000
 	}
 }
