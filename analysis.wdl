@@ -990,7 +990,7 @@ task preseq{
 			
 			preseq_table_filename = sample_id + ".preseq_table"
 			read_ratio = (raw_count / total_count) if total_count > 0 else float('inf')
-			perform_subsampling = (unique_read_count > 0) and ((unique_read_count / total_count) < 0.20)
+			perform_subsampling = (total_count >= 1000) and (total_count < 1e5 or ((unique_read_count / total_count) < 0.20))
 			perform_extrapolation = (unique_read_count > 0) and ((unique_read_count / total_count) > 0.01)
 			
 			if perform_subsampling:
@@ -1012,20 +1012,24 @@ task preseq{
 			if unique_read_count > 0:
 				# combine low and high coverage preseq tables into one
 				with open(preseq_table_filename, 'w') as combined_table:
-					header = 'TOTAL_READS\tEXPECTED_DISTINCT\tLOWER_0.95CI\tUPPER_0.95CI'
-					zeros = '0\t0\t0\t0'
-					print(header, file=combined_table)
-					print(zeros, file=combined_table)
+					data_lines_to_write = []
 					if perform_subsampling:
 						with open(subsampling_table) as low_table:
 							for line in low_table:
-								print(line, end='', file=combined_table)
+								data_lines_to_write.append(line)
 					if perform_extrapolation:
 						with open(preseq_table_filename_extrapolation) as high_table:
 							high_table.readline() # skip header
 							high_table.readline() # skip zeros
 							for line in high_table:
-								print(line, end='', file=combined_table)
+								data_lines_to_write.append(line)
+					if len(data_lines_to_write) > 0:
+						header = 'TOTAL_READS\tEXPECTED_DISTINCT\tLOWER_0.95CI\tUPPER_0.95CI'
+						zeros = '0\t0\t0\t0'
+						print(header, file=combined_table)
+						print(zeros, file=combined_table)
+						for line in data_lines_to_write:
+							print(line, end='', file=combined_table)
 			else:
 				subprocess.run("touch %s" % (preseq_table_filename), shell=True)
 			
