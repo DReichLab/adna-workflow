@@ -250,7 +250,7 @@ if __name__ == '__main__':
 		if str(values[key]).startswith('>'):
 			print('{}'.format(values[key]), end='\t')
 		elif 'coverage' in key or 'preseq_marginal_uniqueness' in key:
-			print('{:.3f}'.format(values[key]), end='\t')
+			print('{:.4f}'.format(values[key]), end='\t')
 		else:
 			print('{:.0f}'.format(values[key]), end='\t')
 
