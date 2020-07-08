@@ -403,6 +403,8 @@ task combine_bams_into_libraries{
 	
 	Int processes = 6
 	
+	Int num_files = length(read_lines(bam_lists))
+	
 	command{
 		python3 <<CODE
 		from multiprocessing import Pool
@@ -445,7 +447,7 @@ task combine_bams_into_libraries{
 		Array[File] library_bams = glob("*.bam")
 	}
 	runtime{
-		cpus: processes
+		cpus: if processes < num_files then processes else num_files
 		runtime_minutes: 180
 		requested_memory_mb_per_core: 2200
 	}
@@ -493,7 +495,7 @@ task duplicates{
 		Array[File] duplicates_statistics = glob("*.stats")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(unsorted) < processes then length(unsorted) else processes
 		runtime_minutes: 480
 		requested_memory_mb_per_core: 5000
 	}
@@ -551,7 +553,7 @@ task damage_loop{
 		File damage_all_samples_two_bases = "damage_all_samples_two_bases"
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		requested_memory_mb_per_core: 2000
 	}
 }
@@ -657,7 +659,7 @@ task snp_target_bed{
 		Array[File] snp_target_stats = glob("*.snp_target_stats")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: 480
 		requested_memory_mb_per_core: 4000
 	}
@@ -722,7 +724,7 @@ task target_depth_bed{
 		Array[File] depth_histograms = glob("*.depth_histogram")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: 480
 		requested_memory_mb_per_core: 3000
 	}
@@ -805,7 +807,7 @@ task haplogrep{
 		Array[File] haplogroup_report = glob("*.haplogroup")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: 360
 		requested_memory_mb_per_core: 2000
 	}
@@ -1123,7 +1125,7 @@ task angsd_contamination{
 		File contamination = "angsd_contamination_results"
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: 480
 		requested_memory_mb_per_core: 4000
 	}
