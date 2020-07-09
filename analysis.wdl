@@ -22,6 +22,7 @@ workflow adna_analysis{
 	File pmdtools
 	File htsbox
 	File haplogrep_jar
+	File angsd
 	
 	Float missing_alignments_fraction
 	Int max_open_gaps
@@ -64,6 +65,7 @@ workflow adna_analysis{
 		picard_jar = picard_jar,
 		htsbox = htsbox,
 		haplogrep_jar = haplogrep_jar,
+		angsd = angsd,
 		index_barcode_keys_to_stop_call_caching = index_barcode_keys
 	}
 	call demultiplex_align_bams.aggregate_statistics as aggregate_statistics_across_sequencing_runs{ input:
@@ -225,6 +227,7 @@ workflow adna_analysis{
 		bams = duplicates_nuclear.aligned_deduplicated,
 		adna_screen_jar = adna_screen_jar,
 		picard_jar = picard_jar,
+		angsd = angsd,
 		python_angsd_results = python_angsd_results,
 		minimum_mapping_quality = minimum_mapping_quality,
 		minimum_base_quality = minimum_base_quality,
@@ -365,6 +368,7 @@ task analysis_versions{
 	File picard_jar
 	File htsbox
 	File haplogrep_jar
+	File angsd
 	String python_version_git_hash
 	File index_barcode_keys_to_stop_call_caching
 
@@ -384,7 +388,7 @@ task analysis_versions{
 		mafft --version >> versions 2>&1
 		java -jar ${haplogrep_jar} >> versions 2>&1
 		preseq >> versions 2>&1
-		angsd >> versions 2>&1
+		${angsd} >> versions 2>&1
 	}
 	output{
 		File versions = "versions"
