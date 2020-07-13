@@ -342,6 +342,7 @@ task merge_bams{
 	String reference
 	
 	Int processes = 1
+	Int num_merges = length(read_lines(bam_lists_per_individual))
 	
 	command{
 		python3 <<CODE
@@ -398,7 +399,7 @@ task merge_bams{
 		Array[File] bams = glob("*.bam")
 	}
 	runtime{
-		cpus: processes
+		cpus: if num_merges < processes then num_merges else processes
 		runtime_minutes: 600
 		requested_memory_mb_per_core: 3000
 	}
@@ -444,7 +445,7 @@ task remove_marked_duplicates{
 		Array[File] no_duplicates_bams = glob("*.bam")
 	}
 	runtime{
-		cpus: processes
+		cpus: if length(bams) < processes then length(bams) else processes
 		runtime_minutes: 100
 		requested_memory_mb_per_core: 1000
 	}
