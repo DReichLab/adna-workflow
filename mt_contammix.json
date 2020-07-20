@@ -1,0 +1,30 @@
+{
+  "mt_contammix.bams": "Array[File]",
+  "mt_contammix.adna_screen_jar": "/n/groups/reich/matt/pipeline/static/adnascreen-1.10.0-SNAPSHOT.jar",
+  "mt_contammix.contammix.picard_jar": "/n/groups/reich/matt/pipeline/static/picard-v2.17.10.jar",
+
+  "mt_contammix.prepare_reference_rsrs.reference": "/n/groups/reich/matt/pipeline/static/mtdna_rsrs.fa",
+
+  "mt_contammix.minimum_mapping_quality": "30",
+  "mt_contammix.minimum_base_quality": "20",
+
+  "mt_contammix.python_target": "/home/mym11/pipeline/adna-workflow/target.py",
+  "mt_contammix.python_coverage": "/home/mym11/pipeline/adna-workflow/coverage.py",
+
+  "mt_contammix.contammix.htsbox": "/home/mym11/bin/htsbox",
+
+  "mt_contammix.contammix.missing_alignments_fraction": "0.01",
+  "mt_contammix.contammix.max_open_gaps": "2",
+  "mt_contammix.contammix.seed_length": "16500",
+
+  "mt_contammix.contammix.deamination_bases_to_clip": "2",
+
+  "mt_contammix.contammix.threads": "8",
+  "mt_contammix.contammix.chains": "4",
+  "mt_contammix.contammix.copies": "2",
+  "mt_contammix.contammix.seed": "2017",
+  "mt_contammix.contammix.max_coverage": "50",
+  "mt_contammix.contammix.potential_contaminants_fa": "/n/groups/reich/matt/pipeline/static/potential_contaminants.fa",
+  "mt_contammix.contammix.python_contammix_multiprocess": "/home/mym11/pipeline/adna-workflow/contammix_multiprocess.py",
+  "mt_contammix.contammix.contammix_estimate": "/home/mym11/external/contamMix/exec/estimate.R"
+}
