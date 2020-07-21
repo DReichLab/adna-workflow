@@ -19,6 +19,12 @@ def parse_angsd_results(filename):
 			if site_result:
 				angsd["nsites"] = int(site_result.group(1))
 			if line.startswith(stats_search):
+				# errors start with 'contamination' on the same line with good data
+				# chop this off if we can use the good data
+				error_value = 'contamination'
+				if error_value in line:
+					line = line[0:line.index(error_value)]
+				# parse values
 				key_value_pairs = line[len(stats_search):].split()
 				for pair in key_value_pairs:
 					key, value = pair.split(':')
