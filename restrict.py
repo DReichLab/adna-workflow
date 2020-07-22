@@ -7,6 +7,7 @@ if __name__ == "__main__":
 	parser.add_argument('-t', '--target', help="Restrict this file to lines containing ")
 	parser.add_argument('-u', '--unused', help="Print unused restrict values to stderr", action='store_true')
 	parser.add_argument('-v', '--invert', help="Invert match to print only lines that do not match", action='store_true')
+	parser.add_argument('-p', '--preserve_header', help="preserve header in output", action='store_true')
 	args = parser.parse_args() 
 
 	# build restrict list from all restrict input files
@@ -19,6 +20,9 @@ if __name__ == "__main__":
 	# filter target file using restrict list
 	used = {}
 	with open(args.target) as f:
+		if args.preserve_header:
+			line = f.readline()
+			print(line, end='')
 		for line in f:
 			match = False
 			for candidate in restrict_list:
