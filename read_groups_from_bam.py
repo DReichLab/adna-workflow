@@ -45,6 +45,7 @@ def read_groups_and_libraries_from_bam(bam_filename):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Show the read groups in a bam.")
+	parser.add_argument('-p', "--pulldown", help="report read groups colon-delimited for pulldown", action='store_true')
 
 	parser.add_argument('-l', "--libraries", help="report libraries instead of read groups", action='store_true')
 	parser.add_argument('-b', "--both", help="report read groups and libraries", action='store_true')
@@ -59,5 +60,8 @@ if __name__ == "__main__":
 			print("{}\t{}".format(read_group, library))
 	else:
 		read_groups = read_groups_from_bam(bam_filename, args.libraries)
-		for read_group in read_groups:
-			print(read_group)
+		if args.pulldown:
+			print(':'.join(read_groups))
+		else:
+			for read_group in read_groups:
+				print(read_group)
