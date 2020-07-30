@@ -113,7 +113,11 @@ def addToSamples(f):
 			samples[sampleID] = {}
 		
 		for n in range(0, len(labels)):
-			samples[sampleID][labels[n]] = values[n]
+			try:
+				samples[sampleID][labels[n]] = values[n]
+			except Exception as e:
+				print('Error for {}\t{}'.format(sampleID, labels[n]), file=sys.stderr)
+				raise e
 			
 def isCoverageLabel(label):
 	return "coverageLength" in label
