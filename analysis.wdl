@@ -1003,9 +1003,10 @@ task preseq{
 				# For low (but not super low) complexity libraries, we want a marginal uniqueness estimate
 				# We compute this using a subsampling approach to guarantee an estimate for libraries where preseq fails
 				subsampling_table = sample_id + ".low.preseq_table"
-				top_step = 5 if perform_extrapolation else 7
-				for subsample_step in range(0, top_step):
-					fraction_retained = 0.01 * (2 ** subsample_step)
+				fractions = [0.01, 0.02, 0.04, 0.08, 0.16]
+				if not perform_extrapolation:
+					fractions += [0.32, 0.64, 0.8, 1.0]
+				for fraction_retained in fractions:
 					subprocess.run("python3 ${python_histogram_counts} %s -f %f -n %d >> %s" % (unique_reads_histogram_filename, fraction_retained, ${subsampling_iterations}, subsampling_table), shell=True)
 			if perform_extrapolation:
 				# This is extrapolation estimate for what we get from more sequencing

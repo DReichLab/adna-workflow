@@ -83,6 +83,11 @@ def preseq_analysis(reads_hitting_any_target, unique_reads, number_raw_reads, to
 	# marginal uniqueness at current number of reads
 	try:
 		expected_distinct_reads, marginal_uniqueness = interpolate_base(reads_hitting_any_target, unique_reads, total_reads_hitting_any_target_actual)
+		# the marginal uniqueness slope is not available for the last inteval
+		# take the nearest valid interval as the estimate
+		if marginal_uniqueness is None:
+			ignored, marginal_uniqueness = interpolate_base(reads_hitting_any_target, unique_reads, reads_hitting_any_target[len(reads_hitting_any_target)-2])
+			
 		values['preseq_marginal_uniqueness'] = marginal_uniqueness
 	except:
 		pass
