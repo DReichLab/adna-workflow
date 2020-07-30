@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Simple count of SNPs in eigenstrat files")
+	parser = argparse.ArgumentParser(description="Simple count of autosome SNPs in eigenstrat files")
 	
 	parser.add_argument("input", help="geno,ind,snp file root")
 	args = parser.parse_args()
