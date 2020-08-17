@@ -203,18 +203,11 @@ task haplogrep{
 	Int minimum_mapping_quality
 	Int minimum_base_quality
 	String region = "MT"
-	Array[File] bams
+	Array[File] bams # bams should be clipped already
 	File haplogrep_jar
 	Int phylotree_version
 	File adna_screen_jar
 	File picard_jar
-	
-	Int deamination_bases_to_clip_half
-	Int deamination_bases_to_clip_minus
-	Int deamination_bases_to_clip_plus
-	Array[String] udg_minus_libraries
-	Array[String] udg_plus_libraries
-	File python_read_groups_from_bam
 	
 	File reference
 	File reference_amb
@@ -233,34 +226,14 @@ task haplogrep{
 		from os.path import basename, splitext
 		import subprocess
 		
-		def libraries_in_bam(bam):
-			output = subprocess.run(['python3', "${python_read_groups_from_bam}", '-l', bam], stdout=subprocess.PIPE, check=True)
-			libraries = output.stdout.decode('utf-8').split()
-			return libraries
-		
-		def haplogrep_run(bam, half_bases, minus_libraries, minus_bases, plus_libraries, plus_bases):
+		def haplogrep_run(bam):
 			sample_id_filename = basename(bam)
 			sample_id, extension = splitext(sample_id_filename)
-			
-			present_libraries = set(libraries_in_bam(bam))
-			
-			minus_args = []
-			for minus_library in minus_libraries:
-				if minus_library in present_libraries:
-					minus_args.append('-s')
-					minus_args.append(minus_library)
-			plus_args = []
-			for plus_library in plus_libraries:
-				if plus_library in present_libraries:
-					plus_args.append('-t')
-					plus_args.append(plus_library)
 			
 			subprocess.check_output("java -Xmx2600m -jar ${picard_jar} SamToFastq I=%s FASTQ=%s.fastq" % (bam, sample_id), shell=True)
 			subprocess.check_output("bwa aln -t 2 -o ${max_open_gaps} -n ${missing_alignments_fraction} -l ${seed_length} ${reference} %s.fastq > %s.sai" % (sample_id, sample_id), shell=True)
 			subprocess.check_output("bwa samse ${reference} %s.sai %s.fastq | samtools view -bS - > %s.realigned.bam" % (sample_id, sample_id, sample_id), shell=True)
-			clipped_bam = "%s.clipped_unsorted_realigned.bam" % (sample_id,)
-			subprocess.run(["java", "-Xmx2600m", "-jar", "${adna_screen_jar}", "softclip", "-b", "-n", "%d" % (half_bases,), "-i", bam, "-o", clipped_bam, "-x", "%d" % (minus_bases,), "-y", "%d" % (plus_bases,)] + minus_args + plus_args, check=True)
-			subprocess.check_output("java -Xmx2600m -jar ${picard_jar} SortSam I=%s.clipped_unsorted_realigned.bam O=%s.bam SORT_ORDER=coordinate" % (sample_id, sample_id), shell=True)
+			subprocess.check_output("java -Xmx2600m -jar ${picard_jar} SortSam I=%s.realigned.bam O=%s.bam SORT_ORDER=coordinate" % (sample_id, sample_id), shell=True)
 			subprocess.check_output("samtools index %s.bam" % (sample_id,), shell=True)
 			subprocess.check_output("samtools mpileup -q ${minimum_mapping_quality} -Q ${minimum_base_quality} -r ${region} -u -f ${reference} %s.bam | bcftools call -c -v --ploidy 1 > %s.vcf" % (sample_id, sample_id), shell=True)
 			subprocess.check_output("java -Xmx2600m -jar ${haplogrep_jar} --format vcf --phylotree ${phylotree_version} --in %s.vcf --out %s.haplogroup" % (sample_id, sample_id), shell=True)
@@ -268,13 +241,8 @@ task haplogrep{
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
 		
-		udg_minus_string = "${sep=',' udg_minus_libraries}"
-		udg_minus_libs = udg_minus_string.split(',')
-		udg_plus_string = "${sep=',' udg_plus_libraries}"
-		udg_plus_libs = udg_plus_string.split(',')
-		
 		pool = Pool(processes=${processes})
-		results = [pool.apply_async(haplogrep_run, args=(bam, ${deamination_bases_to_clip_half}, udg_minus_libs, ${deamination_bases_to_clip_minus}, udg_plus_libs, ${deamination_bases_to_clip_plus})) for bam in bams]
+		results = [pool.apply_async(haplogrep_run, args=(bam,)) for bam in bams]
 		pool.close()
 		pool.join()
 		[result.get() for result in results]

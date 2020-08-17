@@ -11,6 +11,9 @@ imports2.zip: demultiplex.wdl analysis.wdl analysis_clipping.wdl release_and_pul
 analysis.pdf: analysis.wdl
 	java -jar womtool-36.jar graph $^ |dot -Tpdf -o $@ 
 
+bam_analysis.pdf: bam_analysis.wdl
+	java -jar womtool-36.jar graph $^ |dot -Tpdf -o $@ 
+
 demultiplex.pdf: demultiplex.wdl
 	java -jar womtool-36.jar graph $^ |dot -Tpdf -o $@
 

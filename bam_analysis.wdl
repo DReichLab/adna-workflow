@@ -3,12 +3,12 @@ import "analysis.wdl" as analysis
 import "analysis_clipping.wdl" as analysis_clipping
 import "release_and_pulldown.wdl" as pulldown
 
-workflow sample_merge_and_pulldown_with_analysis{
-	File sample_library_list
+workflow bam_analysis{
 	String label
-	String release_directory
 	String genome_reference_string
 	String mt_reference_string
+	Array[File] input_nuclear_bams
+	Array[File] input_mt_bams
 
 	File adna_screen_jar
 	File picard_jar
@@ -47,29 +47,10 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call demultiplex_align_bams.prepare_reference as prepare_reference_rcrs{ input:
 		reference = mt_reference_rcrs_in
 	}
-
-	call prepare_bam_list{ input:
-		library_id_file = sample_library_list,
-		genome_reference_string = genome_reference_string,
-		mt_reference_string = mt_reference_string
-	}
 	
-	call merge_bams as merge_bams_nuclear{ input : 
-		bam_lists_per_individual = prepare_bam_list.nuclear_list,
-		adna_screen_jar = adna_screen_jar,
-		picard_jar = picard_jar,
-		reference = genome_reference_string,
-		processes = 10
-	}
 	call remove_marked_duplicates as remove_marked_duplicates_nuclear{ input:
-		bams = merge_bams_nuclear.bams,
+		bams = input_nuclear_bams,
 		references = [genome_reference_string, mt_reference_string],
-	}
-	call release_samples as release_samples_nuclear { input:
-		release_directory = release_directory,
-		bams = remove_marked_duplicates_nuclear.no_duplicates_bams,
-		sample_library_list = sample_library_list,
-		reference = genome_reference_string
 	}
 	call analysis_clipping.clip_deamination as clip_nuclear { input:
 		adna_screen_jar = adna_screen_jar,
@@ -83,22 +64,9 @@ workflow sample_merge_and_pulldown_with_analysis{
 		python_read_groups_from_bam = python_read_groups_from_bam
 	}
 	
-	call merge_bams as merge_bams_mt{ input:
-		bam_lists_per_individual = prepare_bam_list.mt_list,
-		adna_screen_jar = adna_screen_jar,
-		picard_jar = picard_jar,
-		reference = mt_reference_string,
-		processes = 2
-	}
 	call remove_marked_duplicates as remove_marked_duplicates_mt{ input:
-		bams = merge_bams_mt.bams,
+		bams = input_mt_bams,
 		references = [genome_reference_string, mt_reference_string],
-	}
-	call release_samples as release_samples_mt{ input:
-		release_directory = release_directory,
-		bams = remove_marked_duplicates_mt.no_duplicates_bams,
-		sample_library_list = sample_library_list,
-		reference = mt_reference_string
 	}
 	call analysis_clipping.clip_deamination as clip_mt { input:
 		adna_screen_jar = adna_screen_jar,
@@ -221,35 +189,6 @@ workflow sample_merge_and_pulldown_with_analysis{
 	call analysis.concatenate as concatenate_count_1240k_post{ input:
 		to_concatenate = count_1240k_post.snp_target_stats
 	}
-	call split_pulldowns{ input:
-		sample_library_list = sample_library_list
-	}
-	scatter(split_sample_library_list in split_pulldowns.split_pulldown_sample_library_lists){
-		call pulldown_merged_samples{ input:
-			python_pulldown = python_pulldown,
-			python_merge_pulldown = python_merge_pulldown,
-			python_read_groups_from_bam = python_read_groups_from_bam,
-			python_release_libraries = python_release_libraries,
-			label = label,
-			release_directory = release_directory,
-			bams = release_samples_nuclear.released_bams,
-			sex_by_instance_id = concatenate_count_1240k_post.concatenated,
-			udg_minus_libraries_file = udg_minus_libraries_file,
-			udg_plus_libraries_file = udg_plus_libraries_file,
-			sample_bam_list = split_sample_library_list
-		}
-	}
-	call demultiplex_align_bams.collect_filenames{ input:
-		filename_arrays = pulldown_merged_samples.geno_ind_snp
-	}
-	call merge_pulldown_results{ input:
-		pulldown_results = collect_filenames.filenames,
-		python_pulldown = python_pulldown,
-		python_merge_pulldown = python_merge_pulldown,
-		python_read_groups_from_bam = python_read_groups_from_bam,
-		python_release_libraries = python_release_libraries,
-		label = label
-	}
 	call analysis_results{ input:
 		keyed_value_results = [
 			damage_nuclear.damage_all_samples_two_bases,
@@ -261,141 +200,49 @@ workflow sample_merge_and_pulldown_with_analysis{
 			summarize_haplogroups.haplogroups
 		]
 	}
+	
+	output{
+		Array[File] clipped_mt_bams = clip_mt.clipped_bams
+		Array[File] mt_bams = remove_marked_duplicates_mt.no_duplicates_bams
+		Array[File] clipped_nuclear_bams = clip_nuclear.clipped_bams
+		Array[File] nuclear_bams = remove_marked_duplicates_nuclear.no_duplicates_bams
+	}
 }
 
-# take a list of instance ids with library ids, build corresponding list of bam paths for nuclear and mt components
-task prepare_bam_list{
-	# each line has an individual/instance ID, then component library ids
+# take a list of instance ids with nuclear and MT bams
+# rename them using symbolic links so the analysis returns intelligible results using the filenames
+task prepare_bam_links{
+	# each line looks like:
+	# [id] [nuclear bam] [mt bam]library ids
 	# does each line also need version number?
-	File library_id_file
-	File python_bam_finder
-	File python_library_id
-	String genome_reference_string
-	String mt_reference_string
-	
-	Boolean latest_library = false
-	String version_policy = if latest_library then "latest" else "only"
+	File bams_to_analyze
 	
 	command{
+		set -e
+		mkdir -p nuclear
+		mkdir -p mt
 		python3 <<CODE
-		import subprocess
-		import sys
-		
-		def bam_path_from_library_id(library_id, reference):
-			result = subprocess.run(['python3', '${python_bam_finder}', '--reference', reference, '--version_policy', '${version_policy}', library_id], check=True, stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
-			return result
-		
-		with open("${library_id_file}", 'r') as f, open('nuclear_list', 'w') as nuclear_filelist, open('mt_list', 'w') as mt_filelist:
-			shop_bam_root = 'aln.sort.mapped.rmdupse_adna_v2.md'
-			for line in f:
-				fields = line.strip().split('\t')
-				instance_id = fields[0]
-				individual_id = fields[1]
-				library_ids = fields[2:]
-				
-				nuclear_fields = [instance_id]
-				mt_fields = [instance_id]
-				
-				for library_id in library_ids:
-					# whole genome
-					nuclear = bam_path_from_library_id(library_id, "${genome_reference_string}")
-					mt = bam_path_from_library_id(library_id, "${mt_reference_string}")
+			import os
+			import re
+			
+			with open("${bams_to_analyze}", 'r') as f:
+				for line in f:
+					fields = re.split('\t|\n', line)
+					instance_id = fields[0]
+					nuclear_bam = fields[1]
+					mt_bam = fields[2]
 					
-					# all libraries should have a nuclear and MT component
-					if nuclear == '':
-						raise ValueError('missing nuclear bam for %s' % library_id)
-					else:
-						nuclear_fields.append(library_id)
-						nuclear_fields.append(nuclear)
-					
-					if mt == '':
-						print('missing mt bam for %s' % library_id)
-					else:
-						mt_fields.append(library_id)
-						mt_fields.append(mt)
-				print('\t'.join(nuclear_fields), file=nuclear_filelist)
-				print('\t'.join(mt_fields), file=mt_filelist)
+					os.symlink(nuclear_bam, 'nuclear/' + instance_id + '.bam')
+					os.symlink(mt_bam, 'mt/' + instance_id + '.bam')
 		CODE
 	}
 	output{
-		File nuclear_list = "nuclear_list"
-		File mt_list = "mt_list"
+		Array[File] nuclear_bams = glob("nuclear/*.bam")
+		Array[File] mt_bams = glob("mt/*.bam")
 	}
 	runtime{
 		runtime_minutes: 10
 		requested_memory_mb_per_core: 100
-	}
-}
-
-# perform a "by-sample" (individual/instance) merge
-task merge_bams{
-	# each line has an instance ID, then component bam paths
-	File bam_lists_per_individual
-	File adna_screen_jar
-	File picard_jar
-	String reference
-	
-	Int processes = 1
-	Int num_merges = length(read_lines(bam_lists_per_individual))
-	
-	command{
-		python3 <<CODE
-		from multiprocessing import Pool
-		from os.path import basename
-		import subprocess
-		import os
-		
-		def merge_bam(instance_id, library_ids, bam_paths):
-			instance_id_filename = "%s.${reference}.bam" % (instance_id)
-			# make a directory for this instance ID
-			os.makedirs(instance_id)
-			with open(instance_id + '/stdout_merge', 'w') as stdout_merge, \
-				open(instance_id + '/stderr_merge', 'w') as stderr_merge:
-				# write instance ID into read groups
-				bams_with_altered_read_groups = []
-				for library_id, bam in zip(library_ids, bam_paths):
-					bam_with_altered_read_groups = instance_id + '/' + library_id + '.' + basename(bam)
-					#subprocess.run(["java", "-Xmx2700m", "-jar", "${adna_screen_jar}", "ReadGroupRewrite", "-i", bam, "-o", bam_with_altered_read_groups, "-s", instance_id, "-l", library_id], check=True, stdout=stdout_merge, stderr=stderr_merge)
-					subprocess.run(["java", "-Xmx2700m", "-jar", "${picard_jar}", "AddOrReplaceReadGroups", 
-						"I=%s" % (bam,), 
-						"O=%s" % (bam_with_altered_read_groups,), 
-						"RGID=%s" % (library_id,), 
-						"RGLB=%s" % (library_id,),
-						"RGPL=illumina",
-						"RGPU=%s" % (library_id,),
-						"RGSM=%s" % instance_id], 
-						check=True, stdout=stdout_merge, stderr=stderr_merge)
-					bams_with_altered_read_groups.append(bam_with_altered_read_groups)
-				# merge
-				merge_file_list = 'I=' + ' I='.join(bams_with_altered_read_groups)
-				# TODO output should be captured per instance
-				command = "java -Xmx2500m -jar ${picard_jar} MergeSamFiles %s O=%s SORT_ORDER=coordinate" % (merge_file_list, instance_id_filename)
-				#print('combine bam lists ' + command)
-				subprocess.check_output(command, shell=True)
-		
-		pool = Pool(processes=${processes})
-		results = []
-		with open("${bam_lists_per_individual}") as f:
-			for line in f:
-				fields = line.split()
-				instance_id = fields[0]
-				library_ids = fields[1::2]
-				bam_paths = fields[2::2]
-				results.append(pool.apply_async(merge_bam, args=(instance_id, library_ids, bam_paths)))
-		pool.close()
-		pool.join()
-		for result in results:
-			result.get()
-		CODE
-	}
-
-	output{
-		Array[File] bams = glob("*.bam")
-	}
-	runtime{
-		cpus: if num_merges < processes then num_merges else processes
-		runtime_minutes: 600
-		requested_memory_mb_per_core: 3000
 	}
 }
 
@@ -514,138 +361,5 @@ task analysis_results{
 	runtime{
 		runtime_minutes: 5
 		requested_memory_mb_per_core: 100
-	}
-}
-
-task release_samples{
-	String release_directory
-	Array[File] bams
-	File sample_library_list
-	String reference
-	
-	command{
-		python3 <<CODE
-		import os
-		import sys
-		import shutil
-		from pathlib import Path
-		import subprocess
-		
-		instance_to_individual = dict()
-		with open("${sample_library_list}") as f:
-			for line in f:
-				fields = line.split('\t')
-				instance_id = fields[0]
-				individual_id = fields[1]
-				instance_to_individual[instance_id] = individual_id
-		
-		bams_string = "${sep=',' bams}"
-		bams = bams_string.split(',')
-		
-		with open('bam_list', 'w') as bam_list:
-			for bam in bams:
-				source_file = Path(bam)
-				# create a directory for the individual if it does not exist yet
-				instance_id = source_file.stem
-				individual_id = instance_to_individual[instance_id]
-				bam_directory = Path("${release_directory}") / individual_id
-				bam_directory.mkdir(mode=0o750, exist_ok=True)
-				# copy file
-				bam_destination = bam_directory / (instance_id + ".${reference}.bam")
-				if bam_destination.exists():
-					sys.stderr.write('%s already exists' % (source_file))
-				else:
-					created = shutil.copy(source_file, bam_destination)
-					os.chmod(created, 0o440)
-				print(str(bam_destination), file=bam_list)
-				# index bam
-				subprocess.run(['samtools', 'index', bam_destination], check=True)
-		CODE
-	}
-	output{
-		Array[String] released_bams = read_lines('bam_list')
-	}
-	runtime{
-		runtime_minutes: 120
-		requested_memory_mb_per_core: 2000
-	}
-}
-
-# split a merge list into multiple split_pulldowns
-# This serves two purposes
-# 1. satisfy pulldown read group restrictions
-# 2. parallelization
-task split_pulldowns{
-	File sample_library_list
-	File python_pulldown_split_bam_list
-	
-	command{
-		python3 ${python_pulldown_split_bam_list} ${sample_library_list}
-	}
-	output{
-		Array[File] split_pulldown_sample_library_lists = glob("pulldown_instances*")
-	}
-	runtime{
-		runtime_minutes: 5
-		requested_memory_mb_per_core: 100
-	}
-}
-
-task pulldown_merged_samples{
-	File python_pulldown_sample
-	File python_pulldown
-	File python_merge_pulldown
-	File python_read_groups_from_bam
-	File python_release_libraries
-	File pulldown_executable
-	String label
-	String release_directory
-	
-	File sex_by_instance_id
-	Array[File] bams
-	
-	File udg_minus_libraries_file
-	File udg_plus_libraries_file
-	
-	File sample_bam_list
-	
-	command{
-		python3 ${python_pulldown_sample} --pulldown_executable ${pulldown_executable} --pulldown_label ${label} --minus_libraries ${udg_minus_libraries_file} --plus_libraries ${udg_plus_libraries_file} --sex ${sex_by_instance_id} ${sample_bam_list} ${sep=' ' bams}
-	}
-	output{
-		Array[File] geno_ind_snp = glob("${label}.combined.*")
-	}
-	runtime{
-		cpus: 2
-		requested_memory_mb_per_core: 8000
-	}
-}
-
-task merge_pulldown_results{
-	Array[File] pulldown_results
-	File python_pulldown
-	File python_merge_pulldown
-	File python_read_groups_from_bam
-	File python_release_libraries
-	String label
-	
-	command{
-		python3 <<CODE
-		import subprocess
-		import os
-		
-		input_string = "${sep=',' pulldown_results}"
-		input_files = input_string.split(',')
-		
-		input_stems = set()
-		input_stems_ordered = []
-		for f in input_files:
-			stem = os.path.splitext(f)[0]
-			if stem not in input_stems:
-				input_stems.add(stem)
-				input_stems_ordered.append(stem)
-		
-		subprocess.run(["python3", "${python_merge_pulldown}", '-m', '1', '-i'] + input_stems_ordered + ['-o', "${label}"], check=True)
-		CODE
 	}
 }
