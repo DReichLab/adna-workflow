@@ -1,7 +1,6 @@
 import "demultiplex.wdl" as demultiplex_align_bams
 import "analysis.wdl" as analysis
 import "analysis_clipping.wdl" as analysis_clipping
-import "release_and_pulldown.wdl" as pulldown
 
 workflow bam_analysis{
 	String label
@@ -22,10 +21,7 @@ workflow bam_analysis{
 	File python_damage_two_bases
 	File python_angsd_results
 	File python_target
-	File python_pulldown
-	File python_merge_pulldown
 	File python_read_groups_from_bam
-	File python_release_libraries
 
 	Float missing_alignments_fraction
 	Int max_open_gaps
