@@ -22,6 +22,7 @@ workflow bam_analysis{
 	File python_angsd_results
 	File python_target
 	File python_read_groups_from_bam
+	File python_central_measures
 
 	Float missing_alignments_fraction
 	Int max_open_gaps
@@ -136,6 +137,13 @@ workflow bam_analysis{
 	call analysis.summarize_haplogroups{ input:
 		haplogrep_output = haplogrep_rcrs.haplogroup_report
 	}
+	call analysis_clipping.chromosome_target as nuclear_chromosome_target_post{ input:
+		python_target = python_target,
+		adna_screen_jar = adna_screen_jar,
+		bams = clip_nuclear.clipped_bams,
+		targets="\"{'autosome_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'],'X_post':'X','Y_post':'Y','human_post':['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','X','Y']}\"",
+		minimum_mapping_quality = minimum_mapping_quality
+	}
 	call analysis_clipping.chromosome_target as rsrs_chromosome_target_post{ input:
 		python_target = python_target,
 		adna_screen_jar = adna_screen_jar,
@@ -185,10 +193,26 @@ workflow bam_analysis{
 	call analysis.concatenate as concatenate_count_1240k_post{ input:
 		to_concatenate = count_1240k_post.snp_target_stats
 	}
+	
+	call analysis_clipping.central_measures as central_measures_nuclear{ input:
+		python_central_measures = python_central_measures,
+		mean_label = "mean_nuclear",
+		median_label = "median_nuclear",
+		histograms = nuclear_chromosome_target_post.length_histogram
+	}
+	call analysis_clipping.central_measures as central_measures_rsrs{ input:
+		python_central_measures = python_central_measures,
+		mean_label = "mean_rsrs",
+		median_label = "median_rsrs",
+		histograms = rsrs_chromosome_target_post.length_histogram
+	}
+	
 	call analysis_results{ input:
 		keyed_value_results = [
 			damage_nuclear.damage_all_samples_two_bases,
 			damage_mt.damage_all_samples_two_bases,
+			central_measures_nuclear.central_measures_output,
+			central_measures_rsrs.central_measures_output,
 			angsd_contamination.contamination,
 			concatenate_count_1240k_post.concatenated,
 			rsrs_coverage.coverage_statistics,
