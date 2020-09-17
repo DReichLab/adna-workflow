@@ -1,7 +1,7 @@
 # read the median from a histogram file produced by org.apache.commons.math3.stat.Frequency
 
 import sys
-import os
+from pathlib import Path
 
 def medianFromHistogram(filename):
 	with open(filename, "r") as f:
@@ -57,9 +57,9 @@ mean_label = sys.argv[2]
 filenames = sys.argv[3: len(sys.argv)]
 
 for filename in filenames:
-	key = os.path.basename(filename)
-	while key.count('.') > 0:
-		key = os.path.splitext(key)[0] # filename without extension
+	key = Path(filename).name
+	while '.bam' in key or '.sam' in key or '.cram' in key:
+		key = Path(key).stem # filename without extension
 	median = medianFromHistogram(filename)
 	mean = meanFromHistogram(filename)
 	print("%s\t%s\t%s\t%s\t%.1f" % (key, median_label, median, mean_label, mean) )
