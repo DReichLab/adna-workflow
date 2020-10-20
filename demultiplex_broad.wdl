@@ -134,10 +134,21 @@ workflow demultiplex_align_bams{
 		reference_pac = prepare_reference_rsrs.reference_pac,
 		reference_sa = prepare_reference_rsrs.reference_sa
 	}
+	#################################################################
+	call demultiplex_master.clean_sam as clean_sam_nuclear{ input:
+		picard_jar = picard_jar,
+		bams = align_nuclear.bam
+	}
+
+	call demultiplex_master.clean_sam as clean_sam_rsrs{ input:
+		picard_jar = picard_jar,
+		bams = align_rsrs.bam
+	}
+	##################################################################
 	call demultiplex_master.demultiplex as demultiplex_nuclear {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_bam_files = align_nuclear.bam,
+		aligned_bam_files = clean_sam_nuclear.cleaned,
 		samples_to_demultiplex = samples_to_demultiplex,
 		index_barcode_keys = index_barcode_keys
 	}
@@ -148,7 +159,7 @@ workflow demultiplex_align_bams{
 	call demultiplex_master.demultiplex as demultiplex_rsrs {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_bam_files = align_rsrs.bam,
+		aligned_bam_files = clean_sam_rsrs.cleaned,
 		samples_to_demultiplex = samples_to_demultiplex,
 		index_barcode_keys = index_barcode_keys
 	}
@@ -165,7 +176,7 @@ workflow demultiplex_align_bams{
 	call demultiplex_master.demultiplex as demultiplex_for_unknown_barcodes{ input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_bam_files = align_rsrs.bam,
+		aligned_bam_files = clean_sam_rsrs.cleaned,
 		samples_to_demultiplex = 0,
 		index_barcode_keys = index_pairs_without_barcodes.index_pairs
 	}

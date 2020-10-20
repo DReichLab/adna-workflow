@@ -123,10 +123,21 @@ workflow demultiplex_align_bams{
 		reference_pac = prepare_reference_rsrs.reference_pac,
 		reference_sa = prepare_reference_rsrs.reference_sa
 	}
+	#################################################################
+	call clean_sam as clean_sam_nuclear{ input:
+		picard_jar = picard_jar,
+		bams = align_nuclear.bam
+	}
+
+	call clean_sam as clean_sam_rsrs{ input:
+		picard_jar = picard_jar,
+		bams = align_rsrs.bam
+	}
+	##################################################################
 	call demultiplex as demultiplex_nuclear {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_bam_files = align_nuclear.bam,
+		aligned_bam_files = clean_sam_nuclear.cleaned,
 		samples_to_demultiplex = samples_to_demultiplex,
 		index_barcode_keys = index_barcode_keys
 	}
@@ -137,7 +148,7 @@ workflow demultiplex_align_bams{
 	call demultiplex as demultiplex_rsrs {input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_bam_files = align_rsrs.bam,
+		aligned_bam_files = clean_sam_rsrs.cleaned,
 		samples_to_demultiplex = samples_to_demultiplex,
 		index_barcode_keys = index_barcode_keys
 	}
@@ -154,7 +165,7 @@ workflow demultiplex_align_bams{
 	call demultiplex as demultiplex_for_unknown_barcodes{ input:
 		adna_screen_jar = adna_screen_jar,
 		prealignment_statistics = aggregate_lane_statistics.statistics,
-		aligned_bam_files = align_rsrs.bam,
+		aligned_bam_files = clean_sam_rsrs.cleaned,
 		samples_to_demultiplex = 0,
 		index_barcode_keys = index_pairs_without_barcodes.index_pairs
 	}
@@ -503,9 +514,13 @@ task align_pool{
 		fastq_files = fastq_files_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(align_fastq, args=(fastq_file,)) for fastq_file in fastq_files]
+		results = [pool.apply_async(align_fastq, args=(fastq_file,)) for fastq_file in fastq_files]
 		pool.close()
 		pool.join()
+
+		for result in results:
+            result.get()
+
 		CODE
 	}
 	output{
@@ -515,6 +530,47 @@ task align_pool{
 		cpus: "${processes}"
 		runtime_minutes: 300
 		requested_memory_mb_per_core: 1000
+	}
+}
+
+task clean_sam{
+	File picard_jar
+	Array[File] bams
+	Int processes = 6
+	Int minutes = 600
+
+	command{
+		set -e
+		mkdir -p cleaned
+		python3<<CODE
+		from multiprocessing import Pool
+		from os.path import basename
+		import subprocess
+
+		def clean(bam):
+			output_filename = "cleaned/"+basename(bam)
+			subprocess.check_output("java -Xmx7500m -jar ${picard_jar} CleanSam INPUT=%s OUTPUT=%s" % (bam, output_filename), shell=True)
+
+		bams_string = "${sep=',' bams}"
+		bams = bams_string.split(',')
+
+		pool = Pool(processes=${processes})
+		results = [pool.apply_async(clean, args=(bam,)) for bam in bams]
+		pool.close()
+		pool.join()
+
+		for result in results:
+            result.get()
+
+		CODE
+	}
+	output{
+		Array[File] cleaned = glob("cleaned/*.bam")
+	}
+	runtime{
+		cpus: if length(bams) < processes then length(bams) else processes
+		runtime_minutes: minutes
+		requested_memory_mb_per_core: 4000
 	}
 }
 
@@ -584,9 +640,13 @@ task filter_aligned_only{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(filter_bam_aligned_only, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(filter_bam_aligned_only, args=(bam,)) for bam in bams]
 		pool.close()
 		pool.join()
+
+		for result in results:
+            result.get()
+
 		CODE
 	}
 	output{
@@ -620,9 +680,13 @@ task sort{
 		bams = bams_string.split(',')
 		
 		pool = Pool(processes=${processes})
-		[pool.apply_async(sort_bam, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(sort_bam, args=(bam,)) for bam in bams]
 		pool.close()
 		pool.join()
+
+		for result in results:
+            result.get()
+
 		CODE
 	}
 	output{
