@@ -710,7 +710,7 @@ task copy_output{
 		for file in ${sep=' ' files}  ; do 
 			cp -l $file "${output_path}" || cp $file "${output_path}"
 			short_filename=$(basename $file)
-			chmod 660 "${output_path}/$short_filename"
+			chmod 664 "${output_path}/$short_filename"
 		done
 	}
 	output{
