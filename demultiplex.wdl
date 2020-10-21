@@ -519,7 +519,7 @@ task align_pool{
 		pool.join()
 
 		for result in results:
-            result.get()
+			result.get()
 
 		CODE
 	}
@@ -549,7 +549,7 @@ task clean_sam{
 
 		def clean(bam):
 			output_filename = "cleaned/"+basename(bam)
-			subprocess.check_output("java -Xmx7500m -jar ${picard_jar} CleanSam INPUT=%s OUTPUT=%s" % (bam, output_filename), shell=True)
+			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} CleanSam INPUT=%s OUTPUT=%s" % (bam, output_filename), shell=True)
 
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
@@ -560,7 +560,7 @@ task clean_sam{
 		pool.join()
 
 		for result in results:
-            result.get()
+			result.get()
 
 		CODE
 	}
@@ -645,7 +645,7 @@ task filter_aligned_only{
 		pool.join()
 
 		for result in results:
-            result.get()
+			result.get()
 
 		CODE
 	}
@@ -685,7 +685,7 @@ task sort{
 		pool.join()
 
 		for result in results:
-            result.get()
+			result.get()
 
 		CODE
 	}
