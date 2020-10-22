@@ -599,11 +599,12 @@ task demultiplex{
 	Int samples_to_demultiplex
 	File? index_barcode_keys
 	File? barcodes
+	Int? threshold_reads
 	
 	Int minutes = 720
 	
 	command{
-		java -Xmx7500m -jar ${adna_screen_jar} DemultiplexSAM -b --async -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${sep=' ' aligned_bam_files} > postalignment_statistics
+		java -Xmx7500m -jar ${adna_screen_jar} DemultiplexSAM -b --async -n ${samples_to_demultiplex} -s ${prealignment_statistics} ${"-e " + index_barcode_keys} ${"--barcodeFile " + barcodes} ${"--thresholdReads " + threshold_reads} ${sep=' ' aligned_bam_files} > postalignment_statistics
 	}
 	output{
 		Array[File] demultiplexed_bam = glob("*.bam")
