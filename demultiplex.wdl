@@ -547,15 +547,15 @@ task clean_sam{
 		from os.path import basename
 		import subprocess
 
-		def clean(bam):
-			output_filename = "cleaned/"+basename(bam)
-			subprocess.check_output("java -Xmx3500m -jar ${picard_jar} CleanSam INPUT=%s OUTPUT=%s" % (bam, output_filename), shell=True)
+		def clean(bam,i):
+			output_filename = "cleaned/"+i+"_"basename(bam)
+			subprocess.check_output("java -Xmx7500m -jar ${picard_jar} CleanSam INPUT=%s OUTPUT=%s" % (bam, output_filename), shell=True)
 
 		bams_string = "${sep=',' bams}"
 		bams = bams_string.split(',')
 
 		pool = Pool(processes=${processes})
-		results = [pool.apply_async(clean, args=(bam,)) for bam in bams]
+		results = [pool.apply_async(clean, args=(bam,i,)) for i, bam in enumerate(bams)]
 		pool.close()
 		pool.join()
 
