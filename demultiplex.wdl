@@ -548,7 +548,7 @@ task clean_sam{
 		import subprocess
 
 		def clean(bam,i):
-			output_filename = "cleaned/"+i+"_"basename(bam)
+			output_filename = "cleaned/"+i+"_"+basename(bam)
 			subprocess.check_output("java -Xmx7500m -jar ${picard_jar} CleanSam INPUT=%s OUTPUT=%s" % (bam, output_filename), shell=True)
 
 		bams_string = "${sep=',' bams}"
