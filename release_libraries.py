@@ -110,7 +110,7 @@ def copy_release_library(library_parameters, destination_parent_directory, relea
 		# handle case where this library already exists
 		if not os.path.exists(destination_library_path + "/" + release_library_name):
 			created = shutil.copy(source_file, destination_library_path)
-			os.chmod(created, 0o440)
+			os.chmod(created, 0o444)
 		else:
 			sys.stderr.write('{} already exists\n'.format(source_file))
 			raise FileExistsError(source_file)
