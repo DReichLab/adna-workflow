@@ -105,12 +105,12 @@ def copy_release_library(library_parameters, destination_parent_directory, relea
 	if destination_parent_directory != None:
 		# create library directory if it does not exist
 		destination_library_path = library_parameters.get_release_library_path(destination_parent_directory)
-		pathlib.Path(destination_library_path).mkdir(mode=0o750, exist_ok=True)
+		pathlib.Path(destination_library_path).mkdir(mode=0o775, exist_ok=True)
 		source_file = Path(working_directory) / release_library_name
 		# handle case where this library already exists
 		if not os.path.exists(destination_library_path + "/" + release_library_name):
 			created = shutil.copy(source_file, destination_library_path)
-			os.chmod(created, 0o444)
+			os.chmod(created, 0o664)
 		else:
 			sys.stderr.write('{} already exists\n'.format(source_file))
 			raise FileExistsError(source_file)
