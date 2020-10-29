@@ -33,6 +33,7 @@ printcount:       NO
 udgmode: UDG
 minlen: 30
 maxlen: 123
+oldpullmode:	YES
 '''
 
 non_damage_restricted_options = 'pmdscore:         NO'
